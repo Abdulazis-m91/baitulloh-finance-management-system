@@ -8,14 +8,14 @@ import * as XLSX from 'xlsx';
 
 type FilterStatus = '' | 'lunas' | 'menunggak';
 type StudentForm = {
-  nisn: string; namaLengkap: string; jenjang: string; kelas: string;
+  nisn: string; barcode: string; namaLengkap: string; jenjang: string; kelas: string;
   namaOrangTua: string; nomorWhatsApp: string;
   tunggakanTahun: string; tunggakanBulan: string[];
 };
 
 const emptyForm: StudentForm = {
-  nisn: '', namaLengkap: '', jenjang: '', kelas: '',
-  namaOrangTua: '', nomorWhatsApp: '', tunggakanTahun: '', tunggakanBulan: [],
+  nisn: '', barcode: '', namaLengkap: '', jenjang: '', kelas: '',
+  namaOrangTua: '', nomorWhatsApp: '+62', tunggakanTahun: '', tunggakanBulan: [],
 };
 
 const modalOverlay = "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4";
