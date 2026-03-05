@@ -17,8 +17,8 @@ const Index = () => {
         initial={{ y: -80 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-        className="fixed top-0 left-0 right-0 z-40"
-      >
+        className="fixed top-0 left-0 right-0 z-40">
+        
         <div className="mx-4 mt-3">
           <div className="max-w-7xl mx-auto glass-card rounded-2xl px-5 h-16 flex items-center justify-between shadow-elevated">
             <div className="flex items-center gap-3">
@@ -27,19 +27,19 @@ const Index = () => {
                 alt="Logo Yayasan Baitulloh"
                 whileHover={{ rotate: 10, scale: 1.1 }}
                 transition={{ type: 'spring', stiffness: 300 }}
-                className="w-10 h-10 rounded-xl object-contain"
-              />
+                className="w-10 h-10 rounded-xl object-contain" />
+              
               <div>
                 <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Yayasan Baitulloh</h1>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Sistem Informasi Keuangan</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">SISTEM INFORMASI YAYASAN
+
+                </p>
               </div>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setLoginOpen(true)}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold btn-shine shadow-glow-primary"
-            >
+            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            onClick={() => setLoginOpen(true)}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold btn-shine shadow-glow-primary">
+              
               <LogIn className="w-4 h-4" /> Masuk
             </motion.button>
           </div>
@@ -55,8 +55,8 @@ const Index = () => {
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
             className="w-10 h-10 rounded-full glass-card shadow-elegant flex items-center justify-center cursor-pointer"
-            onClick={() => document.getElementById('info-section')?.scrollIntoView({ behavior: 'smooth' })}
-          >
+            onClick={() => document.getElementById('info-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            
             <ChevronDown className="w-5 h-5 text-primary" />
           </motion.div>
         </div>
@@ -79,8 +79,8 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="flex items-center justify-center gap-3 mb-4"
-            >
+              className="flex items-center justify-center gap-3 mb-4">
+              
               <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl object-contain drop-shadow-md" />
               <span className="text-white font-bold text-lg tracking-tight">Yayasan Baitulloh</span>
             </motion.div>
@@ -95,8 +95,8 @@ const Index = () => {
       </footer>
 
       <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
-    </div>
-  );
+    </div>);
+
 };
 
 export default Index;
