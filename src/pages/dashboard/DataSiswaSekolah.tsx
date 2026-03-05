@@ -8,14 +8,14 @@ import * as XLSX from 'xlsx';
 
 type FilterStatus = '' | 'lunas' | 'menunggak';
 type StudentForm = {
-  nisn: string; namaLengkap: string; jenjang: string; kelas: string;
+  nisn: string; barcode: string; namaLengkap: string; jenjang: string; kelas: string;
   namaOrangTua: string; nomorWhatsApp: string;
   tunggakanTahun: string; tunggakanBulan: string[];
 };
 
 const emptyForm: StudentForm = {
-  nisn: '', namaLengkap: '', jenjang: '', kelas: '',
-  namaOrangTua: '', nomorWhatsApp: '', tunggakanTahun: '', tunggakanBulan: [],
+  nisn: '', barcode: '', namaLengkap: '', jenjang: '', kelas: '',
+  namaOrangTua: '', nomorWhatsApp: '+62', tunggakanTahun: '', tunggakanBulan: [],
 };
 
 const modalOverlay = "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4";
@@ -70,7 +70,7 @@ export default function DataSiswaSekolah() {
 
   const openEdit = (s: typeof mockStudents[0]) => {
     setForm({
-      nisn: s.nisn, namaLengkap: s.namaLengkap, jenjang: s.jenjang, kelas: s.kelas,
+      nisn: s.nisn, barcode: s.barcode, namaLengkap: s.namaLengkap, jenjang: s.jenjang, kelas: s.kelas,
       namaOrangTua: s.namaOrangTua, nomorWhatsApp: s.nomorWhatsApp,
       tunggakanTahun: '', tunggakanBulan: [],
     });
@@ -96,10 +96,18 @@ export default function DataSiswaSekolah() {
     }));
   };
 
+  const handleWhatsAppChange = (value: string) => {
+    // Ensure it always starts with +62
+    if (!value.startsWith('+62')) {
+      value = '+62';
+    }
+    setForm({ ...form, nomorWhatsApp: value });
+  };
+
   const StudentFormPopup = ({ title, onClose, onSubmit }: { title: string; onClose: () => void; onSubmit: () => void }) => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={onClose}>
       <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={modalSpring}
-        className="bg-card rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-7" onClick={e => e.stopPropagation()}>
+        className="bg-card rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto p-7" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-bold text-foreground text-xl">{title}</h3>
           <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onClose} className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></motion.button>
@@ -108,10 +116,10 @@ export default function DataSiswaSekolah() {
         <form onSubmit={e => { e.preventDefault(); onSubmit(); }} className="space-y-5">
           {/* Top: Photo left, Form right */}
           <div className="flex gap-6">
-            {/* Photo frame */}
+            {/* Photo frame - square */}
             <div className="flex-shrink-0 flex flex-col items-center gap-3">
-              <div className="w-28 h-28 rounded-full gradient-primary flex items-center justify-center shadow-glow-primary border-4 border-card">
-                <User className="w-12 h-12 text-primary-foreground" />
+              <div className="w-32 h-32 rounded-2xl gradient-primary flex items-center justify-center shadow-glow-primary border-4 border-card">
+                <User className="w-14 h-14 text-primary-foreground" />
               </div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Foto Siswa</p>
             </div>
@@ -128,21 +136,36 @@ export default function DataSiswaSekolah() {
                   <input value={form.namaLengkap} onChange={e => setForm({ ...form, namaLengkap: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required />
                 </div>
               </div>
+
+              {/* Barcode RFID - full width */}
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Barcode / RFID</label>
+                <input value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })}
+                  placeholder="Scan atau ketik kode barcode / RFID..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus font-mono" />
+              </div>
+
+              {/* Jenjang & Kelas */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Jenjang</label>
-                  <select value={form.jenjang} onChange={e => setForm({ ...form, jenjang: e.target.value, kelas: '' })} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required>
+                  <select value={form.jenjang} onChange={e => { e.stopPropagation(); setForm({ ...form, jenjang: e.target.value, kelas: '' }); }}
+                    onMouseDown={e => e.stopPropagation()}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required>
                     <option value="">Pilih</option><option>SMP</option><option>SMA</option>
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Kelas</label>
-                  <select value={form.kelas} onChange={e => setForm({ ...form, kelas: e.target.value })} disabled={!form.jenjang} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50" required>
+                  <select value={form.kelas} onChange={e => { e.stopPropagation(); setForm({ ...form, kelas: e.target.value }); }}
+                    onMouseDown={e => e.stopPropagation()}
+                    disabled={!form.jenjang} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50" required>
                     <option value="">{form.jenjang ? 'Pilih Kelas' : 'Pilih jenjang dulu'}</option>
                     {form.jenjang && kelasOptions[form.jenjang]?.map(k => <option key={k} value={k}>{k}</option>)}
                   </select>
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Nama Orang Tua</label>
@@ -150,7 +173,9 @@ export default function DataSiswaSekolah() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">No. WhatsApp</label>
-                  <input value={form.nomorWhatsApp} onChange={e => setForm({ ...form, nomorWhatsApp: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required />
+                  <input value={form.nomorWhatsApp} onChange={e => handleWhatsAppChange(e.target.value)}
+                    placeholder="+628xxxxxxxxxx"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required />
                 </div>
               </div>
             </div>
@@ -163,9 +188,9 @@ export default function DataSiswaSekolah() {
             </label>
             <p className="text-xs text-muted-foreground mb-3">Pilih tahun lalu centang bulan-bulan tunggakan</p>
             <div className="flex gap-4 items-start">
-              {/* Year dropdown */}
               <div className="flex-shrink-0 w-32">
-                <select value={form.tunggakanTahun} onChange={e => setForm({ ...form, tunggakanTahun: e.target.value, tunggakanBulan: [] })}
+                <select value={form.tunggakanTahun} onChange={e => { e.stopPropagation(); setForm({ ...form, tunggakanTahun: e.target.value, tunggakanBulan: [] }); }}
+                  onMouseDown={e => e.stopPropagation()}
                   className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
                   <option value="">Tahun</option>
                   <option value="2024">2024</option>
@@ -174,7 +199,6 @@ export default function DataSiswaSekolah() {
                 </select>
               </div>
 
-              {/* Month checkboxes - only show when year is selected */}
               {form.tunggakanTahun && (
                 <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex-1">
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
