@@ -200,7 +200,7 @@ export default function PendapatanPesantren() {
             </div>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }
