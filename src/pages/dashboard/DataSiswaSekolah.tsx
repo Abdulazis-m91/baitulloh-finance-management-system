@@ -443,6 +443,7 @@ export default function DataSiswaSekolah() {
             title="Tambah Data Siswa"
             onClose={() => setShowAdd(false)}
             onSubmit={() => { toast.success('Data berhasil ditambahkan'); setShowAdd(false); }}
+            form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange}
           />
         )}
       </AnimatePresence>
@@ -454,6 +455,7 @@ export default function DataSiswaSekolah() {
             title="Edit Data Siswa"
             onClose={() => setShowEdit(null)}
             onSubmit={() => { toast.success('Data berhasil diperbarui'); setShowEdit(null); }}
+            form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange}
           />
         )}
       </AnimatePresence>
