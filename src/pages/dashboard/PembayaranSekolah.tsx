@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, CreditCard, Scan, Loader2, X, Printer, Download } from 'lucide-react';
-import { useStudents, useInsertPembayaran, useUpdateStudent, type StudentDB } from '@/hooks/useSupabaseData';
+import { Search, User, CreditCard, Scan, Loader2, X, Download } from 'lucide-react';
+import { useStudents, useInsertPembayaran, useUpdateStudent, useCicilanBySiswa, useInsertCicilan, useDeleteCicilanBySiswaAndBulan, type StudentDB, type CicilanDB } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
@@ -16,13 +16,47 @@ export default function PembayaranSekolah() {
   const [metode, setMetode] = useState<'Lunas' | 'Cicil' | 'Deposit'>('Lunas');
   const [selectedBulan, setSelectedBulan] = useState('');
   const [nominal, setNominal] = useState(0);
+  const [nominalCicilInput, setNominalCicilInput] = useState('');
   const [showStruk, setShowStruk] = useState(false);
   const [strukData, setStrukData] = useState<any>(null);
   const strukRef = useRef<HTMLDivElement>(null);
 
   const { data: students = [], isLoading } = useStudents();
+  const { data: cicilanSiswa = [] } = useCicilanBySiswa(selectedStudent?.id);
   const insertPembayaran = useInsertPembayaran();
   const updateStudent = useUpdateStudent();
+  const insertCicilan = useInsertCicilan();
+  const deleteCicilan = useDeleteCicilanBySiswaAndBulan();
+
+  // === Derived state ===
+  const hasTunggakan = selectedStudent ? selectedStudent.tunggakan_sekolah.length > 0 : false;
+
+  // Group cicilan by bulan
+  const cicilanByBulan = useMemo(() => {
+    const map: Record<string, CicilanDB[]> = {};
+    cicilanSiswa.forEach(c => {
+      if (!map[c.bulan]) map[c.bulan] = [];
+      map[c.bulan].push(c);
+    });
+    return map;
+  }, [cicilanSiswa]);
+
+  // Bulan that have active cicilan
+  const bulanWithCicilan = useMemo(() => Object.keys(cicilanByBulan), [cicilanByBulan]);
+  const hasAnyCicilan = bulanWithCicilan.length > 0;
+
+  // Method availability
+  const isCicilEnabled = hasTunggakan && !hasAnyCicilan;
+  const isLunasEnabled = hasAnyCicilan;
+  const isDepositEnabled = !hasTunggakan;
+
+  // Auto-select first available method when student changes
+  const getDefaultMetode = (): 'Lunas' | 'Cicil' | 'Deposit' => {
+    if (hasTunggakan && !hasAnyCicilan) return 'Cicil';
+    if (hasAnyCicilan) return 'Lunas';
+    if (!hasTunggakan) return 'Deposit';
+    return 'Lunas';
+  };
 
   if (isLoading) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
@@ -36,10 +70,21 @@ export default function PembayaranSekolah() {
   const selectStudent = (s: StudentDB) => {
     setSelectedStudent(s);
     setSearchQuery('');
-    setNominal(s.biaya_per_bulan);
-    setMetode('Lunas');
     setSelectedBulan('');
+    setNominalCicilInput('');
+    // Will auto-set metode after cicilan data loads
+    // For now set based on tunggakan only
+    if (s.tunggakan_sekolah.length > 0) {
+      setMetode('Cicil');
+      setNominal(0);
+    } else {
+      setMetode('Deposit');
+      setNominal(s.biaya_per_bulan);
+    }
   };
+
+  // Effect-like: when cicilanSiswa changes, adjust metode
+  // We handle this in render logic instead
 
   const handleBarcode = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -48,9 +93,29 @@ export default function PembayaranSekolah() {
     if (found) { selectStudent(found); setBarcodeQuery(''); }
   };
 
+  const handleMetodeChange = (m: 'Lunas' | 'Cicil' | 'Deposit') => {
+    const enabled = m === 'Cicil' ? isCicilEnabled : m === 'Lunas' ? isLunasEnabled : isDepositEnabled;
+    if (!enabled) return;
+    setMetode(m);
+    setSelectedBulan('');
+    setNominalCicilInput('');
+    if (m === 'Deposit' && selectedStudent) {
+      setNominal(selectedStudent.biaya_per_bulan);
+    } else {
+      setNominal(0);
+    }
+  };
+
   const getAvailableMonths = () => {
     if (!selectedStudent) return [];
-    if (metode === 'Lunas' || metode === 'Cicil') return selectedStudent.tunggakan_sekolah;
+    if (metode === 'Cicil') {
+      // Only tunggakan months that don't have active cicilan
+      return selectedStudent.tunggakan_sekolah.filter(b => !bulanWithCicilan.includes(b));
+    }
+    if (metode === 'Lunas') {
+      // Only months that have active cicilan
+      return bulanWithCicilan.filter(b => selectedStudent.tunggakan_sekolah.includes(b));
+    }
     if (metode === 'Deposit') {
       const currentMonth = new Date().getMonth();
       return bulanList.filter((_, i) => i > currentMonth);
@@ -58,9 +123,43 @@ export default function PembayaranSekolah() {
     return [];
   };
 
+  // Compute sisa tunggakan for Lunas
+  const getSisaTunggakan = () => {
+    if (!selectedStudent || !selectedBulan || metode !== 'Lunas') return 0;
+    const totalTunggakan = selectedStudent.biaya_per_bulan;
+    const totalCicilan = (cicilanByBulan[selectedBulan] || []).reduce((sum, c) => sum + c.nominal, 0);
+    return Math.max(0, totalTunggakan - totalCicilan);
+  };
+
+  // When bulan changes for Lunas, auto-set nominal
+  const handleBulanChange = (bulan: string) => {
+    setSelectedBulan(bulan);
+    if (metode === 'Lunas' && bulan && selectedStudent) {
+      const totalTunggakan = selectedStudent.biaya_per_bulan;
+      const totalCicilan = (cicilanByBulan[bulan] || []).reduce((sum, c) => sum + c.nominal, 0);
+      setNominal(Math.max(0, totalTunggakan - totalCicilan));
+    }
+  };
+
   const handleSubmit = () => {
     if (!selectedStudent || !selectedBulan) return;
+
+    if (metode === 'Cicil') {
+      const nomCicil = parseInt(nominalCicilInput) || 0;
+      if (nomCicil <= 0) { toast.error('Nominal cicilan harus lebih dari 0'); return; }
+      if (nomCicil >= selectedStudent.biaya_per_bulan) { toast.error('Nominal cicilan harus kurang dari biaya per bulan. Gunakan metode Lunas.'); return; }
+      // Check total cicilan + this doesn't exceed biaya
+      const existing = (cicilanByBulan[selectedBulan] || []).reduce((s, c) => s + c.nominal, 0);
+      if (existing + nomCicil > selectedStudent.biaya_per_bulan) {
+        toast.error(`Total cicilan melebihi biaya. Sisa: ${formatRupiah(selectedStudent.biaya_per_bulan - existing)}`);
+        return;
+      }
+      setNominal(nomCicil);
+    }
+
     const tanggal = new Date().toISOString().split('T')[0];
+    const finalNominal = metode === 'Cicil' ? (parseInt(nominalCicilInput) || 0) : nominal;
+
     const data = {
       siswa_id: selectedStudent.id,
       nama_siswa: selectedStudent.nama_lengkap,
@@ -68,13 +167,13 @@ export default function PembayaranSekolah() {
       jenjang: selectedStudent.jenjang,
       kelas: selectedStudent.kelas,
       bulan: selectedBulan,
-      nominal,
-      metode,
+      nominal: metode === 'Lunas' ? selectedStudent.biaya_per_bulan : finalNominal,
+      metode: metode === 'Cicil' ? 'Cicil' as const : metode,
       tanggal,
       petugas: 'Petugas A',
     };
-    // Show struk first, save on confirm
-    setStrukData({ ...data, student: selectedStudent });
+
+    setStrukData({ ...data, student: selectedStudent, sisaTunggakan: getSisaTunggakan(), totalCicilan: metode === 'Lunas' ? (cicilanByBulan[selectedBulan] || []).reduce((s, c) => s + c.nominal, 0) : 0 });
     setShowStruk(true);
   };
 
@@ -110,22 +209,73 @@ export default function PembayaranSekolah() {
   const saveStruk = async () => {
     if (!strukData) return;
     const downloaded = await downloadStrukAsImage();
-    if (downloaded) {
-      const { student, ...record } = strukData;
+    if (!downloaded) return;
+
+    const { student, sisaTunggakan, totalCicilan, ...record } = strukData;
+
+    if (metode === 'Cicil') {
+      // Save to cicilan table, NOT pembayaran
+      insertCicilan.mutate({
+        siswa_id: student.id,
+        bulan: record.bulan,
+        nominal: record.nominal,
+        tanggal: record.tanggal,
+        petugas: record.petugas,
+      });
+    } else if (metode === 'Lunas') {
+      // Save combined total to pembayaran (cicilan + sisa)
+      const totalBayar = selectedStudent!.biaya_per_bulan;
+      insertPembayaran.mutate({
+        ...record,
+        nominal: totalBayar,
+        metode: 'Lunas' as const,
+      });
+      // Remove tunggakan
+      updateStudent.mutate({
+        id: student.id,
+        tunggakan_sekolah: student.tunggakan_sekolah.filter((b: string) => b !== selectedBulan),
+      });
+      // Delete cicilan records for this bulan
+      deleteCicilan.mutate({ siswa_id: student.id, bulan: selectedBulan });
+    } else if (metode === 'Deposit') {
       insertPembayaran.mutate(record);
-      // Remove from tunggakan if paying off
-      if (metode === 'Lunas') {
-        updateStudent.mutate({
-          id: student.id,
-          tunggakan_sekolah: student.tunggakan_sekolah.filter((b: string) => b !== selectedBulan),
-        });
-      }
-      setShowStruk(false);
-      setSelectedStudent(null);
-      setSelectedBulan('');
-      toast.success('Struk berhasil didownload & pembayaran tersimpan');
+      updateStudent.mutate({
+        id: student.id,
+        deposit: (student.deposit || 0) + record.nominal,
+      });
     }
+
+    setShowStruk(false);
+    setSelectedStudent(null);
+    setSelectedBulan('');
+    setNominalCicilInput('');
+    toast.success('Struk berhasil didownload & data tersimpan');
   };
+
+  // Auto-correct metode when cicilan data loads
+  const effectiveMetode = (() => {
+    if (metode === 'Cicil' && !isCicilEnabled) {
+      if (isLunasEnabled) return 'Lunas';
+      if (isDepositEnabled) return 'Deposit';
+    }
+    if (metode === 'Lunas' && !isLunasEnabled) {
+      if (isCicilEnabled) return 'Cicil';
+      if (isDepositEnabled) return 'Deposit';
+    }
+    if (metode === 'Deposit' && !isDepositEnabled) {
+      if (hasTunggakan && !hasAnyCicilan) return 'Cicil';
+      if (hasAnyCicilan) return 'Lunas';
+    }
+    return metode;
+  })();
+
+  // Sync if needed
+  if (effectiveMetode !== metode && selectedStudent) {
+    // Use setTimeout to avoid setState during render
+    setTimeout(() => setMetode(effectiveMetode), 0);
+  }
+
+  const availableMonths = getAvailableMonths();
 
   return (
     <div className="space-y-8">
@@ -177,6 +327,7 @@ export default function PembayaranSekolah() {
         {selectedStudent && (
           <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Info Siswa */}
             <div className="bg-card rounded-3xl border border-border p-6 shadow-elegant">
               <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg gradient-info flex items-center justify-center"><User className="w-4 h-4 text-info-foreground" /></div>
@@ -196,16 +347,19 @@ export default function PembayaranSekolah() {
               <div className="space-y-3 stagger-children">
                 <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border">
                   <span className="text-sm text-muted-foreground">Jumlah Tunggakan</span>
-                  <span className={`text-sm font-extrabold ${selectedStudent.tunggakan_sekolah.length > 0 ? 'text-destructive' : 'text-success'}`}>
-                    {selectedStudent.tunggakan_sekolah.length > 0 ? `${selectedStudent.tunggakan_sekolah.length} bulan` : 'Nihil ✓'}
+                  <span className={`text-sm font-extrabold ${hasTunggakan ? 'text-destructive' : 'text-success'}`}>
+                    {hasTunggakan ? `${selectedStudent.tunggakan_sekolah.length} bulan` : 'Nihil ✓'}
                   </span>
                 </div>
-                {selectedStudent.tunggakan_sekolah.length > 0 && (
+                {hasTunggakan && (
                   <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/10">
                     <p className="text-xs text-muted-foreground mb-2 font-semibold uppercase tracking-wider">Bulan Tunggakan</p>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedStudent.tunggakan_sekolah.map(b => (
-                        <span key={b} className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive text-xs font-semibold">{b}</span>
+                        <span key={b} className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive text-xs font-semibold">
+                          {b}
+                          {cicilanByBulan[b] && <span className="ml-1 text-[10px] opacity-70">(cicilan aktif)</span>}
+                        </span>
                       ))}
                     </div>
                   </div>
@@ -218,6 +372,21 @@ export default function PembayaranSekolah() {
                   <span className="text-sm text-muted-foreground font-semibold">Total Tunggakan</span>
                   <span className="text-sm font-extrabold text-destructive">{formatRupiah(selectedStudent.tunggakan_sekolah.length * selectedStudent.biaya_per_bulan)}</span>
                 </div>
+                {hasAnyCicilan && (
+                  <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
+                    <p className="text-xs text-muted-foreground mb-2 font-semibold uppercase tracking-wider">Cicilan Aktif</p>
+                    {bulanWithCicilan.map(bulan => {
+                      const total = cicilanByBulan[bulan].reduce((s, c) => s + c.nominal, 0);
+                      const sisa = selectedStudent.biaya_per_bulan - total;
+                      return (
+                        <div key={bulan} className="flex justify-between text-sm mb-1">
+                          <span className="text-foreground font-medium">{bulan}</span>
+                          <span className="text-amber-600 font-bold">Sudah: {formatRupiah(total)} · Sisa: {formatRupiah(sisa)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 {selectedStudent.deposit > 0 && (
                   <div className="flex items-center justify-between p-4 rounded-xl bg-success/5 border border-success/10">
                     <span className="text-sm text-muted-foreground">Deposit</span>
@@ -227,6 +396,7 @@ export default function PembayaranSekolah() {
               </div>
             </div>
 
+            {/* Form Transaksi */}
             <div className="bg-card rounded-3xl border border-border p-6 shadow-elegant">
               <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center"><CreditCard className="w-4 h-4 text-foreground" /></div>
@@ -236,29 +406,84 @@ export default function PembayaranSekolah() {
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Metode Pembayaran</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {(['Lunas', 'Cicil', 'Deposit'] as const).map(m => (
-                      <motion.button key={m} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setMetode(m); setSelectedBulan(''); }}
-                        className={`py-3 rounded-xl text-sm font-semibold transition-all ${metode === m ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-                        {m}
-                      </motion.button>
+                    {([
+                      { key: 'Cicil' as const, enabled: isCicilEnabled, hint: !isCicilEnabled ? (hasAnyCicilan ? 'Cicilan aktif' : 'Tidak ada tunggakan') : '' },
+                      { key: 'Lunas' as const, enabled: isLunasEnabled, hint: !isLunasEnabled ? 'Belum ada cicilan' : '' },
+                      { key: 'Deposit' as const, enabled: isDepositEnabled, hint: !isDepositEnabled ? 'Masih ada tunggakan' : '' },
+                    ]).map(({ key: m, enabled, hint }) => (
+                      <div key={m} className="relative group">
+                        <motion.button
+                          whileHover={enabled ? { scale: 1.02 } : {}}
+                          whileTap={enabled ? { scale: 0.98 } : {}}
+                          onClick={() => handleMetodeChange(m)}
+                          disabled={!enabled}
+                          className={`w-full py-3 rounded-xl text-sm font-semibold transition-all ${
+                            metode === m && enabled
+                              ? 'gradient-primary text-primary-foreground shadow-glow-primary'
+                              : enabled
+                                ? 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                : 'bg-muted/40 text-muted-foreground/40 cursor-not-allowed'
+                          }`}>
+                          {m}
+                        </motion.button>
+                        {!enabled && hint && (
+                          <div className="absolute -bottom-5 left-0 right-0 text-center">
+                            <span className="text-[9px] text-muted-foreground/60">{hint}</span>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
+
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Bulan</label>
-                  <select value={selectedBulan} onChange={e => setSelectedBulan(e.target.value)} disabled={getAvailableMonths().length === 0}
+                  <select value={selectedBulan} onChange={e => handleBulanChange(e.target.value)} disabled={availableMonths.length === 0}
                     className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground input-focus text-sm disabled:opacity-50">
-                    <option value="">{getAvailableMonths().length === 0 ? 'Tidak ada tunggakan' : 'Pilih bulan'}</option>
-                    {getAvailableMonths().map(b => <option key={b} value={b}>{b}</option>)}
+                    <option value="">{availableMonths.length === 0 ? (metode === 'Cicil' ? 'Tidak ada tunggakan tanpa cicilan' : metode === 'Lunas' ? 'Tidak ada cicilan aktif' : 'Tidak ada bulan tersedia') : 'Pilih bulan'}</option>
+                    {availableMonths.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
                 </div>
+
+                {/* Nominal */}
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nominal</label>
-                  <div className="px-4 py-3.5 rounded-xl bg-muted border border-border text-foreground font-bold text-lg">{formatRupiah(nominal)}</div>
+                  {metode === 'Cicil' ? (
+                    <div>
+                      <input
+                        type="number"
+                        value={nominalCicilInput}
+                        onChange={e => setNominalCicilInput(e.target.value)}
+                        placeholder="Masukkan nominal cicilan..."
+                        className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground input-focus text-sm"
+                      />
+                      {selectedBulan && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Biaya bulan ini: {formatRupiah(selectedStudent.biaya_per_bulan)}
+                        </p>
+                      )}
+                    </div>
+                  ) : metode === 'Lunas' && selectedBulan ? (
+                    <div className="space-y-2">
+                      <div className="px-4 py-3.5 rounded-xl bg-muted border border-border text-foreground font-bold text-lg">
+                        {formatRupiah(getSisaTunggakan())}
+                        <span className="text-xs font-normal text-muted-foreground ml-2">(sisa yang harus dibayar)</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-0.5 px-1">
+                        <p>Total tunggakan: {formatRupiah(selectedStudent.biaya_per_bulan)}</p>
+                        <p>Sudah dicicil: {formatRupiah((cicilanByBulan[selectedBulan] || []).reduce((s, c) => s + c.nominal, 0))} ({(cicilanByBulan[selectedBulan] || []).length}x cicilan)</p>
+                        <p className="font-semibold text-foreground">Sisa pelunasan: {formatRupiah(getSisaTunggakan())}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3.5 rounded-xl bg-muted border border-border text-foreground font-bold text-lg">{formatRupiah(nominal)}</div>
+                  )}
                 </div>
-                <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={handleSubmit} disabled={!selectedBulan}
+
+                <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={handleSubmit}
+                  disabled={!selectedBulan || (metode === 'Cicil' && (!nominalCicilInput || parseInt(nominalCicilInput) <= 0))}
                   className="w-full py-4 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine shadow-glow-primary disabled:opacity-50 disabled:shadow-none text-base">
-                  Proses Pembayaran
+                  {metode === 'Lunas' ? 'Bayar Lunas' : metode === 'Cicil' ? 'Bayar Cicilan' : 'Proses Deposit'}
                 </motion.button>
               </div>
             </div>
@@ -280,16 +505,17 @@ export default function PembayaranSekolah() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowStruk(false)}>
             <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-card rounded-3xl shadow-2xl w-full max-w-md p-7" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-foreground text-lg">Struk Pembayaran</h3>
+                <h3 className="font-bold text-foreground text-lg">Struk {metode === 'Cicil' ? 'Cicilan' : 'Pembayaran'}</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowStruk(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
 
-              {/* Struk content for capture */}
               <div ref={strukRef} className="border-2 border-dashed border-gray-300 rounded-2xl p-6 space-y-3 bg-white">
                 <div className="text-center mb-5 pb-4 border-b border-dashed border-gray-300">
                   <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl mx-auto mb-2 object-contain" />
                   <h4 className="font-extrabold text-gray-900">YAYASAN BAITULLOH</h4>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Struk Pembayaran SPP</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">
+                    Struk {metode === 'Cicil' ? 'Cicilan' : 'Pembayaran'} SPP
+                  </p>
                 </div>
                 {[
                   ['Tanggal', formatDate(strukData.tanggal)],
@@ -297,13 +523,23 @@ export default function PembayaranSekolah() {
                   ['NISN', strukData.nisn],
                   ['Jenjang/Kelas', `${strukData.jenjang} - ${strukData.kelas}`],
                   ['Bulan', strukData.bulan],
-                  ['Metode', strukData.metode],
+                  ['Metode', metode === 'Lunas' ? 'Pelunasan (Cicil → Lunas)' : strukData.metode],
                 ].map(([l, v]) => (
                   <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium">{v}</span></div>
                 ))}
+                {metode === 'Lunas' && strukData.totalCicilan > 0 && (
+                  <>
+                    <div className="border-t border-dashed border-gray-200 pt-2">
+                      <div className="flex justify-between text-xs text-gray-400"><span>Total Cicilan Sebelumnya</span><span>{formatRupiah(strukData.totalCicilan)}</span></div>
+                      <div className="flex justify-between text-xs text-gray-400"><span>Pelunasan Sekarang</span><span>{formatRupiah(strukData.sisaTunggakan)}</span></div>
+                    </div>
+                  </>
+                )}
                 <div className="border-t border-dashed border-gray-300 pt-3 flex justify-between text-sm font-extrabold">
                   <span className="text-gray-900">Nominal</span>
-                  <span className="text-green-600 text-lg">{formatRupiah(strukData.nominal)}</span>
+                  <span className="text-green-600 text-lg">
+                    {formatRupiah(metode === 'Lunas' ? selectedStudent!.biaya_per_bulan : strukData.nominal)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{strukData.petugas}</span></div>
                 <div className="text-center pt-3 border-t border-dashed border-gray-300">
