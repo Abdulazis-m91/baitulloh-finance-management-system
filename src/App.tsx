@@ -18,6 +18,7 @@ import DashboardPesantren from "./pages/dashboard/DashboardPesantren";
 import PembayaranPesantren from "./pages/dashboard/PembayaranPesantren";
 import DataSantriPesantren from "./pages/dashboard/DataSantriPesantren";
 import PendapatanPesantren from "./pages/dashboard/PendapatanPesantren";
+import PengeluaranPesantren from "./pages/dashboard/PengeluaranPesantren";
 
 const queryClient = new QueryClient();
 
@@ -42,7 +43,7 @@ const AppRoutes = () => (
       <Route path="pembayaran-pesantren" element={<PembayaranPesantren />} />
       <Route path="data-santri" element={<DataSantriPesantren />} />
       <Route path="pendapatan-pesantren" element={<PendapatanPesantren />} />
-      <Route path="pengeluaran-pesantren" element={<div className="flex items-center justify-center min-h-[40vh]"><p className="text-muted-foreground text-lg">🚧 Pengeluaran Pesantren — Dalam Pengembangan</p></div>} />
+      <Route path="pengeluaran-pesantren" element={<PengeluaranPesantren />} />
       <Route path="laporan-pesantren" element={<div className="flex items-center justify-center min-h-[40vh]"><p className="text-muted-foreground text-lg">🚧 Laporan Pesantren — Dalam Pengembangan</p></div>} />
     </Route>
     <Route path="*" element={<NotFound />} />
