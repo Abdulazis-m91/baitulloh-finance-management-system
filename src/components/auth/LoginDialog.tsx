@@ -178,7 +178,7 @@ export default function LoginDialog({ open, onClose }: LoginDialogProps) {
                   initial={{ scale: 0.5, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 200, delay: 0.3 }}
-                  className="w-28 h-28 rounded-3xl object-contain mb-8 mx-auto"
+                  className="w-36 h-36 rounded-3xl object-contain mb-8 mx-auto drop-shadow-lg"
                 />
                 <motion.h3
                   initial={{ opacity: 0, y: 10 }}
