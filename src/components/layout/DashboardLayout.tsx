@@ -78,7 +78,7 @@ export default function DashboardLayout() {
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto mt-2">
           <p className="px-4 py-2 text-[10px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.2em]">Menu Utama</p>
-          {menuItems.map((item, i) => (
+          {(role === 'petugas_pesantren' ? menuItemsPesantren : menuItemsSekolah).map((item, i) => (
             <NavLink
               key={item.path}
               to={item.path}
