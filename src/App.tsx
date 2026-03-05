@@ -14,6 +14,10 @@ import PendapatanSekolah from "./pages/dashboard/PendapatanSekolah";
 import PengeluaranSekolah from "./pages/dashboard/PengeluaranSekolah";
 import DanaBOS from "./pages/dashboard/DanaBOS";
 import LaporanSekolah from "./pages/dashboard/LaporanSekolah";
+import DashboardPesantren from "./pages/dashboard/DashboardPesantren";
+import PembayaranPesantren from "./pages/dashboard/PembayaranPesantren";
+import DataSantriPesantren from "./pages/dashboard/DataSantriPesantren";
+import PendapatanPesantren from "./pages/dashboard/PendapatanPesantren";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +38,12 @@ const AppRoutes = () => (
       <Route path="pengeluaran" element={<PengeluaranSekolah />} />
       <Route path="dana-bos" element={<DanaBOS />} />
       <Route path="laporan" element={<LaporanSekolah />} />
+      <Route path="pesantren" element={<DashboardPesantren />} />
+      <Route path="pembayaran-pesantren" element={<PembayaranPesantren />} />
+      <Route path="data-santri" element={<DataSantriPesantren />} />
+      <Route path="pendapatan-pesantren" element={<PendapatanPesantren />} />
+      <Route path="pengeluaran-pesantren" element={<div className="flex items-center justify-center min-h-[40vh]"><p className="text-muted-foreground text-lg">🚧 Pengeluaran Pesantren — Dalam Pengembangan</p></div>} />
+      <Route path="laporan-pesantren" element={<div className="flex items-center justify-center min-h-[40vh]"><p className="text-muted-foreground text-lg">🚧 Laporan Pesantren — Dalam Pengembangan</p></div>} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

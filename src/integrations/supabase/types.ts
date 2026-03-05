@@ -52,6 +52,206 @@ export type Database = {
           },
         ]
       }
+      cicilan_pesantren: {
+        Row: {
+          bulan: string
+          created_at: string
+          id: string
+          nominal: number
+          petugas: string
+          siswa_id: string
+          tanggal: string
+        }
+        Insert: {
+          bulan: string
+          created_at?: string
+          id?: string
+          nominal: number
+          petugas: string
+          siswa_id: string
+          tanggal?: string
+        }
+        Update: {
+          bulan?: string
+          created_at?: string
+          id?: string
+          nominal?: number
+          petugas?: string
+          siswa_id?: string
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cicilan_pesantren_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      konsumsi_pesantren: {
+        Row: {
+          bulan: string
+          created_at: string
+          id: string
+          kategori: string
+          nama_siswa: string
+          nominal: number
+          pembayaran_id: string | null
+          petugas: string
+          siswa_id: string | null
+          tanggal: string
+        }
+        Insert: {
+          bulan: string
+          created_at?: string
+          id?: string
+          kategori: string
+          nama_siswa: string
+          nominal: number
+          pembayaran_id?: string | null
+          petugas: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Update: {
+          bulan?: string
+          created_at?: string
+          id?: string
+          kategori?: string
+          nama_siswa?: string
+          nominal?: number
+          pembayaran_id?: string | null
+          petugas?: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "konsumsi_pesantren_pembayaran_id_fkey"
+            columns: ["pembayaran_id"]
+            isOneToOne: false
+            referencedRelation: "pembayaran_pesantren"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "konsumsi_pesantren_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operasional_pesantren: {
+        Row: {
+          bulan: string
+          created_at: string
+          id: string
+          kategori: string
+          nama_siswa: string
+          nominal: number
+          pembayaran_id: string | null
+          petugas: string
+          siswa_id: string | null
+          tanggal: string
+        }
+        Insert: {
+          bulan: string
+          created_at?: string
+          id?: string
+          kategori: string
+          nama_siswa: string
+          nominal: number
+          pembayaran_id?: string | null
+          petugas: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Update: {
+          bulan?: string
+          created_at?: string
+          id?: string
+          kategori?: string
+          nama_siswa?: string
+          nominal?: number
+          pembayaran_id?: string | null
+          petugas?: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operasional_pesantren_pembayaran_id_fkey"
+            columns: ["pembayaran_id"]
+            isOneToOne: false
+            referencedRelation: "pembayaran_pesantren"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operasional_pesantren_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pembangunan_pesantren: {
+        Row: {
+          bulan: string
+          created_at: string
+          id: string
+          kategori: string
+          nama_siswa: string
+          nominal: number
+          pembayaran_id: string | null
+          petugas: string
+          siswa_id: string | null
+          tanggal: string
+        }
+        Insert: {
+          bulan: string
+          created_at?: string
+          id?: string
+          kategori: string
+          nama_siswa: string
+          nominal: number
+          pembayaran_id?: string | null
+          petugas: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Update: {
+          bulan?: string
+          created_at?: string
+          id?: string
+          kategori?: string
+          nama_siswa?: string
+          nominal?: number
+          pembayaran_id?: string | null
+          petugas?: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pembangunan_pesantren_pembayaran_id_fkey"
+            columns: ["pembayaran_id"]
+            isOneToOne: false
+            referencedRelation: "pembayaran_pesantren"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pembangunan_pesantren_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pembayaran: {
         Row: {
           bulan: string
@@ -105,6 +305,62 @@ export type Database = {
           },
         ]
       }
+      pembayaran_pesantren: {
+        Row: {
+          bulan: string
+          created_at: string
+          id: string
+          jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kategori: string
+          kelas: string
+          metode: Database["public"]["Enums"]["metode_bayar"]
+          nama_siswa: string
+          nisn: string
+          nominal: number
+          petugas: string
+          siswa_id: string | null
+          tanggal: string
+        }
+        Insert: {
+          bulan: string
+          created_at?: string
+          id?: string
+          jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kategori: string
+          kelas: string
+          metode: Database["public"]["Enums"]["metode_bayar"]
+          nama_siswa: string
+          nisn: string
+          nominal: number
+          petugas: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Update: {
+          bulan?: string
+          created_at?: string
+          id?: string
+          jenjang?: Database["public"]["Enums"]["jenjang_type"]
+          kategori?: string
+          kelas?: string
+          metode?: Database["public"]["Enums"]["metode_bayar"]
+          nama_siswa?: string
+          nisn?: string
+          nominal?: number
+          petugas?: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pembayaran_pesantren_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pengeluaran: {
         Row: {
           created_at: string
@@ -134,6 +390,36 @@ export type Database = {
           nominal?: number
           petugas?: string
           sumber_dana?: Database["public"]["Enums"]["jenjang_type"]
+          tanggal?: string
+        }
+        Relationships: []
+      }
+      pengeluaran_pesantren: {
+        Row: {
+          created_at: string
+          id: string
+          jenis_keperluan: string
+          keterangan: string
+          nominal: number
+          petugas: string
+          tanggal: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jenis_keperluan: string
+          keterangan: string
+          nominal: number
+          petugas: string
+          tanggal?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jenis_keperluan?: string
+          keterangan?: string
+          nominal?: number
+          petugas?: string
           tanggal?: string
         }
         Relationships: []
@@ -168,6 +454,7 @@ export type Database = {
           foto: string | null
           id: string
           jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kategori: string | null
           kelas: string
           nama_lengkap: string
           nama_orang_tua: string
@@ -185,6 +472,7 @@ export type Database = {
           foto?: string | null
           id?: string
           jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kategori?: string | null
           kelas: string
           nama_lengkap: string
           nama_orang_tua: string
@@ -202,6 +490,7 @@ export type Database = {
           foto?: string | null
           id?: string
           jenjang?: Database["public"]["Enums"]["jenjang_type"]
+          kategori?: string | null
           kelas?: string
           nama_lengkap?: string
           nama_orang_tua?: string

@@ -8,7 +8,7 @@ import {
 import { useState } from 'react';
 import logoYB from '@/assets/logo-yb.png';
 
-const menuItems = [
+const menuItemsSekolah = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: CreditCard, label: 'Pembayaran', path: '/dashboard/pembayaran' },
   { icon: Users, label: 'Data Siswa', path: '/dashboard/data-siswa' },
@@ -16,6 +16,15 @@ const menuItems = [
   { icon: TrendingDown, label: 'Pengeluaran', path: '/dashboard/pengeluaran' },
   { icon: BookOpen, label: 'Dana BOS', path: '/dashboard/dana-bos' },
   { icon: FileText, label: 'Laporan', path: '/dashboard/laporan' },
+];
+
+const menuItemsPesantren = [
+  { icon: LayoutDashboard, label: 'Dashboard Pesantren', path: '/dashboard/pesantren' },
+  { icon: CreditCard, label: 'Pembayaran Pesantren', path: '/dashboard/pembayaran-pesantren' },
+  { icon: Users, label: 'Data Santri Pesantren', path: '/dashboard/data-santri' },
+  { icon: TrendingUp, label: 'Pendapatan Pesantren', path: '/dashboard/pendapatan-pesantren' },
+  { icon: TrendingDown, label: 'Pengeluaran Pesantren', path: '/dashboard/pengeluaran-pesantren' },
+  { icon: FileText, label: 'Laporan Pesantren', path: '/dashboard/laporan-pesantren' },
 ];
 
 export default function DashboardLayout() {
@@ -69,11 +78,11 @@ export default function DashboardLayout() {
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto mt-2">
           <p className="px-4 py-2 text-[10px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.2em]">Menu Utama</p>
-          {menuItems.map((item, i) => (
+          {(role === 'petugas_pesantren' ? menuItemsPesantren : menuItemsSekolah).map((item, i) => (
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.path === '/dashboard'}
+              end={item.path === '/dashboard' || item.path === '/dashboard/pesantren'}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
                 `group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${

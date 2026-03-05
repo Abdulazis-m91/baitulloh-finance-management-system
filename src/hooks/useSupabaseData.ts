@@ -17,6 +17,7 @@ export interface StudentDB {
   tunggakan_pesantren: string[];
   biaya_per_bulan: number;
   deposit: number;
+  kategori: string | null;
   created_at: string;
   updated_at: string;
 }
