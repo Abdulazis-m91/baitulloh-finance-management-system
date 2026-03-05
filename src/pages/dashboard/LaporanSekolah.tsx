@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2 } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info } from 'lucide-react';
 import { useStudents, usePembayaran, usePengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
-type Tab = 'SMP' | 'SMA';
+type Tab = 'SMP' | 'SMA' | 'Total';
+
+const bulanNama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 export default function LaporanSekolah() {
   const [activeTab, setActiveTab] = useState<Tab>('SMP');
@@ -16,7 +18,12 @@ export default function LaporanSekolah() {
 
   if (l1 || l2 || l3) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
-  const getData = (jenjang: Tab) => {
+  const now = new Date();
+  const bulanIni = bulanNama[now.getMonth()];
+  const tahunIni = now.getFullYear();
+  const bulanTahun = `${bulanIni.toUpperCase()} - ${tahunIni}`;
+
+  const getData = (jenjang: 'SMP' | 'SMA') => {
     const pembayaran = pembayaranAll.filter(p => p.jenjang === jenjang);
     const pengeluaran = pengeluaranAll.filter(e => e.sumber_dana === jenjang);
     const siswaMenunggak = students.filter(s => s.jenjang === jenjang && s.tunggakan_sekolah.length > 0);
@@ -26,51 +33,56 @@ export default function LaporanSekolah() {
     return { totalPemasukan, totalPengeluaran, totalTunggakan, jumlahMembayar: new Set(pembayaran.map(p => p.siswa_id)).size, jumlahMenunggak: siswaMenunggak.length };
   };
 
-  const d = getData(activeTab);
+  const smp = getData('SMP');
+  const sma = getData('SMA');
 
   const exportExcel = () => {
-    const rows = [
-      { Kategori: 'Pemasukan', Detail: `${d.jumlahMembayar} siswa`, Nominal: d.totalPemasukan },
-      { Kategori: 'Pengeluaran', Detail: 'Periode bulan ini', Nominal: d.totalPengeluaran },
-      { Kategori: 'Sisa Keuangan', Detail: '', Nominal: d.totalPemasukan - d.totalPengeluaran },
-      { Kategori: '', Detail: '', Nominal: '' },
-      { Kategori: 'Tunggakan', Detail: `${d.jumlahMenunggak} siswa`, Nominal: d.totalTunggakan },
-    ];
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `Laporan ${activeTab}`);
-    XLSX.writeFile(wb, `laporan_${activeTab.toLowerCase()}.xlsx`);
+    if (activeTab === 'Total') {
+      const totalPendapatan = smp.totalPemasukan + sma.totalPemasukan;
+      const totalPengeluaran = smp.totalPengeluaran + sma.totalPengeluaran;
+      const rows = [
+        { Kategori: 'Total Pendapatan SMP', Nominal: smp.totalPemasukan },
+        { Kategori: 'Total Pendapatan SMA', Nominal: sma.totalPemasukan },
+        { Kategori: 'TOTAL PENDAPATAN', Nominal: totalPendapatan },
+        { Kategori: '', Nominal: '' },
+        { Kategori: 'Total Pengeluaran SMP', Nominal: smp.totalPengeluaran },
+        { Kategori: 'Total Pengeluaran SMA', Nominal: sma.totalPengeluaran },
+        { Kategori: 'TOTAL PENGELUARAN', Nominal: totalPengeluaran },
+        { Kategori: '', Nominal: '' },
+        { Kategori: `SISA KEUANGAN (${bulanTahun})`, Nominal: totalPendapatan - totalPengeluaran },
+      ];
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Laporan Total');
+      XLSX.writeFile(wb, 'laporan_total.xlsx');
+    } else {
+      const d = getData(activeTab);
+      const rows = [
+        { Kategori: 'Pemasukan', Detail: `${d.jumlahMembayar} siswa`, Nominal: d.totalPemasukan },
+        { Kategori: 'Pengeluaran', Detail: 'Periode bulan ini', Nominal: d.totalPengeluaran },
+        { Kategori: 'Sisa Keuangan', Detail: '', Nominal: d.totalPemasukan - d.totalPengeluaran },
+        { Kategori: '', Detail: '', Nominal: '' },
+        { Kategori: 'Tunggakan', Detail: `${d.jumlahMenunggak} siswa`, Nominal: d.totalTunggakan },
+      ];
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, `Laporan ${activeTab}`);
+      XLSX.writeFile(wb, `laporan_${activeTab.toLowerCase()}.xlsx`);
+    }
     toast.success('Laporan berhasil diekspor');
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Laporan Sekolah</h1>
-          <p className="text-muted-foreground text-sm mt-1">Laporan keuangan periode Maret 2026</p>
-        </motion.div>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
-          <Download className="w-4 h-4" /> Export Excel
-        </motion.button>
-      </div>
-
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit">
-        {(['SMP', 'SMA'] as Tab[]).map(tab => (
-          <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(tab)} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-            Laporan {tab}
-          </motion.button>
-        ))}
-      </motion.div>
-
+  const renderJenjangTab = (jenjang: 'SMP' | 'SMA') => {
+    const d = getData(jenjang);
+    return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
           <div className="p-6 border-b border-border bg-muted/20">
             <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center"><Wallet className="w-4 h-4 text-primary-foreground" /></div>
-              Laporan Keuangan {activeTab}
+              Laporan Keuangan {jenjang}
             </h3>
-            <p className="text-xs text-muted-foreground mt-1">Periode: 1 sd akhir Maret 2026</p>
+            <p className="text-xs text-muted-foreground mt-1">Periode: 1 sd akhir {bulanIni} {tahunIni}</p>
           </div>
           <div className="divide-y divide-border">
             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="p-6 flex items-center justify-between bg-success/[0.03]">
@@ -101,7 +113,7 @@ export default function LaporanSekolah() {
           <div className="p-6 border-b border-border bg-muted/20">
             <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg gradient-warning flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-warning-foreground" /></div>
-              Laporan Tunggakan {activeTab}
+              Laporan Tunggakan {jenjang}
             </h3>
           </div>
           <div className="p-6 space-y-6">
@@ -117,6 +129,107 @@ export default function LaporanSekolah() {
           </div>
         </motion.div>
       </div>
+    );
+  };
+
+  const renderTotalTab = () => {
+    const totalPendapatan = smp.totalPemasukan + sma.totalPemasukan;
+    const totalPengeluaranAll = smp.totalPengeluaran + sma.totalPengeluaran;
+    const sisaKeuangan = totalPendapatan - totalPengeluaranAll;
+
+    return (
+      <div className="space-y-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+          <div className="p-6 border-b border-border bg-muted/20">
+            <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center"><Wallet className="w-4 h-4 text-primary-foreground" /></div>
+              Laporan Total Keuangan
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">Periode: {bulanIni} {tahunIni}</p>
+          </div>
+
+          <div className="divide-y divide-border">
+            {/* Total Pendapatan */}
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="p-6 bg-success/[0.03]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl gradient-success flex items-center justify-center"><TrendingUp className="w-5 h-5 text-success-foreground" /></div>
+                  <p className="font-extrabold text-foreground text-lg">TOTAL PENDAPATAN</p>
+                </div>
+                <p className="text-2xl font-extrabold text-success">{formatRupiah(totalPendapatan)}</p>
+              </div>
+              <div className="mt-3 ml-[52px] space-y-1">
+                <p className="text-xs text-muted-foreground">Total Pendapatan SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPemasukan)}</span></p>
+                <p className="text-xs text-muted-foreground">Total Pendapatan SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPemasukan)}</span></p>
+              </div>
+            </motion.div>
+
+            {/* Total Pengeluaran */}
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} className="p-6 bg-destructive/[0.03]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><TrendingDown className="w-5 h-5 text-destructive-foreground" /></div>
+                  <p className="font-extrabold text-foreground text-lg">TOTAL PENGELUARAN</p>
+                </div>
+                <p className="text-2xl font-extrabold text-destructive">{formatRupiah(totalPengeluaranAll)}</p>
+              </div>
+              <div className="mt-3 ml-[52px] space-y-1">
+                <p className="text-xs text-muted-foreground">Total Pengeluaran SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPengeluaran)}</span></p>
+                <p className="text-xs text-muted-foreground">Total Pengeluaran SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPengeluaran)}</span></p>
+              </div>
+            </motion.div>
+
+            {/* Sisa Keuangan */}
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="p-6 gradient-card">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"><Wallet className="w-5 h-5 text-foreground" /></div>
+                  <p className="font-extrabold text-foreground text-lg">SISA KEUANGAN SEKOLAH ({bulanTahun})</p>
+                </div>
+                <p className="text-2xl font-extrabold text-primary">{formatRupiah(sisaKeuangan)}</p>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Info Box */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+          <div className="p-6 flex gap-4 items-start">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+              <Info className="w-5 h-5 text-primary" />
+            </div>
+            <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
+              <p>Ini adalah sisa keuangan sekolah <span className="font-bold text-foreground">{bulanIni} {tahunIni}</span> saat ini.</p>
+              <p>Silahkan dicetak dan diarsipkan.</p>
+              <p>Sisa keuangan sekolah bisa dimasukan secara manual di halaman <span className="font-bold text-foreground">Pendapatan SMP/SMA</span>.</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Laporan Sekolah</h1>
+          <p className="text-muted-foreground text-sm mt-1">Laporan keuangan periode {bulanIni} {tahunIni}</p>
+        </motion.div>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
+          <Download className="w-4 h-4" /> Export Excel
+        </motion.button>
+      </div>
+
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit flex-wrap">
+        {(['SMP', 'SMA', 'Total'] as Tab[]).map(tab => (
+          <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(tab)} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+            {tab === 'Total' ? 'Laporan Total' : `Laporan ${tab}`}
+          </motion.button>
+        ))}
+      </motion.div>
+
+      {activeTab === 'Total' ? renderTotalTab() : renderJenjangTab(activeTab)}
     </div>
   );
 }
