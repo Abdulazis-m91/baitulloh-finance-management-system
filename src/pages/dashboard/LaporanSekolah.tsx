@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info, Users } from 'lucide-react';
 import { useStudents, usePembayaran, usePengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
@@ -137,63 +137,114 @@ export default function LaporanSekolah() {
     const totalPengeluaranAll = smp.totalPengeluaran + sma.totalPengeluaran;
     const sisaKeuangan = totalPendapatan - totalPengeluaranAll;
 
+    const totalTunggakanAll = smp.totalTunggakan + sma.totalTunggakan;
+
     return (
       <div className="space-y-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
-          <div className="p-6 border-b border-border bg-muted/20">
-            <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center"><Wallet className="w-4 h-4 text-primary-foreground" /></div>
-              Laporan Total Keuangan
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">Periode: {bulanIni} {tahunIni}</p>
-          </div>
-
-          <div className="divide-y divide-border">
-            {/* Total Pendapatan */}
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="p-6 bg-success/[0.03]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl gradient-success flex items-center justify-center"><TrendingUp className="w-5 h-5 text-success-foreground" /></div>
-                  <p className="font-extrabold text-foreground text-lg">TOTAL PENDAPATAN</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Jendela Laporan Total Keuangan */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+            <div className="p-6 border-b border-border bg-muted/20">
+              <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center"><Wallet className="w-4 h-4 text-primary-foreground" /></div>
+                Laporan Total Keuangan
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">Periode: {bulanIni} {tahunIni}</p>
+            </div>
+            <div className="divide-y divide-border">
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="p-6 bg-success/[0.03]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl gradient-success flex items-center justify-center"><TrendingUp className="w-5 h-5 text-success-foreground" /></div>
+                    <p className="font-extrabold text-foreground text-lg">TOTAL PENDAPATAN</p>
+                  </div>
+                  <p className="text-2xl font-extrabold text-success">{formatRupiah(totalPendapatan)}</p>
                 </div>
-                <p className="text-2xl font-extrabold text-success">{formatRupiah(totalPendapatan)}</p>
-              </div>
-              <div className="mt-3 ml-[52px] space-y-1">
-                <p className="text-xs text-muted-foreground">Total Pendapatan SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPemasukan)}</span></p>
-                <p className="text-xs text-muted-foreground">Total Pendapatan SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPemasukan)}</span></p>
-              </div>
-            </motion.div>
-
-            {/* Total Pengeluaran */}
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} className="p-6 bg-destructive/[0.03]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><TrendingDown className="w-5 h-5 text-destructive-foreground" /></div>
-                  <p className="font-extrabold text-foreground text-lg">TOTAL PENGELUARAN</p>
+                <div className="mt-3 ml-[52px] space-y-1">
+                  <p className="text-xs text-muted-foreground">Total Pendapatan SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPemasukan)}</span></p>
+                  <p className="text-xs text-muted-foreground">Total Pendapatan SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPemasukan)}</span></p>
                 </div>
-                <p className="text-2xl font-extrabold text-destructive">{formatRupiah(totalPengeluaranAll)}</p>
-              </div>
-              <div className="mt-3 ml-[52px] space-y-1">
-                <p className="text-xs text-muted-foreground">Total Pengeluaran SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPengeluaran)}</span></p>
-                <p className="text-xs text-muted-foreground">Total Pengeluaran SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPengeluaran)}</span></p>
-              </div>
-            </motion.div>
-
-            {/* Sisa Keuangan */}
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="p-6 gradient-card">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"><Wallet className="w-5 h-5 text-foreground" /></div>
-                  <p className="font-extrabold text-foreground text-lg">SISA KEUANGAN SEKOLAH ({bulanTahun})</p>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} className="p-6 bg-destructive/[0.03]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><TrendingDown className="w-5 h-5 text-destructive-foreground" /></div>
+                    <p className="font-extrabold text-foreground text-lg">TOTAL PENGELUARAN</p>
+                  </div>
+                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(totalPengeluaranAll)}</p>
                 </div>
-                <p className="text-2xl font-extrabold text-primary">{formatRupiah(sisaKeuangan)}</p>
-              </div>
-            </motion.div>
-          </div>
-        </motion.div>
+                <div className="mt-3 ml-[52px] space-y-1">
+                  <p className="text-xs text-muted-foreground">Total Pengeluaran SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPengeluaran)}</span></p>
+                  <p className="text-xs text-muted-foreground">Total Pengeluaran SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPengeluaran)}</span></p>
+                </div>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="p-6 gradient-card">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"><Wallet className="w-5 h-5 text-foreground" /></div>
+                    <p className="font-extrabold text-foreground text-lg">SISA KEUANGAN SEKOLAH ({bulanTahun})</p>
+                  </div>
+                  <p className="text-2xl font-extrabold text-primary">{formatRupiah(sisaKeuangan)}</p>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Jendela Total Tunggakan */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+            <div className="p-6 border-b border-border bg-muted/20">
+              <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg gradient-warning flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-warning-foreground" /></div>
+                TOTAL TUNGGAKAN
+              </h3>
+            </div>
+            <div className="divide-y divide-border">
+              {/* Tunggakan SMP */}
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
+                    <p className="font-extrabold text-foreground text-lg">TOTAL TUNGGAKAN SMP</p>
+                  </div>
+                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(smp.totalTunggakan)}</p>
+                </div>
+                <div className="mt-3 ml-[52px] space-y-1">
+                  <p className="text-xs text-muted-foreground">Semua Kelas Jenjang SMP</p>
+                  <p className="text-xs text-muted-foreground">Jumlah Siswa Menunggak : <span className="font-semibold text-foreground">{smp.jumlahMenunggak} siswa</span></p>
+                </div>
+              </motion.div>
+
+              {/* Tunggakan SMA */}
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
+                    <p className="font-extrabold text-foreground text-lg">TOTAL TUNGGAKAN SMA</p>
+                  </div>
+                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(sma.totalTunggakan)}</p>
+                </div>
+                <div className="mt-3 ml-[52px] space-y-1">
+                  <p className="text-xs text-muted-foreground">Semua Kelas Jenjang SMA</p>
+                  <p className="text-xs text-muted-foreground">Jumlah Siswa Menunggak : <span className="font-semibold text-foreground">{sma.jumlahMenunggak} siswa</span></p>
+                </div>
+              </motion.div>
+
+              {/* Total Keseluruhan */}
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }} className="p-6 gradient-card">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive-foreground" /></div>
+                    <p className="font-extrabold text-foreground text-lg">TOTAL TUNGGAKAN SISWA ({bulanTahun})</p>
+                  </div>
+                  <p className="text-2xl font-extrabold text-primary">{formatRupiah(totalTunggakanAll)}</p>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
 
         {/* Info Box */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
           <div className="p-6 flex gap-4 items-start">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
               <Info className="w-5 h-5 text-primary" />
