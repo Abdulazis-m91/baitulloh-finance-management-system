@@ -36,11 +36,11 @@ export default function PendapatanPesantren() {
     if (activeTab === 'Pembayaran') {
       return pembayaran.filter(p => p.metode !== 'Deposit' && (!filterJenjang || p.jenjang === filterJenjang) && (!filterKelas || p.kelas === filterKelas) && (!filterKategori || p.kategori === filterKategori));
     }
-    if (activeTab === 'Konsumsi') return konsumsi.filter(c => !filterKategori || c.kategori === filterKategori);
-    if (activeTab === 'Operasional') return operasional.filter(c => !filterKategori || c.kategori === filterKategori);
-    if (activeTab === 'Pembangunan') return pembangunan.filter(c => !filterKategori || c.kategori === filterKategori);
+    if (activeTab === 'Konsumsi') return konsumsi.filter(c => !filterKategori || c.kategori === filterKategori).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Operasional') return operasional.filter(c => !filterKategori || c.kategori === filterKategori).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Pembangunan') return pembangunan.filter(c => !filterKategori || c.kategori === filterKategori).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
     if (activeTab === 'Cicilan') {
-      return cicilan.map(c => ({ ...c, namaSiswa: studentMap[c.siswa_id]?.nama_lengkap || '', jenjang: studentMap[c.siswa_id]?.jenjang || '-', kelas: studentMap[c.siswa_id]?.kelas || '-' }));
+      return cicilan.map(c => ({ ...c, nama_siswa: studentMap[c.siswa_id]?.nama_lengkap || '', jenjang: studentMap[c.siswa_id]?.jenjang || '-', kelas: studentMap[c.siswa_id]?.kelas || '-', kategori: '-', petugas: c.petugas }));
     }
     if (activeTab === 'Deposit') {
       return pembayaran.filter(p => p.metode === 'Deposit' && (!filterJenjang || p.jenjang === filterJenjang) && (!filterKelas || p.kelas === filterKelas) && (!filterKategori || p.kategori === filterKategori));
