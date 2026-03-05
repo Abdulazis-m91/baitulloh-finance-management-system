@@ -6,6 +6,7 @@ import {
   BookOpen, FileText, LogOut, Menu, X, Bell
 } from 'lucide-react';
 import { useState } from 'react';
+import logoYB from '@/assets/logo-yb.png';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -49,12 +50,12 @@ export default function DashboardLayout() {
         {/* Logo */}
         <div className="p-6 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <motion.div
+            <motion.img
+              src={logoYB}
+              alt="Logo Yayasan Baitulloh"
               whileHover={{ rotate: 10, scale: 1.05 }}
-              className="w-11 h-11 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"
-            >
-              <span className="text-lg font-bold font-arabic text-foreground">ب</span>
-            </motion.div>
+              className="w-11 h-11 rounded-xl object-contain"
+            />
             <div>
               <h2 className="text-sm font-bold text-sidebar-foreground leading-tight tracking-tight">Yayasan Baitulloh</h2>
               <p className="text-[10px] text-sidebar-foreground/40 font-medium uppercase tracking-[0.2em]">Sistem Bendahara</p>

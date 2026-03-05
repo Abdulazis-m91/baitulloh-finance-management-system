@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { LogIn, ChevronDown } from 'lucide-react';
 import HeroSection from '@/components/public/HeroSection';
+import logoYB from '@/assets/logo-yb.png';
 import InfoSection from '@/components/public/InfoSection';
 import GallerySection from '@/components/public/GallerySection';
 import LoginDialog from '@/components/auth/LoginDialog';
@@ -21,13 +22,13 @@ const Index = () => {
         <div className="mx-4 mt-3">
           <div className="max-w-7xl mx-auto glass-card rounded-2xl px-5 h-16 flex items-center justify-between shadow-elevated">
             <div className="flex items-center gap-3">
-              <motion.div
+              <motion.img
+                src={logoYB}
+                alt="Logo Yayasan Baitulloh"
                 whileHover={{ rotate: 10, scale: 1.1 }}
                 transition={{ type: 'spring', stiffness: 300 }}
-                className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"
-              >
-                <span className="text-lg font-bold font-arabic text-foreground">ب</span>
-              </motion.div>
+                className="w-10 h-10 rounded-xl object-contain"
+              />
               <div>
                 <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Yayasan Baitulloh</h1>
                 <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Sistem Informasi Keuangan</p>
@@ -80,9 +81,7 @@ const Index = () => {
               viewport={{ once: true }}
               className="flex items-center justify-center gap-3 mb-4"
             >
-              <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold">
-                <span className="text-lg font-bold font-arabic text-foreground">ب</span>
-              </div>
+              <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-10 h-10 rounded-xl object-contain" />
               <span className="text-white font-bold text-lg tracking-tight">Yayasan Baitulloh</span>
             </motion.div>
             <p className="text-white/40 text-sm">© 2026 Yayasan Baitulloh · Sistem Informasi Keuangan</p>
