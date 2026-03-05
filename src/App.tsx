@@ -45,7 +45,7 @@ const AppRoutes = () => (
       <Route path="data-santri" element={<DataSantriPesantren />} />
       <Route path="pendapatan-pesantren" element={<PendapatanPesantren />} />
       <Route path="pengeluaran-pesantren" element={<PengeluaranPesantren />} />
-      <Route path="laporan-pesantren" element={<div className="flex items-center justify-center min-h-[40vh]"><p className="text-muted-foreground text-lg">🚧 Laporan Pesantren — Dalam Pengembangan</p></div>} />
+      <Route path="laporan-pesantren" element={<LaporanPesantren />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
