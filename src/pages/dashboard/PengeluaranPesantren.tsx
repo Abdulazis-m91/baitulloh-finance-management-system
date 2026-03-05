@@ -1,13 +1,15 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Printer, X, AlertCircle, Receipt, Loader2 } from 'lucide-react';
-import { usePengeluaranPesantren, useInsertPengeluaranPesantren } from '@/hooks/useSupabasePesantren';
+import { usePengeluaranPesantren, useInsertPengeluaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren } from '@/hooks/useSupabasePesantren';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import logoYB from '@/assets/logo-yb.png';
+
+type Tab = 'pengeluaran' | 'konsumsi' | 'operasional' | 'pembangunan';
 
 const tataTertib = [
   'Setiap transaksi pengeluaran wajib disertai bukti/nota yang sah.',
@@ -20,23 +22,27 @@ const tataTertib = [
 const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
 export default function PengeluaranPesantren() {
-  const [activeTab, setActiveTab] = useState<'pengeluaran' | 'rekap'>('pengeluaran');
+  const [activeTab, setActiveTab] = useState<Tab>('pengeluaran');
   const [keterangan, setKeterangan] = useState('');
+  const [danaDigunakan, setDanaDigunakan] = useState('');
   const [jenisKeperluan, setJenisKeperluan] = useState('');
   const [nominal, setNominal] = useState('');
   const [showNota, setShowNota] = useState(false);
   const [notaData, setNotaData] = useState<any>(null);
   const notaRef = useRef<HTMLDivElement>(null);
 
-  const { data: pengeluaranList = [], isLoading } = usePengeluaranPesantren();
+  const { data: pengeluaranList = [], isLoading: l1 } = usePengeluaranPesantren();
+  const { data: konsumsiList = [], isLoading: l2 } = useKonsumsiPesantren();
+  const { data: operasionalList = [], isLoading: l3 } = useOperasionalPesantren();
+  const { data: pembangunanList = [], isLoading: l4 } = usePembangunanPesantren();
   const insertPengeluaran = useInsertPengeluaranPesantren();
 
-  if (isLoading) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (l1 || l2 || l3 || l4) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   const handleSubmit = () => {
-    if (!keterangan || !jenisKeperluan || !nominal) { toast.error('Mohon lengkapi semua field'); return; }
-    const data = { keterangan, jenis_keperluan: jenisKeperluan, nominal: parseInt(nominal.replace(/\D/g, '')), tanggal: new Date().toISOString().split('T')[0], petugas: 'Petugas Pesantren' };
-    setNotaData(data);
+    if (!keterangan || !danaDigunakan || !jenisKeperluan || !nominal) { toast.error('Mohon lengkapi semua field'); return; }
+    const data = { keterangan, jenis_keperluan: `${danaDigunakan} - ${jenisKeperluan}`, nominal: parseInt(nominal.replace(/\D/g, '')), tanggal: new Date().toISOString().split('T')[0], petugas: 'Petugas Pesantren' };
+    setNotaData({ ...data, dana_digunakan: danaDigunakan, jenis: jenisKeperluan });
     setShowNota(true);
   };
 
@@ -48,9 +54,7 @@ export default function PengeluaranPesantren() {
         if (img.complete) return Promise.resolve();
         return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
       }));
-      const canvas = await html2canvas(notaRef.current, {
-        backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true, logging: false,
-      });
+      const canvas = await html2canvas(notaRef.current, { backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true, logging: false });
       const imgData = canvas.toDataURL('image/png');
       const pdfWidth = 80;
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
@@ -69,9 +73,10 @@ export default function PengeluaranPesantren() {
     if (notaData) {
       const downloaded = await downloadNotaAsPDF();
       if (downloaded) {
-        insertPengeluaran.mutate(notaData);
+        insertPengeluaran.mutate({ keterangan: notaData.keterangan, jenis_keperluan: notaData.jenis_keperluan, nominal: notaData.nominal, tanggal: notaData.tanggal, petugas: notaData.petugas });
         setShowNota(false);
         setKeterangan('');
+        setDanaDigunakan('');
         setNominal('');
         setJenisKeperluan('');
         toast.success('Nota berhasil didownload & data tersimpan');
@@ -82,19 +87,44 @@ export default function PengeluaranPesantren() {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
-  const dataBulanIni = pengeluaranList.filter(e => {
+
+  const filterByMonth = (list: any[]) => list.filter(e => {
     const d = new Date(e.tanggal);
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   });
-  const totalBulanIni = dataBulanIni.reduce((s, e) => s + e.nominal, 0);
 
-  const exportRekap = () => {
-    const ws = XLSX.utils.json_to_sheet(pengeluaranList.map(d => ({ Tanggal: formatDate(d.tanggal), Keterangan: d.keterangan, Jenis: d.jenis_keperluan, Nominal: d.nominal, Petugas: d.petugas })));
+  const getRekapData = () => {
+    if (activeTab === 'konsumsi') return konsumsiList;
+    if (activeTab === 'operasional') return operasionalList;
+    if (activeTab === 'pembangunan') return pembangunanList;
+    return [];
+  };
+
+  const rekapData = getRekapData();
+  const rekapBulanIni = filterByMonth(rekapData);
+  const totalRekapBulanIni = rekapBulanIni.reduce((s, e) => s + (e.nominal || 0), 0);
+
+  const pengeluaranBulanIni = filterByMonth(pengeluaranList);
+  const totalPengeluaranBulanIni = pengeluaranBulanIni.reduce((s, e) => s + e.nominal, 0);
+
+  const exportRekap = (label: string, data: any[]) => {
+    const ws = XLSX.utils.json_to_sheet(data.map(d => ({ Tanggal: formatDate(d.tanggal), Nama: d.nama_siswa || d.keterangan || '-', Kategori: d.kategori || '-', Bulan: d.bulan || '-', Nominal: d.nominal, Petugas: d.petugas })));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Rekap Pesantren');
-    XLSX.writeFile(wb, 'rekap_pengeluaran_pesantren.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, label);
+    XLSX.writeFile(wb, `rekap_${label.toLowerCase()}_pesantren.xlsx`);
     toast.success('Data berhasil diekspor');
   };
+
+  const tabList: { key: Tab; label: string; icon: string }[] = [
+    { key: 'pengeluaran', label: 'Pengeluaran', icon: '📝' },
+    { key: 'konsumsi', label: 'Konsumsi', icon: '🍚' },
+    { key: 'operasional', label: 'Operasional', icon: '🏗️' },
+    { key: 'pembangunan', label: 'Pembangunan', icon: '🏢' },
+  ];
+
+  const rekapHeaders = activeTab === 'pengeluaran'
+    ? ['No', 'Tanggal', 'Keterangan', 'Jenis', 'Nominal', 'Petugas']
+    : ['No', 'Tanggal', 'Nama', 'Kategori', 'Bulan', 'Nominal', 'Petugas'];
 
   return (
     <div className="space-y-6">
@@ -103,10 +133,10 @@ export default function PengeluaranPesantren() {
         <p className="text-muted-foreground text-sm mt-1">Catat dan kelola pengeluaran keuangan pesantren</p>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit">
-        {([{ key: 'pengeluaran' as const, label: '📝 Pengeluaran' }, { key: 'rekap' as const, label: '📊 Rekap' }]).map(tab => (
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex gap-1 bg-muted p-1.5 rounded-2xl flex-wrap">
+        {tabList.map(tab => (
           <motion.button key={tab.key} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(tab.key)} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab.key ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-            {tab.label}
+            {tab.icon} {tab.label}
           </motion.button>
         ))}
       </motion.div>
@@ -124,20 +154,31 @@ export default function PengeluaranPesantren() {
                 <input value={keterangan} onChange={e => setKeterangan(e.target.value)} placeholder="Contoh: Pembelian bahan makanan" className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Jenis Keperluan</label>
-                <select value={jenisKeperluan} onChange={e => setJenisKeperluan(e.target.value)} className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-                  <option value="">Pilih</option>
+                <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Dana yang Digunakan</label>
+                <select value={danaDigunakan} onChange={e => setDanaDigunakan(e.target.value)} className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+                  <option value="">Pilih Dana</option>
                   <option value="Konsumsi">Konsumsi</option>
-                  <option value="Perlengkapan">Perlengkapan</option>
                   <option value="Operasional">Operasional</option>
                   <option value="Pembangunan">Pembangunan</option>
-                  <option value="Gaji">Gaji</option>
-                  <option value="Lainnya">Lainnya</option>
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nominal</label>
-                <input value={nominal ? formatRupiah(parseInt(nominal)) : ''} onChange={e => setNominal(e.target.value.replace(/\D/g, ''))} placeholder="Rp 0" className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Jenis Pengeluaran</label>
+                  <select value={jenisKeperluan} onChange={e => setJenisKeperluan(e.target.value)} className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+                    <option value="">Pilih</option>
+                    <option value="Konsumsi">Konsumsi</option>
+                    <option value="Perlengkapan">Perlengkapan</option>
+                    <option value="Operasional">Operasional</option>
+                    <option value="Pembangunan">Pembangunan</option>
+                    <option value="Gaji">Gaji</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nominal</label>
+                  <input value={nominal ? formatRupiah(parseInt(nominal)) : ''} onChange={e => setNominal(e.target.value.replace(/\D/g, ''))} placeholder="Rp 0" className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
+                </div>
               </div>
               <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={handleSubmit} className="w-full py-3.5 rounded-xl gradient-danger text-destructive-foreground font-bold btn-shine">
                 Keluarkan Uang
@@ -158,11 +199,16 @@ export default function PengeluaranPesantren() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border p-7 shadow-elegant">
-            <h3 className="font-bold text-foreground mb-5 text-lg">Riwayat Pengeluaran</h3>
-            <div className="space-y-3">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-foreground text-lg">Riwayat Pengeluaran</h3>
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => exportRekap('Pengeluaran', pengeluaranList)} className="flex items-center gap-2 px-4 py-2 rounded-xl gradient-success text-success-foreground text-xs font-bold btn-shine">
+                <Download className="w-3.5 h-3.5" /> Export
+              </motion.button>
+            </div>
+            <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {pengeluaranList.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">Belum ada data pengeluaran</p>}
               {pengeluaranList.map((e, i) => (
-                <motion.div key={e.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 + i * 0.05 }} className="p-5 rounded-2xl bg-muted/30 border border-border hover-lift cursor-default group">
+                <motion.div key={e.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 + i * 0.03 }} className="p-5 rounded-2xl bg-muted/30 border border-border hover-lift cursor-default group">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{e.keterangan}</p>
                     <span className="text-sm font-extrabold text-destructive">{formatRupiah(e.nominal)}</span>
@@ -175,14 +221,23 @@ export default function PengeluaranPesantren() {
                 </motion.div>
               ))}
             </div>
+            {pengeluaranList.length > 0 && (
+              <div className="mt-4 p-3 rounded-xl bg-muted/50 border border-border text-center">
+                <span className="text-xs text-muted-foreground">{bulanNames[currentMonth]} {currentYear}: </span>
+                <span className="text-sm font-extrabold text-destructive">{formatRupiah(totalPengeluaranBulanIni)}</span>
+                <span className="text-xs text-muted-foreground"> ({pengeluaranBulanIni.length} transaksi)</span>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
 
-      {activeTab === 'rekap' && (
+      {/* Rekap tabs: Konsumsi, Operasional, Pembangunan */}
+      {activeTab !== 'pengeluaran' && (
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          <div className="flex justify-end">
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportRekap} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-bold text-foreground">Rekap Dana {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} (Pendapatan)</h3>
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => exportRekap(activeTab.charAt(0).toUpperCase() + activeTab.slice(1), rekapData)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
               <Download className="w-4 h-4" /> Export Excel
             </motion.button>
           </div>
@@ -190,33 +245,32 @@ export default function PengeluaranPesantren() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/30 border-b border-border">
-                  {['No', 'Tanggal', 'Keterangan', 'Jenis', 'Nominal', 'Petugas'].map(h => (
+                  {rekapHeaders.map(h => (
                     <th key={h} className={`py-4 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider ${h === 'Nominal' ? 'text-right' : 'text-left'}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {pengeluaranList.length === 0 && (
-                  <tr><td colSpan={6} className="py-16 text-center text-muted-foreground">Belum ada data pengeluaran</td></tr>
+                {rekapData.length === 0 && (
+                  <tr><td colSpan={rekapHeaders.length} className="py-16 text-center text-muted-foreground">Belum ada data</td></tr>
                 )}
-                {pengeluaranList.map((e, i) => (
+                {rekapData.map((e: any, i: number) => (
                   <tr key={e.id} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                     <td className="py-4 px-4 text-muted-foreground">{i + 1}</td>
                     <td className="py-4 px-4 text-muted-foreground">{formatDate(e.tanggal)}</td>
-                    <td className="py-4 px-4 text-foreground font-semibold">{e.keterangan}</td>
-                    <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-bold">{e.jenis_keperluan}</span></td>
-                    <td className="py-4 px-4 text-right text-destructive font-bold">{formatRupiah(e.nominal)}</td>
+                    <td className="py-4 px-4 text-foreground font-semibold">{e.nama_siswa}</td>
+                    <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-bold">{e.kategori}</span></td>
+                    <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-accent/50 text-accent-foreground text-xs font-bold">{e.bulan}</span></td>
+                    <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(e.nominal)}</td>
                     <td className="py-4 px-4 text-muted-foreground">{e.petugas}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="bg-muted/50 border-t-2 border-border">
-                  <td colSpan={2} className="py-4 px-4 font-extrabold text-foreground text-sm">TOTAL</td>
-                  <td className="py-4 px-4 text-xs text-muted-foreground font-semibold">{bulanNames[currentMonth]} {currentYear}</td>
-                  <td className="py-4 px-4 text-xs text-muted-foreground font-semibold">{dataBulanIni.length} Transaksi</td>
-                  <td className="py-4 px-4 text-right font-extrabold text-destructive text-base">{formatRupiah(totalBulanIni)}</td>
-                  <td className="py-4 px-4"></td>
+                  <td colSpan={rekapHeaders.length - 2} className="py-4 px-4 font-extrabold text-foreground text-sm">TOTAL — {bulanNames[currentMonth]} {currentYear}</td>
+                  <td className="py-4 px-4 text-xs text-muted-foreground font-semibold">{rekapBulanIni.length} Transaksi</td>
+                  <td className="py-4 px-4 text-right font-extrabold text-primary text-base">{formatRupiah(totalRekapBulanIni)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -243,7 +297,8 @@ export default function PengeluaranPesantren() {
                 {[
                   ['Tanggal', formatDate(notaData.tanggal)],
                   ['Keterangan', notaData.keterangan],
-                  ['Jenis', notaData.jenis_keperluan],
+                  ['Dana Digunakan', notaData.dana_digunakan],
+                  ['Jenis', notaData.jenis],
                 ].map(([l, v]) => (
                   <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium">{v}</span></div>
                 ))}
