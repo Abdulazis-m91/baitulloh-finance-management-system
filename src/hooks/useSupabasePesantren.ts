@@ -235,3 +235,48 @@ export function useInsertPengeluaranPesantren() {
     onError: (e) => toast.error(`Gagal: ${e.message}`),
   });
 }
+
+// ========== PENDAPATAN LAIN PESANTREN ==========
+export interface PendapatanLainPesantrenDB {
+  id: string;
+  nama: string;
+  nominal: number;
+  tanggal: string;
+  petugas: string;
+  created_at: string;
+}
+
+export function usePendapatanLainPesantren() {
+  return useQuery({
+    queryKey: ['pendapatan_lain_pesantren'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('pendapatan_lain_pesantren').select('*').order('tanggal', { ascending: false });
+      if (error) throw error;
+      return data as PendapatanLainPesantrenDB[];
+    },
+  });
+}
+
+export function useInsertPendapatanLainPesantren() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (record: Omit<PendapatanLainPesantrenDB, 'id' | 'created_at'>) => {
+      const { data, error } = await supabase.from('pendapatan_lain_pesantren').insert(record).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pendapatan_lain_pesantren'] }); },
+    onError: (e) => toast.error(`Gagal: ${e.message}`),
+  });
+}
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (record: Omit<PengeluaranPesantrenDB, 'id' | 'created_at'>) => {
+      const { data, error } = await supabase.from('pengeluaran_pesantren').insert(record).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pengeluaran_pesantren'] }); toast.success('Pengeluaran pesantren berhasil dicatat'); },
+    onError: (e) => toast.error(`Gagal: ${e.message}`),
+  });
+}
