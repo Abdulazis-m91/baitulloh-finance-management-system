@@ -68,13 +68,8 @@ export default function PendapatanPesantren() {
 
   const tabIcons: Record<Tab, string> = { 'Pembayaran': '📌', 'Konsumsi': '🍚', 'Operasional': '🏗️', 'Pembangunan': '🏢', 'Cicilan': '💳', 'Deposit': '💰' };
 
-  const renderHeaders = () => {
-    switch (activeTab) {
-      case 'Pembayaran': case 'Deposit': return ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Kategori', 'Bulan', 'Nominal', 'Petugas'];
-      case 'Konsumsi': case 'Operasional': case 'Pembangunan': return ['No', 'Tanggal', 'Nama', 'Kategori', 'Bulan', 'Nominal', 'Petugas'];
-      case 'Cicilan': return ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Bulan', 'Nominal'];
-      default: return [];
-    }
+  const renderHeaders = (): string[] => {
+    return ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Kategori', 'Bulan', 'Nominal', 'Petugas'];
   };
 
   const headers = renderHeaders();
