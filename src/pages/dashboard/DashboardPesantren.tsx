@@ -23,7 +23,7 @@ export default function DashboardPesantren() {
     const biaya = KATEGORI_BIAYA[kat]?.total || 450000;
     return acc + s.tunggakan_pesantren.length * biaya;
   }, 0);
-  const santriMembayar = new Set(pembayaran.map(p => p.siswa_id)).size;
+  const santriMembayar = new Set(pembayaranLunas.map(p => p.siswa_id)).size;
   const totalPengeluaran = pengeluaran.reduce((acc, p) => acc + p.nominal, 0);
 
   const stats = [
