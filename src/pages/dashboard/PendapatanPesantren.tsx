@@ -124,9 +124,9 @@ export default function PendapatanPesantren() {
       </div>
 
       {/* Table */}
-      <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+      <div className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table key={activeTab} className="w-full text-sm">
             <thead>
               <tr className="bg-muted/30 border-b border-border">
                 {headers.map(h => (
@@ -142,7 +142,7 @@ export default function PendapatanPesantren() {
               )}
 
               {(activeTab === 'Pembayaran' || activeTab === 'Deposit') && pagedData.map((p: any, i: number) => (
-                <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
+                <tr key={p.id} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
                   <td className="py-4 px-4 text-muted-foreground">{formatDate(p.tanggal)}</td>
                   <td className="py-4 px-4 text-foreground font-semibold">{p.nama_siswa}</td>
@@ -152,11 +152,11 @@ export default function PendapatanPesantren() {
                   <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-accent/50 text-accent-foreground text-xs font-bold">{p.bulan}</span></td>
                   <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(p.nominal)}</td>
                   <td className="py-4 px-4 text-muted-foreground">{p.petugas}</td>
-                </motion.tr>
+                </tr>
               ))}
 
               {(['Konsumsi', 'Operasional', 'Pembangunan'] as Tab[]).includes(activeTab) && pagedData.map((c: any, i: number) => (
-                <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
+                <tr key={c.id} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
                   <td className="py-4 px-4 text-muted-foreground">{formatDate(c.tanggal)}</td>
                   <td className="py-4 px-4 text-foreground font-semibold">{c.nama_siswa}</td>
@@ -164,11 +164,11 @@ export default function PendapatanPesantren() {
                   <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-accent/50 text-accent-foreground text-xs font-bold">{c.bulan}</span></td>
                   <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(c.nominal)}</td>
                   <td className="py-4 px-4 text-muted-foreground">{c.petugas}</td>
-                </motion.tr>
+                </tr>
               ))}
 
               {activeTab === 'Cicilan' && pagedData.map((c: any, i: number) => (
-                <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
+                <tr key={c.id} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
                   <td className="py-4 px-4 text-muted-foreground">{formatDate(c.tanggal)}</td>
                   <td className="py-4 px-4 text-foreground font-semibold">{c.namaSiswa}</td>
@@ -176,7 +176,7 @@ export default function PendapatanPesantren() {
                   <td className="py-4 px-4 text-foreground">{c.kelas}</td>
                   <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-warning/10 text-warning text-xs font-bold">{c.bulan}</span></td>
                   <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(c.nominal)}</td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
             <tfoot>
