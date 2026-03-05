@@ -1,10 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar } from 'lucide-react';
-import { mockStudents, kelasOptions, bulanList } from '@/data/mockData';
+import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
+import { useStudents, useInsertStudent, useUpdateStudent, useDeleteStudent, type StudentDB } from '@/hooks/useSupabaseData';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
+
+const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const kelasOptions: Record<string, string[]> = {
+  SMP: ['7A', '7B', '8A', '8B', '9A', '9B'],
+  SMA: ['10A', '10B', '11A', '11B', '12A', '12B'],
+};
 
 type FilterStatus = '' | 'lunas' | 'menunggak';
 type StudentForm = {
@@ -38,79 +44,44 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
   const [rfidFlash, setRfidFlash] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      rfidRef.current?.focus();
-      console.log('[RFID] Auto-focus triggered after animation delay');
-    }, 400);
+    const timer = setTimeout(() => { rfidRef.current?.focus(); }, 400);
     return () => clearTimeout(timer);
   }, []);
 
-  // Global keydown listener as fallback — captures keys even if focus is lost
   useEffect(() => {
     let buffer = '';
     let bufferTimer: ReturnType<typeof setTimeout>;
-
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Skip if user is typing in another input
       const active = document.activeElement;
-      if (active && active !== rfidRef.current && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) {
-        return;
-      }
-
+      if (active && active !== rfidRef.current && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
       if (e.key === 'Enter') {
         if (buffer.length > 0) {
-          console.log('[RFID] Scanner Enter detected, buffer:', buffer);
           setForm(prev => ({ ...prev, barcode: prev.barcode + buffer }));
           buffer = '';
           setRfidFlash(true);
           setTimeout(() => setRfidFlash(false), 600);
-          toast.success(`✅ Kartu RFID terbaca: ${buffer}`);
+          toast.success('✅ Kartu RFID terbaca!');
         }
         e.preventDefault();
         return;
       }
-
       if (e.key.length === 1) {
         buffer += e.key;
-        console.log('[RFID] Key captured:', e.key, '| Buffer:', buffer);
         clearTimeout(bufferTimer);
         bufferTimer = setTimeout(() => {
-          console.log('[RFID] Buffer timeout, flushing:', buffer);
           if (buffer.length > 2) {
-            // Likely scanner input (fast burst of chars)
             setForm(prev => ({ ...prev, barcode: prev.barcode + buffer }));
             setRfidFlash(true);
             setTimeout(() => setRfidFlash(false), 600);
-            toast.success(`✅ Kartu RFID terbaca!`);
+            toast.success('✅ Kartu RFID terbaca!');
           }
           buffer = '';
-        }, 150); // Scanners type fast, humans don't reach 150ms per char
+        }, 150);
       }
     };
-
     window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleGlobalKeyDown);
-      clearTimeout(bufferTimer);
-    };
+    return () => { window.removeEventListener('keydown', handleGlobalKeyDown); clearTimeout(bufferTimer); };
   }, [setForm]);
-
-  const handleRfidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    console.log('[RFID] onChange fired, value:', val);
-    setForm(prev => ({ ...prev, barcode: val }));
-    setRfidLastEvent(`Input: ${val.slice(-10)}`);
-    if (val.length > 0) {
-      setRfidFlash(true);
-      setTimeout(() => setRfidFlash(false), 600);
-    }
-  };
-
-  const handleRfidKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    console.log('[RFID] onKeyDown:', e.key, '| keyCode:', e.keyCode, '| current value:', form.barcode);
-    setRfidLastEvent(`Key: ${e.key} (${e.keyCode})`);
-    if (e.key === 'Enter') e.preventDefault();
-  };
 
   return (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={onClose}>
@@ -120,7 +91,6 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
         <h3 className="font-bold text-foreground text-xl">{title}</h3>
         <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onClose} className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></motion.button>
       </div>
-
       <form onSubmit={e => { e.preventDefault(); onSubmit(); }} className="space-y-5">
         <div className="flex gap-6">
           <div className="flex-shrink-0 flex flex-col items-center gap-3">
@@ -129,7 +99,6 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
             </div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Foto Siswa</p>
           </div>
-
           <div className="flex-1 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -141,26 +110,17 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
                 <input value={form.namaLengkap} onChange={e => setForm(prev => ({ ...prev, namaLengkap: e.target.value }))} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required />
               </div>
             </div>
-
             <div>
               <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Barcode / RFID</label>
               <div className="relative">
-                <input 
-                  ref={rfidRef}
-                  value={form.barcode} 
-                  onChange={handleRfidChange}
-                  onKeyDown={handleRfidKeyDown}
-                  onFocus={() => { setRfidFocused(true); console.log('[RFID] Input FOCUSED'); }}
-                  onBlur={() => { setRfidFocused(false); console.log('[RFID] Input BLURRED'); }}
-                  onInput={(e) => console.log('[RFID] onInput event:', (e.target as HTMLInputElement).value)}
-                  autoComplete="off"
-                  inputMode="none"
+                <input ref={rfidRef} value={form.barcode}
+                  onChange={e => { setForm(prev => ({ ...prev, barcode: e.target.value })); setRfidLastEvent(`Input: ${e.target.value.slice(-10)}`); }}
+                  onFocus={() => setRfidFocused(true)} onBlur={() => setRfidFocused(false)}
+                  autoComplete="off" inputMode="none"
                   placeholder="📡 Tempelkan kartu RFID — kursor otomatis aktif di sini..."
                   className={`w-full px-4 py-3 rounded-xl border-2 text-foreground text-sm input-focus font-mono transition-all duration-300
                     ${rfidFlash ? 'border-green-500 bg-green-500/10 ring-4 ring-green-500/30' : rfidFocused ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-primary/40 bg-primary/5'}
-                    placeholder:text-primary/40`} 
-                />
-                {/* Live status indicator */}
+                    placeholder:text-primary/40`} />
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className={`inline-block w-2.5 h-2.5 rounded-full ${rfidFocused ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                   <span className="text-[10px] text-muted-foreground font-mono">
@@ -170,7 +130,6 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
                 </div>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Jenjang</label>
@@ -188,7 +147,6 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
                 </select>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Nama Orang Tua</label>
@@ -196,14 +154,12 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
               </div>
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">No. WhatsApp</label>
-                <input value={form.nomorWhatsApp} onChange={e => handleWhatsAppChange(e.target.value)}
-                  placeholder="+628xxxxxxxxxx"
+                <input value={form.nomorWhatsApp} onChange={e => handleWhatsAppChange(e.target.value)} placeholder="+628xxxxxxxxxx"
                   className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required />
               </div>
             </div>
           </div>
         </div>
-
         <div className="border-t border-border pt-5">
           <label className="text-xs font-semibold text-foreground mb-1 block uppercase tracking-wider flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5 text-primary" /> Tunggakan Awal (opsional)
@@ -213,21 +169,15 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
             <div className="flex-shrink-0 w-32">
               <select value={form.tunggakanTahun} onChange={e => setForm(prev => ({ ...prev, tunggakanTahun: e.target.value, tunggakanBulan: [] }))}
                 className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-                <option value="">Tahun</option>
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
+                <option value="">Tahun</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
               </select>
             </div>
-
             {form.tunggakanTahun && (
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex-1">
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {bulanList.map(b => (
                     <label key={b} className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all text-xs font-medium border ${
-                      form.tunggakanBulan.includes(b)
-                        ? 'bg-primary/10 border-primary/30 text-primary'
-                        : 'bg-muted/30 border-border hover:bg-muted/60 text-foreground'
+                      form.tunggakanBulan.includes(b) ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-muted/30 border-border hover:bg-muted/60 text-foreground'
                     }`}>
                       <input type="checkbox" checked={form.tunggakanBulan.includes(b)} onChange={() => toggleBulan(b)} className="rounded border-border accent-primary w-3.5 h-3.5" />
                       {b}
@@ -238,7 +188,6 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
             )}
           </div>
         </div>
-
         <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} type="submit"
           className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine shadow-glow-primary text-sm">
           {title === 'Tambah Data Siswa' ? 'Simpan Data' : 'Perbarui Data'}
@@ -256,20 +205,27 @@ export default function DataSiswaSekolah() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('');
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
-  const [showEdit, setShowEdit] = useState<typeof mockStudents[0] | null>(null);
-  const [showDetail, setShowDetail] = useState<typeof mockStudents[0] | null>(null);
-  const [showTunggakan, setShowTunggakan] = useState<typeof mockStudents[0] | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<typeof mockStudents[0] | null>(null);
+  const [showEdit, setShowEdit] = useState<StudentDB | null>(null);
+  const [showDetail, setShowDetail] = useState<StudentDB | null>(null);
+  const [showTunggakan, setShowTunggakan] = useState<StudentDB | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<StudentDB | null>(null);
   const [form, setForm] = useState<StudentForm>(emptyForm);
   const perPage = 15;
 
-  const filtered = mockStudents.filter(s => {
-    const matchSearch = !search || s.namaLengkap.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search);
+  const { data: students = [], isLoading } = useStudents();
+  const insertStudent = useInsertStudent();
+  const updateStudentMut = useUpdateStudent();
+  const deleteStudentMut = useDeleteStudent();
+
+  if (isLoading) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+
+  const filtered = students.filter(s => {
+    const matchSearch = !search || s.nama_lengkap.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search);
     const matchJenjang = !filterJenjang || s.jenjang === filterJenjang;
     const matchKelas = !filterKelas || s.kelas === filterKelas;
     const matchStatus = !filterStatus ||
-      (filterStatus === 'lunas' && s.tunggakanSekolah.length === 0) ||
-      (filterStatus === 'menunggak' && s.tunggakanSekolah.length > 0);
+      (filterStatus === 'lunas' && s.tunggakan_sekolah.length === 0) ||
+      (filterStatus === 'menunggak' && s.tunggakan_sekolah.length > 0);
     return matchSearch && matchJenjang && matchKelas && matchStatus;
   });
 
@@ -278,9 +234,9 @@ export default function DataSiswaSekolah() {
 
   const exportExcel = () => {
     const data = filtered.map((s, i) => ({
-      No: i + 1, NISN: s.nisn, 'Nama Lengkap': s.namaLengkap, Jenjang: s.jenjang, Kelas: s.kelas,
-      'Status Pembiayaan': s.tunggakanSekolah.length > 0 ? `Menunggak (${s.tunggakanSekolah.length} bulan)` : 'Lunas',
-      'Nama Orang Tua': s.namaOrangTua, 'No. WhatsApp': s.nomorWhatsApp,
+      No: i + 1, NISN: s.nisn, 'Nama Lengkap': s.nama_lengkap, Jenjang: s.jenjang, Kelas: s.kelas,
+      'Status Pembiayaan': s.tunggakan_sekolah.length > 0 ? `Menunggak (${s.tunggakan_sekolah.length} bulan)` : 'Lunas',
+      'Nama Orang Tua': s.nama_orang_tua, 'No. WhatsApp': s.nomor_whatsapp,
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -291,43 +247,55 @@ export default function DataSiswaSekolah() {
 
   const handleDelete = () => {
     if (showDeleteConfirm) {
-      toast.success(`Data ${showDeleteConfirm.namaLengkap} berhasil dihapus`);
+      deleteStudentMut.mutate(showDeleteConfirm.id);
       setShowDeleteConfirm(null);
     }
   };
 
-  const openEdit = (s: typeof mockStudents[0]) => {
+  const openEdit = (s: StudentDB) => {
     setForm({
-      nisn: s.nisn, barcode: s.barcode, namaLengkap: s.namaLengkap, jenjang: s.jenjang, kelas: s.kelas,
-      namaOrangTua: s.namaOrangTua, nomorWhatsApp: s.nomorWhatsApp,
+      nisn: s.nisn, barcode: s.barcode, namaLengkap: s.nama_lengkap, jenjang: s.jenjang, kelas: s.kelas,
+      namaOrangTua: s.nama_orang_tua, nomorWhatsApp: s.nomor_whatsapp,
       tunggakanTahun: '', tunggakanBulan: [],
     });
     setShowEdit(s);
   };
 
-  const openAdd = () => {
-    setForm(emptyForm);
-    setShowAdd(true);
+  const openAdd = () => { setForm(emptyForm); setShowAdd(true); };
+
+  const handleAdd = () => {
+    insertStudent.mutate({
+      nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
+      jenjang: form.jenjang as 'SMP' | 'SMA', kelas: form.kelas,
+      nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
+      foto: null, tunggakan_sekolah: form.tunggakanBulan, tunggakan_pesantren: [],
+      biaya_per_bulan: form.jenjang === 'SMA' ? 150000 : 125000, deposit: 0,
+    });
+    setShowAdd(false);
   };
 
-  const sendWhatsApp = (s: typeof mockStudents[0]) => {
-    const msg = encodeURIComponent(`Assalamu'alaikum. Yth. ${s.namaOrangTua}, kami informasikan bahwa ${s.namaLengkap} (${s.jenjang} ${s.kelas}) memiliki tunggakan SPP sebanyak ${s.tunggakanSekolah.length} bulan (${s.tunggakanSekolah.join(', ')}). Total: ${formatRupiah(s.tunggakanSekolah.length * s.biayaPerBulan)}. Mohon segera melakukan pembayaran. Terima kasih.`);
-    window.open(`https://wa.me/${s.nomorWhatsApp}?text=${msg}`, '_blank');
+  const handleEdit = () => {
+    if (!showEdit) return;
+    updateStudentMut.mutate({
+      id: showEdit.id,
+      nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
+      jenjang: form.jenjang as 'SMP' | 'SMA', kelas: form.kelas,
+      nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
+    });
+    setShowEdit(null);
+  };
+
+  const sendWhatsApp = (s: StudentDB) => {
+    const msg = encodeURIComponent(`Assalamu'alaikum. Yth. ${s.nama_orang_tua}, kami informasikan bahwa ${s.nama_lengkap} (${s.jenjang} ${s.kelas}) memiliki tunggakan SPP sebanyak ${s.tunggakan_sekolah.length} bulan (${s.tunggakan_sekolah.join(', ')}). Total: ${formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan)}. Mohon segera melakukan pembayaran. Terima kasih.`);
+    window.open(`https://wa.me/${s.nomor_whatsapp}?text=${msg}`, '_blank');
   };
 
   const toggleBulan = (b: string) => {
-    setForm(prev => ({
-      ...prev,
-      tunggakanBulan: prev.tunggakanBulan.includes(b)
-        ? prev.tunggakanBulan.filter(x => x !== b)
-        : [...prev.tunggakanBulan, b]
-    }));
+    setForm(prev => ({ ...prev, tunggakanBulan: prev.tunggakanBulan.includes(b) ? prev.tunggakanBulan.filter(x => x !== b) : [...prev.tunggakanBulan, b] }));
   };
 
   const handleWhatsAppChange = (value: string) => {
-    if (!value.startsWith('+62')) {
-      value = '+62';
-    }
+    if (!value.startsWith('+62')) value = '+62';
     setForm(prev => ({ ...prev, nomorWhatsApp: value }));
   };
 
@@ -390,27 +358,25 @@ export default function DataSiswaSekolah() {
                   className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors group">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * perPage + i + 1}</td>
                   <td className="py-4 px-4 text-foreground font-mono text-xs">{s.nisn}</td>
-                  <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.namaLengkap}</td>
+                  <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.nama_lengkap}</td>
                   <td className="py-4 px-4">
                     <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : 'bg-primary/10 text-primary'}`}>{s.jenjang}</span>
                   </td>
                   <td className="py-4 px-4 text-foreground font-medium">{s.kelas}</td>
                   <td className="py-4 px-4">
-                    {s.tunggakanSekolah.length > 0 ? (
+                    {s.tunggakan_sekolah.length > 0 ? (
                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTunggakan(s)}
                         className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
-                        {s.tunggakanSekolah.length} bulan ↗
+                        {s.tunggakan_sekolah.length} bulan ↗
                       </motion.button>
                     ) : (
                       <span className="px-3 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">✓ Lunas</span>
                     )}
                   </td>
-                  <td className="py-4 px-4 text-muted-foreground text-xs">{s.namaOrangTua}</td>
+                  <td className="py-4 px-4 text-muted-foreground text-xs">{s.nama_orang_tua}</td>
                   <td className="py-4 px-4">
-                    <a href={`https://wa.me/${s.nomorWhatsApp.replace('+', '')}`} target="_blank" rel="noopener noreferrer"
-                      className="text-xs font-bold font-mono text-success hover:underline">
-                      {s.nomorWhatsApp}
-                    </a>
+                    <a href={`https://wa.me/${s.nomor_whatsapp.replace('+', '')}`} target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-bold font-mono text-success hover:underline">{s.nomor_whatsapp}</a>
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-start gap-1">
@@ -423,7 +389,7 @@ export default function DataSiswaSekolah() {
                           <Icon className="w-4 h-4" />
                         </motion.button>
                       ))}
-                      {s.tunggakanSekolah.length > 0 && (
+                      {s.tunggakan_sekolah.length > 0 && (
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => sendWhatsApp(s)} className="p-2 rounded-xl text-success hover:bg-success/10 transition-colors" title="WhatsApp">
                           <MessageCircle className="w-4 h-4" />
                         </motion.button>
@@ -450,7 +416,7 @@ export default function DataSiswaSekolah() {
         )}
       </motion.div>
 
-      {/* ===== DETAIL POPUP (wider) ===== */}
+      {/* DETAIL POPUP */}
       <AnimatePresence>
         {showDetail && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={() => setShowDetail(null)}>
@@ -460,8 +426,6 @@ export default function DataSiswaSekolah() {
                 <h3 className="font-bold text-foreground text-xl">Detail Siswa</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowDetail(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></motion.button>
               </div>
-
-              {/* Top section: Photo left, Info right */}
               <div className="flex gap-6 mb-6">
                 <div className="flex-shrink-0 flex flex-col items-center">
                   <div className="w-28 h-28 rounded-full gradient-primary flex items-center justify-center shadow-glow-primary border-4 border-card">
@@ -469,15 +433,15 @@ export default function DataSiswaSekolah() {
                   </div>
                 </div>
                 <div className="flex-1 space-y-3">
-                  <h4 className="font-extrabold text-foreground text-xl">{showDetail.namaLengkap}</h4>
+                  <h4 className="font-extrabold text-foreground text-xl">{showDetail.nama_lengkap}</h4>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                     {[
                       ['NISN', showDetail.nisn],
                       ['Jenjang', showDetail.jenjang],
                       ['Kelas', showDetail.kelas],
-                      ['Biaya/Bulan', formatRupiah(showDetail.biayaPerBulan)],
-                      ['Nama Orang Tua', showDetail.namaOrangTua],
-                      ['No. WhatsApp', showDetail.nomorWhatsApp],
+                      ['Biaya/Bulan', formatRupiah(showDetail.biaya_per_bulan)],
+                      ['Nama Orang Tua', showDetail.nama_orang_tua],
+                      ['No. WhatsApp', showDetail.nomor_whatsapp],
                     ].map(([label, value]) => (
                       <div key={label} className="flex flex-col">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{label}</span>
@@ -487,25 +451,23 @@ export default function DataSiswaSekolah() {
                   </div>
                 </div>
               </div>
-
-              {/* Bottom: Tunggakan */}
               <div className="border-t border-border pt-5">
-                {showDetail.tunggakanSekolah.length > 0 ? (
+                {showDetail.tunggakan_sekolah.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-3 uppercase tracking-wider">
                       <AlertTriangle className="w-3.5 h-3.5 text-destructive" /> Daftar Tunggakan
                     </p>
                     <div className="grid grid-cols-2 gap-2">
-                      {showDetail.tunggakanSekolah.map(b => (
+                      {showDetail.tunggakan_sekolah.map(b => (
                         <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
                           <span className="text-foreground">{b}</span>
-                          <span className="text-destructive font-bold">{formatRupiah(showDetail.biayaPerBulan)}</span>
+                          <span className="text-destructive font-bold">{formatRupiah(showDetail.biaya_per_bulan)}</span>
                         </div>
                       ))}
                     </div>
                     <div className="flex justify-between p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-sm font-extrabold mt-2">
                       <span className="text-foreground">Total Tunggakan</span>
-                      <span className="text-destructive">{formatRupiah(showDetail.tunggakanSekolah.length * showDetail.biayaPerBulan)}</span>
+                      <span className="text-destructive">{formatRupiah(showDetail.tunggakan_sekolah.length * showDetail.biaya_per_bulan)}</span>
                     </div>
                   </div>
                 ) : (
@@ -517,7 +479,7 @@ export default function DataSiswaSekolah() {
         )}
       </AnimatePresence>
 
-      {/* ===== TUNGGAKAN POPUP ===== */}
+      {/* TUNGGAKAN POPUP */}
       <AnimatePresence>
         {showTunggakan && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={() => setShowTunggakan(null)}>
@@ -527,17 +489,17 @@ export default function DataSiswaSekolah() {
                 <h3 className="font-bold text-foreground text-lg">Detail Tunggakan</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowTunggakan(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">{showTunggakan.namaLengkap} · <span className="font-bold text-foreground">{showTunggakan.jenjang} {showTunggakan.kelas}</span></p>
+              <p className="text-sm text-muted-foreground mb-4">{showTunggakan.nama_lengkap} · <span className="font-bold text-foreground">{showTunggakan.jenjang} {showTunggakan.kelas}</span></p>
               <div className="space-y-2">
-                {showTunggakan.tunggakanSekolah.map(b => (
+                {showTunggakan.tunggakan_sekolah.map(b => (
                   <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
                     <span className="text-foreground">{b}</span>
-                    <span className="text-destructive font-bold">{formatRupiah(showTunggakan.biayaPerBulan)}</span>
+                    <span className="text-destructive font-bold">{formatRupiah(showTunggakan.biaya_per_bulan)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between p-4 rounded-xl bg-destructive/10 border border-destructive/20 font-extrabold text-sm">
                   <span className="text-foreground">Total</span>
-                  <span className="text-destructive">{formatRupiah(showTunggakan.tunggakanSekolah.length * showTunggakan.biayaPerBulan)}</span>
+                  <span className="text-destructive">{formatRupiah(showTunggakan.tunggakan_sekolah.length * showTunggakan.biaya_per_bulan)}</span>
                 </div>
               </div>
             </motion.div>
@@ -545,31 +507,23 @@ export default function DataSiswaSekolah() {
         )}
       </AnimatePresence>
 
-      {/* ===== ADD STUDENT POPUP ===== */}
+      {/* ADD STUDENT POPUP */}
       <AnimatePresence>
         {showAdd && (
-          <StudentFormPopup
-            title="Tambah Data Siswa"
-            onClose={() => setShowAdd(false)}
-            onSubmit={() => { toast.success('Data berhasil ditambahkan'); setShowAdd(false); }}
-            form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange}
-          />
+          <StudentFormPopup title="Tambah Data Siswa" onClose={() => setShowAdd(false)} onSubmit={handleAdd}
+            form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange} />
         )}
       </AnimatePresence>
 
-      {/* ===== EDIT STUDENT POPUP ===== */}
+      {/* EDIT STUDENT POPUP */}
       <AnimatePresence>
         {showEdit && (
-          <StudentFormPopup
-            title="Edit Data Siswa"
-            onClose={() => setShowEdit(null)}
-            onSubmit={() => { toast.success('Data berhasil diperbarui'); setShowEdit(null); }}
-            form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange}
-          />
+          <StudentFormPopup title="Edit Data Siswa" onClose={() => setShowEdit(null)} onSubmit={handleEdit}
+            form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange} />
         )}
       </AnimatePresence>
 
-      {/* ===== DELETE CONFIRMATION POPUP ===== */}
+      {/* DELETE CONFIRMATION POPUP */}
       <AnimatePresence>
         {showDeleteConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
@@ -580,17 +534,13 @@ export default function DataSiswaSekolah() {
               </div>
               <h3 className="font-bold text-foreground text-lg mb-2">Konfirmasi Hapus</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Apakah Anda yakin akan menghapus data <span className="font-bold text-foreground">{showDeleteConfirm.namaLengkap}</span>?
+                Apakah Anda yakin akan menghapus data <span className="font-bold text-foreground">{showDeleteConfirm.nama_lengkap}</span>?
               </p>
               <div className="flex gap-3">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowDeleteConfirm(null)}
-                  className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-bold text-sm hover:bg-muted/80 transition-colors">
-                  Batal
-                </motion.button>
+                  className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-bold text-sm hover:bg-muted/80 transition-colors">Batal</motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleDelete}
-                  className="flex-1 py-3 rounded-xl gradient-danger text-destructive-foreground font-bold text-sm btn-shine">
-                  Ya, Hapus
-                </motion.button>
+                  className="flex-1 py-3 rounded-xl gradient-danger text-destructive-foreground font-bold text-sm btn-shine">Ya, Hapus</motion.button>
               </div>
             </motion.div>
           </motion.div>
