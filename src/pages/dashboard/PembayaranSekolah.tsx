@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, CreditCard, Scan, Loader2 } from 'lucide-react';
+import { Search, User, CreditCard, Scan, Loader2, X, Printer, Download } from 'lucide-react';
 import { useStudents, useInsertPembayaran, useUpdateStudent, type StudentDB } from '@/hooks/useSupabaseData';
-import { formatRupiah } from '@/lib/format';
+import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
+import html2canvas from 'html2canvas';
+import logoYB from '@/assets/logo-yb.png';
 
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -14,6 +16,9 @@ export default function PembayaranSekolah() {
   const [metode, setMetode] = useState<'Lunas' | 'Cicil' | 'Deposit'>('Lunas');
   const [selectedBulan, setSelectedBulan] = useState('');
   const [nominal, setNominal] = useState(0);
+  const [showStruk, setShowStruk] = useState(false);
+  const [strukData, setStrukData] = useState<any>(null);
+  const strukRef = useRef<HTMLDivElement>(null);
 
   const { data: students = [], isLoading } = useStudents();
   const insertPembayaran = useInsertPembayaran();
@@ -55,7 +60,8 @@ export default function PembayaranSekolah() {
 
   const handleSubmit = () => {
     if (!selectedStudent || !selectedBulan) return;
-    insertPembayaran.mutate({
+    const tanggal = new Date().toISOString().split('T')[0];
+    const data = {
       siswa_id: selectedStudent.id,
       nama_siswa: selectedStudent.nama_lengkap,
       nisn: selectedStudent.nisn,
@@ -64,18 +70,61 @@ export default function PembayaranSekolah() {
       bulan: selectedBulan,
       nominal,
       metode,
-      tanggal: new Date().toISOString().split('T')[0],
+      tanggal,
       petugas: 'Petugas A',
-    });
-    // Remove from tunggakan if paying off
-    if (metode === 'Lunas') {
-      updateStudent.mutate({
-        id: selectedStudent.id,
-        tunggakan_sekolah: selectedStudent.tunggakan_sekolah.filter(b => b !== selectedBulan),
+    };
+    // Show struk first, save on confirm
+    setStrukData({ ...data, student: selectedStudent });
+    setShowStruk(true);
+  };
+
+  const downloadStrukAsImage = async (): Promise<boolean> => {
+    if (!strukRef.current) return false;
+    try {
+      const images = strukRef.current.querySelectorAll('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+      }));
+      const canvas = await html2canvas(strukRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
+      const link = document.createElement('a');
+      link.download = `struk-pembayaran-${strukData?.nama_siswa?.replace(/\s+/g, '-')}-${Date.now()}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return true;
+    } catch (err) {
+      console.error('Download struk error:', err);
+      toast.error('Gagal mendownload struk');
+      return false;
     }
-    setSelectedStudent(null);
-    setSelectedBulan('');
+  };
+
+  const saveStruk = async () => {
+    if (!strukData) return;
+    const downloaded = await downloadStrukAsImage();
+    if (downloaded) {
+      const { student, ...record } = strukData;
+      insertPembayaran.mutate(record);
+      // Remove from tunggakan if paying off
+      if (metode === 'Lunas') {
+        updateStudent.mutate({
+          id: student.id,
+          tunggakan_sekolah: student.tunggakan_sekolah.filter((b: string) => b !== selectedBulan),
+        });
+      }
+      setShowStruk(false);
+      setSelectedStudent(null);
+      setSelectedBulan('');
+      toast.success('Struk berhasil didownload & pembayaran tersimpan');
+    }
   };
 
   return (
@@ -217,13 +266,65 @@ export default function PembayaranSekolah() {
         )}
       </AnimatePresence>
 
-      {!selectedStudent && (
+      {!selectedStudent && !showStruk && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="bg-card rounded-3xl border border-border p-16 shadow-elegant text-center">
           <div className="w-20 h-20 rounded-3xl bg-muted flex items-center justify-center mx-auto mb-5"><Search className="w-10 h-10 text-muted-foreground/30" /></div>
           <h3 className="font-bold text-foreground text-lg mb-2">Pilih Siswa</h3>
           <p className="text-muted-foreground text-sm max-w-sm mx-auto">Cari siswa berdasarkan nama, NISN, atau scan barcode untuk memulai transaksi pembayaran</p>
         </motion.div>
       )}
+
+      {/* Struk Pembayaran Popup */}
+      <AnimatePresence>
+        {showStruk && strukData && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowStruk(false)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-card rounded-3xl shadow-2xl w-full max-w-md p-7" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-foreground text-lg">Struk Pembayaran</h3>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowStruk(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
+              </div>
+
+              {/* Struk content for capture */}
+              <div ref={strukRef} className="border-2 border-dashed border-gray-300 rounded-2xl p-6 space-y-3 bg-white">
+                <div className="text-center mb-5 pb-4 border-b border-dashed border-gray-300">
+                  <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl mx-auto mb-2 object-contain" />
+                  <h4 className="font-extrabold text-gray-900">YAYASAN BAITULLOH</h4>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Struk Pembayaran SPP</p>
+                </div>
+                {[
+                  ['Tanggal', formatDate(strukData.tanggal)],
+                  ['Nama Siswa', strukData.nama_siswa],
+                  ['NISN', strukData.nisn],
+                  ['Jenjang/Kelas', `${strukData.jenjang} - ${strukData.kelas}`],
+                  ['Bulan', strukData.bulan],
+                  ['Metode', strukData.metode],
+                ].map(([l, v]) => (
+                  <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium">{v}</span></div>
+                ))}
+                <div className="border-t border-dashed border-gray-300 pt-3 flex justify-between text-sm font-extrabold">
+                  <span className="text-gray-900">Nominal</span>
+                  <span className="text-green-600 text-lg">{formatRupiah(strukData.nominal)}</span>
+                </div>
+                <div className="flex justify-between text-sm"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{strukData.petugas}</span></div>
+                <div className="text-center pt-3 border-t border-dashed border-gray-300">
+                  <p className="text-[9px] text-gray-400">Terima kasih atas pembayarannya</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-5">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveStruk}
+                  className="flex-1 py-3 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
+                  <Download className="w-4 h-4" /> Simpan Struk
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowStruk(false)}
+                  className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors">
+                  Batal
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
