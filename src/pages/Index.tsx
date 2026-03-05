@@ -30,7 +30,7 @@ const Index = () => {
               </motion.div>
               <div>
                 <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Yayasan Baitulloh</h1>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Sistem Bendahara</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Sistem Informasi Keuangan</p>
               </div>
             </div>
             <motion.button
@@ -83,13 +83,13 @@ const Index = () => {
               <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold">
                 <span className="text-lg font-bold font-arabic text-foreground">ب</span>
               </div>
-              <span className="text-primary-foreground font-bold text-lg tracking-tight">Yayasan Baitulloh</span>
+              <span className="text-white font-bold text-lg tracking-tight">Yayasan Baitulloh</span>
             </motion.div>
-            <p className="text-primary-foreground/40 text-sm">© 2026 Yayasan Baitulloh · Sistem Informasi Bendahara</p>
+            <p className="text-white/40 text-sm">© 2026 Yayasan Baitulloh · Sistem Informasi Keuangan</p>
             <div className="mt-4 flex items-center justify-center gap-6">
-              <a href="#" className="text-primary-foreground/50 text-xs hover:text-secondary transition-colors">Tentang Kami</a>
-              <a href="#" className="text-primary-foreground/50 text-xs hover:text-secondary transition-colors">Kontak</a>
-              <a href="#" className="text-primary-foreground/50 text-xs hover:text-secondary transition-colors">Kebijakan</a>
+              <a href="#" className="text-white/50 text-xs hover:text-white transition-colors">Tentang Kami</a>
+              <a href="#" className="text-white/50 text-xs hover:text-white transition-colors">Kontak</a>
+              <a href="#" className="text-white/50 text-xs hover:text-white transition-colors">Kebijakan</a>
             </div>
           </div>
         </div>
