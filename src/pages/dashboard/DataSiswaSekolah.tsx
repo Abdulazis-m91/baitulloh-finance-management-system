@@ -284,7 +284,7 @@ export default function DataSiswaSekolah() {
       jenjang: form.jenjang as 'SMP' | 'SMA', kelas: form.kelas,
       nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
       foto: null, tunggakan_sekolah: form.tunggakanBulan, tunggakan_pesantren: [],
-      biaya_per_bulan: form.jenjang === 'SMA' ? 150000 : 125000, deposit: 0,
+      biaya_per_bulan: form.jenjang === 'SMA' ? 150000 : 125000, deposit: 0, kategori: null,
     });
     setShowAdd(false);
   };
