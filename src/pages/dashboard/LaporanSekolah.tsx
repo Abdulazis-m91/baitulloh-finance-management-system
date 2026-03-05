@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
+import jsPDF from 'jspdf';
 import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info, Users, Printer } from 'lucide-react';
 import { useStudents, usePembayaran, usePengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah } from '@/lib/format';
@@ -146,69 +147,95 @@ export default function LaporanSekolah() {
 
 
   const handlePrint = () => {
-    if (!printRef.current) return;
-    const printContent = printRef.current.innerHTML;
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(`
-      <html>
-        <head>
-          <title>Laporan Total Keuangan - ${bulanIni} ${tahunIni}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
-            body { padding: 30px; color: #1a1a1a; }
-            h2 { text-align: center; margin-bottom: 4px; font-size: 20px; }
-            .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
-            .section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-            .section-title { font-weight: bold; font-size: 15px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
-            .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
-            .row.bold { font-weight: bold; font-size: 14px; }
-            .row .label { color: #333; }
-            .row .value { font-weight: 600; }
-            .green { color: #16a34a; }
-            .red { color: #dc2626; }
-            .blue { color: #2563eb; }
-            .detail { padding-left: 16px; font-size: 12px; color: #666; }
-            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-            .danger-bg { background: #fef2f2; border-color: #fca5a5; }
-            .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #64748b; margin-top: 16px; }
-            @media print { body { padding: 15px; } }
-          </style>
-        </head>
-        <body>
-          <h2>LAPORAN TOTAL KEUANGAN SEKOLAH</h2>
-          <p class="subtitle">Periode: ${bulanIni} ${tahunIni}</p>
-          <div class="grid">
-            <div class="section">
-              <div class="section-title">💰 LAPORAN KEUANGAN</div>
-              <div class="row bold"><span class="label">TOTAL PENDAPATAN</span><span class="value green">${formatRupiah(smp.totalPemasukan + sma.totalPemasukan)}</span></div>
-              <div class="detail">Pendapatan SMP: ${formatRupiah(smp.totalPemasukan)}</div>
-              <div class="detail" style="margin-bottom:8px">Pendapatan SMA: ${formatRupiah(sma.totalPemasukan)}</div>
-              <div class="row bold"><span class="label">TOTAL PENGELUARAN</span><span class="value red">${formatRupiah(smp.totalPengeluaran + sma.totalPengeluaran)}</span></div>
-              <div class="detail">Pengeluaran SMP: ${formatRupiah(smp.totalPengeluaran)}</div>
-              <div class="detail" style="margin-bottom:8px">Pengeluaran SMA: ${formatRupiah(sma.totalPengeluaran)}</div>
-              <hr style="margin:8px 0;border-color:#eee">
-              <div class="row bold"><span class="label">SISA KEUANGAN (${bulanTahun})</span><span class="value blue">${formatRupiah((smp.totalPemasukan + sma.totalPemasukan) - (smp.totalPengeluaran + sma.totalPengeluaran))}</span></div>
-            </div>
-            <div class="section danger-bg">
-              <div class="section-title">⚠️ TOTAL TUNGGAKAN</div>
-              <div class="row bold"><span class="label">TUNGGAKAN SMP</span><span class="value red">${formatRupiah(smp.totalTunggakan)}</span></div>
-              ${getTunggakanPerKelas('SMP').map(k => `<div class="detail">Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}</div>`).join('')}
-              <div style="margin-bottom:8px"></div>
-              <div class="row bold"><span class="label">TUNGGAKAN SMA</span><span class="value red">${formatRupiah(sma.totalTunggakan)}</span></div>
-              ${getTunggakanPerKelas('SMA').map(k => `<div class="detail">Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}</div>`).join('')}
-              <hr style="margin:8px 0;border-color:#fca5a5">
-              <div class="row bold"><span class="label">TOTAL TUNGGAKAN (${bulanTahun})</span><span class="value red">${formatRupiah(smp.totalTunggakan + sma.totalTunggakan)}</span></div>
-            </div>
-          </div>
-          <div class="info-box">
-            <p>Ini adalah sisa keuangan sekolah ${bulanIni} ${tahunIni} saat ini. Silahkan dicetak dan diarsipkan.</p>
-          </div>
-        </body>
-      </html>
-    `);
-    win.document.close();
-    win.print();
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const w = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const cw = w - margin * 2;
+    let y = 15;
+
+    // Title
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('LAPORAN TOTAL KEUANGAN SEKOLAH', w / 2, y, { align: 'center' });
+    y += 7;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text(`Periode: ${bulanIni} ${tahunIni}`, w / 2, y, { align: 'center' });
+    y += 10;
+    doc.setTextColor(0);
+
+    // Helper
+    const drawRow = (label: string, value: string, bold = false, color: [number, number, number] = [0, 0, 0]) => {
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(bold ? 11 : 9);
+      doc.setTextColor(0);
+      doc.text(label, margin + 2, y);
+      doc.setTextColor(...color);
+      doc.text(value, w - margin - 2, y, { align: 'right' });
+      doc.setTextColor(0);
+      y += bold ? 6 : 5;
+    };
+
+    const drawSectionTitle = (title: string) => {
+      doc.setFillColor(240, 240, 240);
+      doc.roundedRect(margin, y - 4, cw, 8, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(title, margin + 3, y + 1);
+      y += 10;
+    };
+
+    const drawLine = () => {
+      doc.setDrawColor(200);
+      doc.line(margin, y, w - margin, y);
+      y += 4;
+    };
+
+    // KEUANGAN SECTION
+    drawSectionTitle('LAPORAN KEUANGAN');
+    drawRow('TOTAL PENDAPATAN', formatRupiah(smp.totalPemasukan + sma.totalPemasukan), true, [22, 163, 74]);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
+    doc.text(`   Pendapatan SMP: ${formatRupiah(smp.totalPemasukan)}`, margin + 2, y); y += 4;
+    doc.text(`   Pendapatan SMA: ${formatRupiah(sma.totalPemasukan)}`, margin + 2, y); y += 6;
+    doc.setTextColor(0);
+
+    drawRow('TOTAL PENGELUARAN', formatRupiah(smp.totalPengeluaran + sma.totalPengeluaran), true, [220, 38, 38]);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
+    doc.text(`   Pengeluaran SMP: ${formatRupiah(smp.totalPengeluaran)}`, margin + 2, y); y += 4;
+    doc.text(`   Pengeluaran SMA: ${formatRupiah(sma.totalPengeluaran)}`, margin + 2, y); y += 6;
+    doc.setTextColor(0);
+
+    drawLine();
+    drawRow(`SISA KEUANGAN (${bulanTahun})`, formatRupiah((smp.totalPemasukan + sma.totalPemasukan) - (smp.totalPengeluaran + sma.totalPengeluaran)), true, [37, 99, 235]);
+    y += 6;
+
+    // TUNGGAKAN SECTION
+    drawSectionTitle('TOTAL TUNGGAKAN');
+    drawRow('TUNGGAKAN SMP', formatRupiah(smp.totalTunggakan), true, [220, 38, 38]);
+    getTunggakanPerKelas('SMP').forEach(k => {
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
+      doc.text(`   Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}`, margin + 2, y); y += 4;
+    });
+    y += 2; doc.setTextColor(0);
+
+    drawRow('TUNGGAKAN SMA', formatRupiah(sma.totalTunggakan), true, [220, 38, 38]);
+    getTunggakanPerKelas('SMA').forEach(k => {
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
+      doc.text(`   Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}`, margin + 2, y); y += 4;
+    });
+    y += 2; doc.setTextColor(0);
+
+    drawLine();
+    drawRow(`TOTAL TUNGGAKAN (${bulanTahun})`, formatRupiah(smp.totalTunggakan + sma.totalTunggakan), true, [220, 38, 38]);
+    y += 8;
+
+    // Footer
+    doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(150);
+    doc.text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, margin, y);
+
+    doc.save(`Laporan-Total-Keuangan-${bulanIni}-${tahunIni}.pdf`);
+    toast.success('Laporan PDF berhasil didownload');
   };
 
   const renderTotalTab = () => {

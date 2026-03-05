@@ -42,27 +42,47 @@ export default function PengeluaranSekolah() {
     setShowNota(true);
   };
 
-  const downloadNotaAsImage = async () => {
-    if (!notaRef.current) return;
+  const downloadNotaAsImage = async (): Promise<boolean> => {
+    if (!notaRef.current) return false;
     try {
-      const canvas = await html2canvas(notaRef.current, { backgroundColor: '#ffffff', scale: 2 });
+      // Wait for images to load
+      const images = notaRef.current.querySelectorAll('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+      }));
+      const canvas = await html2canvas(notaRef.current, { 
+        backgroundColor: '#ffffff', 
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      });
       const link = document.createElement('a');
       link.download = `nota-pengeluaran-${Date.now()}.jpg`;
       link.href = canvas.toDataURL('image/jpeg', 0.95);
+      document.body.appendChild(link);
       link.click();
-    } catch {
+      document.body.removeChild(link);
+      return true;
+    } catch (err) {
+      console.error('Download nota error:', err);
       toast.error('Gagal mendownload nota');
+      return false;
     }
   };
 
   const saveNota = async () => {
     if (notaData) {
-      await downloadNotaAsImage();
-      insertPengeluaran.mutate(notaData);
-      setShowNota(false);
-      setKeterangan('');
-      setNominal('');
-      setJenisKeperluan('');
+      const downloaded = await downloadNotaAsImage();
+      if (downloaded) {
+        insertPengeluaran.mutate(notaData);
+        setShowNota(false);
+        setKeterangan('');
+        setNominal('');
+        setJenisKeperluan('');
+        toast.success('Nota berhasil didownload & data tersimpan');
+      }
     }
   };
 
