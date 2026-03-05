@@ -5,7 +5,7 @@ import { usePengeluaran, useInsertPengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
-import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import logoYB from '@/assets/logo-yb.png';
 
 type Tab = 'pengeluaran' | 'rekap_smp' | 'rekap_sma';
@@ -42,39 +42,75 @@ export default function PengeluaranSekolah() {
     setShowNota(true);
   };
 
-  const downloadNotaAsImage = async (): Promise<boolean> => {
-    if (!notaRef.current) return false;
+  const downloadNotaAsPDF = (): boolean => {
+    if (!notaData) return false;
     try {
-      // Wait for images to load
-      const images = notaRef.current.querySelectorAll('img');
-      await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
-      }));
-      const canvas = await html2canvas(notaRef.current, { 
-        backgroundColor: '#ffffff', 
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-      });
-      const link = document.createElement('a');
-      link.download = `nota-pengeluaran-${Date.now()}.jpg`;
-      link.href = canvas.toDataURL('image/jpeg', 0.95);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const doc = new jsPDF({ unit: 'mm', format: [80, 120] });
+      const w = 80;
+      let y = 8;
+      const lm = 6;
+      const rm = w - 6;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('YAYASAN BAITULLOH', w / 2, y, { align: 'center' });
+      y += 5;
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.text('NOTA PENGELUARAN', w / 2, y, { align: 'center' });
+      y += 4;
+      doc.setDrawColor(180);
+      doc.setLineDashPattern([1, 1], 0);
+      doc.line(lm, y, rm, y);
+      y += 5;
+
+      const addRow = (label: string, value: string) => {
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text(label, lm, y);
+        doc.setFont('helvetica', 'bold');
+        const lines = doc.splitTextToSize(value, 38);
+        doc.text(lines, rm, y, { align: 'right' });
+        y += 4.5 * lines.length;
+      };
+
+      addRow('Tanggal', formatDate(notaData.tanggal));
+      addRow('Keterangan', notaData.keterangan);
+      addRow('Sumber Dana', notaData.sumber_dana);
+      addRow('Jenis Keperluan', notaData.jenis_keperluan);
+
+      y += 1;
+      doc.line(lm, y, rm, y);
+      y += 5;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Nominal', lm, y);
+      doc.text(formatRupiah(notaData.nominal), rm, y, { align: 'right' });
+      y += 5;
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Petugas', lm, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text(notaData.petugas, rm, y, { align: 'right' });
+      y += 5;
+      doc.line(lm, y, rm, y);
+      y += 4;
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Dokumen resmi pengeluaran yayasan', w / 2, y, { align: 'center' });
+
+      doc.save(`nota-pengeluaran-${Date.now()}.pdf`);
       return true;
     } catch (err) {
-      console.error('Download nota error:', err);
+      console.error('Download nota PDF error:', err);
       toast.error('Gagal mendownload nota');
       return false;
     }
   };
 
-  const saveNota = async () => {
+  const saveNota = () => {
     if (notaData) {
-      const downloaded = await downloadNotaAsImage();
+      const downloaded = downloadNotaAsPDF();
       if (downloaded) {
         insertPengeluaran.mutate(notaData);
         setShowNota(false);

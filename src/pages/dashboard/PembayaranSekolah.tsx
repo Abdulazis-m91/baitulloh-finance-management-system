@@ -4,7 +4,7 @@ import { Search, User, CreditCard, Scan, Loader2, X, Download } from 'lucide-rea
 import { useStudents, useInsertPembayaran, useUpdateStudent, useCicilanBySiswa, useInsertCicilan, useDeleteCicilanBySiswaAndBulan, type StudentDB, type CicilanDB } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
-import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import logoYB from '@/assets/logo-yb.png';
 
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -19,7 +19,7 @@ export default function PembayaranSekolah() {
   const [nominalCicilInput, setNominalCicilInput] = useState('');
   const [showStruk, setShowStruk] = useState(false);
   const [strukData, setStrukData] = useState<any>(null);
-  const strukRef = useRef<HTMLDivElement>(null);
+  const strukRef = useRef<HTMLDivElement>(null); // kept for visual preview
 
   const { data: students = [], isLoading } = useStudents();
   const { data: cicilanSiswa = [] } = useCicilanBySiswa(selectedStudent?.id);
@@ -175,38 +175,98 @@ export default function PembayaranSekolah() {
     setShowStruk(true);
   };
 
-  const downloadStrukAsImage = async (): Promise<boolean> => {
-    if (!strukRef.current) return false;
+  const downloadStrukAsPDF = (): boolean => {
+    if (!strukData) return false;
     try {
-      const images = strukRef.current.querySelectorAll('img');
-      await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
-      }));
-      const canvas = await html2canvas(strukRef.current, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-      });
-      const link = document.createElement('a');
-      link.download = `struk-pembayaran-${strukData?.nama_siswa?.replace(/\s+/g, '-')}-${Date.now()}.jpg`;
-      link.href = canvas.toDataURL('image/jpeg', 0.95);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const doc = new jsPDF({ unit: 'mm', format: [80, 160] });
+      const w = 80;
+      let y = 8;
+      const lm = 6; // left margin
+      const rm = w - 6; // right margin x
+
+      // Header
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('YAYASAN BAITULLOH', w / 2, y, { align: 'center' });
+      y += 5;
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Struk ${metode === 'Cicil' ? 'Cicilan' : 'Pembayaran'} SPP`.toUpperCase(), w / 2, y, { align: 'center' });
+      y += 4;
+      doc.setDrawColor(180);
+      doc.setLineDashPattern([1, 1], 0);
+      doc.line(lm, y, rm, y);
+      y += 5;
+
+      // Detail rows
+      const addRow = (label: string, value: string) => {
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text(label, lm, y);
+        doc.setFont('helvetica', 'bold');
+        doc.text(value, rm, y, { align: 'right' });
+        y += 4.5;
+      };
+
+      addRow('Tanggal', formatDate(strukData.tanggal));
+      addRow('Nama Siswa', strukData.nama_siswa);
+      addRow('NISN', strukData.nisn);
+      addRow('Jenjang/Kelas', `${strukData.jenjang} - ${strukData.kelas}`);
+      addRow('Bulan', strukData.bulan);
+      addRow('Metode', metode === 'Lunas' && strukData.hasCicilanAktif ? 'Pelunasan (Cicil → Lunas)' : strukData.metode);
+
+      // Cicilan breakdown
+      if (metode === 'Lunas' && strukData.hasCicilanAktif && strukData.totalCicilanSebelumnya > 0) {
+        y += 1;
+        doc.line(lm, y, rm, y);
+        y += 4;
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Total Cicilan Sebelumnya', lm, y);
+        doc.text(formatRupiah(strukData.totalCicilanSebelumnya), rm, y, { align: 'right' });
+        y += 3.5;
+        doc.text('Pelunasan Sekarang', lm, y);
+        doc.text(formatRupiah(strukData.nominal), rm, y, { align: 'right' });
+        y += 3.5;
+      }
+
+      // Total
+      y += 1;
+      doc.line(lm, y, rm, y);
+      y += 5;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      const nomLabel = `Nominal${metode === 'Lunas' && strukData.hasCicilanAktif ? ' (Total)' : ''}`;
+      doc.text(nomLabel, lm, y);
+      const nomValue = metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal;
+      doc.text(formatRupiah(nomValue), rm, y, { align: 'right' });
+      y += 5;
+
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Petugas', lm, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text(strukData.petugas, rm, y, { align: 'right' });
+      y += 5;
+
+      doc.line(lm, y, rm, y);
+      y += 4;
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Terima kasih atas pembayarannya', w / 2, y, { align: 'center' });
+
+      doc.save(`struk-pembayaran-${strukData.nama_siswa?.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
       return true;
     } catch (err) {
-      console.error('Download struk error:', err);
+      console.error('Download struk PDF error:', err);
       toast.error('Gagal mendownload struk');
       return false;
     }
   };
 
-  const saveStruk = async () => {
+  const saveStruk = () => {
     if (!strukData) return;
-    const downloaded = await downloadStrukAsImage();
+    const downloaded = downloadStrukAsPDF();
     if (!downloaded) return;
 
     const { student, hasCicilanAktif, totalCicilanSebelumnya, totalBayarUtuh, ...record } = strukData;
