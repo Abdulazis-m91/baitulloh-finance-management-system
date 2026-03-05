@@ -2,24 +2,53 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import DashboardLayout from "./components/layout/DashboardLayout";
+import DashboardSekolah from "./pages/dashboard/DashboardSekolah";
+import PembayaranSekolah from "./pages/dashboard/PembayaranSekolah";
+import DataSiswaSekolah from "./pages/dashboard/DataSiswaSekolah";
+import PendapatanSekolah from "./pages/dashboard/PendapatanSekolah";
+import PengeluaranSekolah from "./pages/dashboard/PengeluaranSekolah";
+import DanaBOS from "./pages/dashboard/DanaBOS";
+import LaporanSekolah from "./pages/dashboard/LaporanSekolah";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isLoggedIn } = useAuth();
+  if (!isLoggedIn) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/" element={<Index />} />
+    <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+      <Route index element={<DashboardSekolah />} />
+      <Route path="pembayaran" element={<PembayaranSekolah />} />
+      <Route path="data-siswa" element={<DataSiswaSekolah />} />
+      <Route path="pendapatan" element={<PendapatanSekolah />} />
+      <Route path="pengeluaran" element={<PengeluaranSekolah />} />
+      <Route path="dana-bos" element={<DanaBOS />} />
+      <Route path="laporan" element={<LaporanSekolah />} />
+    </Route>
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
