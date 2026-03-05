@@ -81,7 +81,7 @@ const Index = () => {
               viewport={{ once: true }}
               className="flex items-center justify-center gap-3 mb-4"
             >
-              <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-10 h-10 rounded-xl object-contain" />
+              <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl object-contain drop-shadow-md" />
               <span className="text-white font-bold text-lg tracking-tight">Yayasan Baitulloh</span>
             </motion.div>
             <p className="text-white/40 text-sm">© 2026 Yayasan Baitulloh · Sistem Informasi Keuangan</p>
