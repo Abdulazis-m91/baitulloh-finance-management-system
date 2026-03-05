@@ -78,21 +78,21 @@ export default function DashboardLayout() {
               className={({ isActive }) =>
                 `group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-sidebar-accent text-sidebar-primary shadow-sm'
+                    ? 'bg-sidebar-accent text-white shadow-sm'
                     : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${isActive ? 'gradient-gold shadow-glow-gold' : 'bg-sidebar-accent/50 group-hover:bg-sidebar-accent'}`}>
-                    <item.icon className={`w-4 h-4 ${isActive ? 'text-foreground' : 'text-sidebar-foreground/60 group-hover:text-sidebar-foreground'}`} />
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-white/20 shadow-sm' : 'bg-sidebar-accent/50 group-hover:bg-sidebar-accent'}`}>
+                    <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-sidebar-foreground/60 group-hover:text-sidebar-foreground'}`} />
                   </div>
                   <span>{getLabel(item.label, role)}</span>
                   {isActive && (
                     <motion.div
                       layoutId="sidebar-indicator"
-                      className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary"
+                      className="ml-auto w-1.5 h-1.5 rounded-full bg-white"
                       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     />
                   )}
