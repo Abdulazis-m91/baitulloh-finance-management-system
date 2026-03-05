@@ -82,14 +82,9 @@ const Index = () => {
               className="flex items-center justify-center gap-3 mb-4">
               
               <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl object-contain drop-shadow-md" />
-              <span className="text-white font-bold text-lg tracking-tight">Yayasan Baitulloh</span>
+              <span className="text-white font-bold text-lg tracking-tight uppercase">Yayasan Baitulloh</span>
             </motion.div>
-            <p className="text-white/40 text-sm">© 2026 Yayasan Baitulloh · Sistem Informasi Keuangan</p>
-            <div className="mt-4 flex items-center justify-center gap-6">
-              <a href="#" className="text-white/50 text-xs hover:text-white transition-colors">Tentang Kami</a>
-              <a href="#" className="text-white/50 text-xs hover:text-white transition-colors">Kontak</a>
-              <a href="#" className="text-white/50 text-xs hover:text-white transition-colors">Kebijakan</a>
-            </div>
+            <p className="text-white/40 text-sm">© 2026 Yayasan Baitulloh · Sistem Informasi Yayasan</p>
           </div>
         </div>
       </footer>
