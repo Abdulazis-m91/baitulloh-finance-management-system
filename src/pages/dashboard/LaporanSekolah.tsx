@@ -24,8 +24,9 @@ export default function LaporanSekolah() {
   const bulanTahun = `${bulanIni.toUpperCase()} - ${tahunIni}`;
 
   const getTunggakanPerKelas = (jenjang: 'SMP' | 'SMA') => {
-    const kelasList = jenjang === 'SMP' ? ['7', '8', '9'] : ['10', '11', '12'];
-    return kelasList.map(kelas => {
+    // Get unique kelas values from actual student data for this jenjang, sorted
+    const allKelas = [...new Set(students.filter(s => s.jenjang === jenjang).map(s => s.kelas))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+    return allKelas.map(kelas => {
       const siswa = students.filter(s => s.jenjang === jenjang && s.kelas === kelas && s.tunggakan_sekolah.length > 0);
       const nominal = siswa.reduce((a, s) => a + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0);
       return { kelas, jumlah: siswa.length, nominal };
