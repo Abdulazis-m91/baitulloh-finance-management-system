@@ -82,24 +82,24 @@ export default function PendapatanPesantren() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+        <div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Pendapatan Pesantren</h1>
           <p className="text-muted-foreground text-sm mt-1">Riwayat pendapatan dari pembayaran santri</p>
-        </motion.div>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
+        </div>
+        <button onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine hover:opacity-90 transition-opacity">
           <Download className="w-4 h-4" /> Export Excel
-        </motion.button>
+        </button>
       </div>
 
       {/* Tabs */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex gap-1 bg-muted p-1.5 rounded-2xl flex-wrap">
+      <div className="flex gap-1 bg-muted p-1.5 rounded-2xl flex-wrap">
         {tabs.map(tab => (
-          <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab(tab); setFilterJenjang(''); setFilterKelas(''); setFilterKategori(''); setPage(1); }}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+          <button key={tab} onClick={() => { setActiveTab(tab); setFilterJenjang(''); setFilterKelas(''); setFilterKategori(''); setPage(1); }}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'}`}>
             {tabIcons[tab]} {tab}
-          </motion.button>
+          </button>
         ))}
-      </motion.div>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
