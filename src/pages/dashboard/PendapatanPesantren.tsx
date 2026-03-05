@@ -3,9 +3,9 @@ import { Download, Loader2, ChevronLeft, ChevronRight, Plus, X } from 'lucide-re
 import { useStudents } from '@/hooks/useSupabaseData';
 import {
   usePembayaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren,
-  useCicilanPesantren, KATEGORI_LIST,
+  useCicilanPesantren, KATEGORI_LIST, useInsertKonsumsi,
 } from '@/hooks/useSupabasePesantren';
-import { usePendapatanLainPesantren, useInsertPendapatanLainPesantren } from '@/hooks/useSupabasePesantren';
+import { usePendapatanLainPesantren } from '@/hooks/useSupabasePesantren';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -13,6 +13,8 @@ import * as XLSX from 'xlsx';
 type Tab = 'Pembayaran' | 'Konsumsi' | 'Operasional' | 'Pembangunan' | 'Cicilan' | 'Deposit';
 const PAGE_SIZE = 20;
 const kelasOptions: Record<string, string[]> = { SMP: ['7A','7B','8A','8B','9A','9B'], SMA: ['10A','10B','11A','11B','12A','12B'] };
+
+const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
 export default function PendapatanPesantren() {
   const [activeTab, setActiveTab] = useState<Tab>('Pembayaran');
@@ -23,6 +25,7 @@ export default function PendapatanPesantren() {
   const [showAddPopup, setShowAddPopup] = useState(false);
   const [addNama, setAddNama] = useState('');
   const [addNominal, setAddNominal] = useState('');
+  const [addKeterangan, setAddKeterangan] = useState('');
   const tabs: Tab[] = ['Pembayaran', 'Konsumsi', 'Operasional', 'Pembangunan', 'Cicilan', 'Deposit'];
 
   const { data: pembayaran = [], isLoading: l1 } = usePembayaranPesantren();
@@ -32,11 +35,17 @@ export default function PendapatanPesantren() {
   const { data: cicilan = [], isLoading: l5 } = useCicilanPesantren();
   const { data: students = [], isLoading: l6 } = useStudents();
   const { data: pendapatanLain = [], isLoading: l7 } = usePendapatanLainPesantren();
-  const insertPendapatanLain = useInsertPendapatanLainPesantren();
+  const insertKonsumsi = useInsertKonsumsi();
 
   if (l1 || l2 || l3 || l4 || l5 || l6 || l7) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   const studentMap = Object.fromEntries(students.map(s => [s.id, s]));
+
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  const monthStr = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const todayISO = now.toISOString().split('T')[0];
+  const currentBulan = bulanNama[now.getMonth()];
 
   const allData = (): any[] => {
     if (activeTab === 'Pembayaran') {
@@ -59,11 +68,6 @@ export default function PendapatanPesantren() {
   const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
   const pagedData = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const today = new Date();
-  const todayStr = today.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  const monthStr = today.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-  const todayISO = today.toISOString().split('T')[0];
-
   const showJenjangFilter = ['Pembayaran', 'Deposit'].includes(activeTab);
   const showKategoriFilter = !['Cicilan'].includes(activeTab);
 
@@ -75,9 +79,27 @@ export default function PendapatanPesantren() {
 
   const handleAddPendapatan = () => {
     if (!addNama || !addNominal) { toast.error('Mohon lengkapi semua field'); return; }
-    insertPendapatanLain.mutate(
-      { nama: addNama, nominal: parseInt(addNominal.replace(/\D/g, '')), tanggal: todayISO, petugas: 'Petugas Pesantren' },
-      { onSuccess: () => { setShowAddPopup(false); setAddNama(''); setAddNominal(''); toast.success('Pendapatan berhasil ditambahkan'); } }
+    // Insert into konsumsi_pesantren table
+    insertKonsumsi.mutate(
+      {
+        nama_siswa: addNama,
+        kategori: 'Pendapatan Lainnya',
+        bulan: currentBulan,
+        nominal: parseInt(addNominal.replace(/\D/g, '')),
+        tanggal: todayISO,
+        petugas: 'Petugas Pesantren',
+        siswa_id: null,
+        pembayaran_id: null,
+      },
+      {
+        onSuccess: () => {
+          setShowAddPopup(false);
+          setAddNama('');
+          setAddNominal('');
+          setAddKeterangan('');
+          toast.success('Pendapatan berhasil ditambahkan ke Dana Konsumsi');
+        },
+      }
     );
   };
 
@@ -129,6 +151,7 @@ export default function PendapatanPesantren() {
           <select value={filterKategori} onChange={e => { setFilterKategori(e.target.value); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
             <option value="">Semua Kategori</option>
             {KATEGORI_LIST.map(k => <option key={k} value={k}>{k}</option>)}
+            <option value="Pendapatan Lainnya">Pendapatan Lainnya</option>
           </select>
         )}
       </div>
@@ -136,7 +159,7 @@ export default function PendapatanPesantren() {
       {/* Pendapatan Lain Summary */}
       {pendapatanLain.length > 0 && (
         <div className="bg-card rounded-2xl border border-border p-4 shadow-elegant">
-          <h3 className="text-sm font-bold text-foreground mb-3">📋 Pendapatan Lain-lain</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">📋 Pendapatan Lain-lain (Legacy)</h3>
           <div className="space-y-2">
             {pendapatanLain.map(p => (
               <div key={p.id} className="flex items-center justify-between text-sm p-2 rounded-lg bg-muted/30">
@@ -210,9 +233,11 @@ export default function PendapatanPesantren() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowAddPopup(false)}>
           <div className="bg-card rounded-3xl shadow-2xl w-full max-w-md p-7 space-y-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-foreground text-lg">Tambah Pendapatan</h3>
+              <h3 className="font-bold text-foreground text-lg">Tambah Pendapatan Lainnya</h3>
               <button onClick={() => setShowAddPopup(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></button>
             </div>
+
+            <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-xl">💡 Pendapatan lainnya akan otomatis masuk ke <span className="font-bold text-foreground">Dana Konsumsi</span></p>
 
             <div>
               <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Tanggal</label>
@@ -220,7 +245,7 @@ export default function PendapatanPesantren() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nama</label>
+              <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nama Pemasukan</label>
               <select value={addNama} onChange={e => setAddNama(e.target.value)} className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
                 <option value="">Pilih</option>
                 <option value="Sodaqoh">Sodaqoh</option>
@@ -233,9 +258,14 @@ export default function PendapatanPesantren() {
               <input value={addNominal ? formatRupiah(parseInt(addNominal)) : ''} onChange={e => setAddNominal(e.target.value.replace(/\D/g, ''))} placeholder="Rp 0" className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
             </div>
 
+            <div>
+              <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Keterangan (Opsional)</label>
+              <input value={addKeterangan} onChange={e => setAddKeterangan(e.target.value)} placeholder="Keterangan tambahan..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
+            </div>
+
             <div className="flex gap-3">
-              <button onClick={handleAddPendapatan} disabled={insertPendapatanLain.isPending} className="flex-1 py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine disabled:opacity-50">
-                {insertPendapatanLain.isPending ? 'Menyimpan...' : 'Simpan'}
+              <button onClick={handleAddPendapatan} disabled={insertKonsumsi.isPending} className="flex-1 py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine disabled:opacity-50">
+                {insertKonsumsi.isPending ? 'Menyimpan...' : 'Simpan'}
               </button>
               <button onClick={() => setShowAddPopup(false)} className="flex-1 py-3.5 rounded-xl border-2 border-border text-foreground font-semibold hover:bg-muted transition-colors">
                 Batal
