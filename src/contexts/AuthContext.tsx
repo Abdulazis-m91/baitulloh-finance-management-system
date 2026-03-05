@@ -1,5 +1,3 @@
-import { create } from 'zustand' // we'll use simple React context instead
-
 import { createContext, useContext, useState, ReactNode } from 'react';
 
 type UserRole = 'admin' | 'petugas_sekolah' | 'petugas_pesantren' | null;
