@@ -38,82 +38,110 @@ export default function HeroSection() {
     <section className="relative min-h-[100vh] flex items-center justify-center overflow-hidden pt-20">
       {/* Animated Background */}
       <div className="absolute inset-0 gradient-hero">
-        {/* Shifting light orbs */}
-        <div className="absolute top-[10%] left-[5%] w-[500px] h-[500px] rounded-full blur-[140px] animate-float-slow"
-          style={{ background: 'radial-gradient(circle, hsla(217,71%,55%,0.25) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-[5%] right-[5%] w-[600px] h-[600px] rounded-full blur-[160px] animate-float-slow"
-          style={{ background: 'radial-gradient(circle, hsla(210,80%,60%,0.2) 0%, transparent 70%)', animationDelay: '5s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[180px] animate-pulse-glow"
-          style={{ background: 'radial-gradient(circle, hsla(220,70%,50%,0.15) 0%, transparent 60%)' }} />
-        <div className="absolute top-[60%] left-[30%] w-[400px] h-[400px] rounded-full blur-[120px] animate-float"
-          style={{ background: 'radial-gradient(circle, hsla(200,80%,65%,0.12) 0%, transparent 70%)', animationDelay: '3s' }} />
-
-        {/* Dot grid pattern */}
-        <div className="absolute inset-0 opacity-[0.04]"
-          style={{ backgroundImage: 'radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,0.5) 1px, transparent 0)', backgroundSize: '32px 32px' }}
+        {/* Mesh gradient blobs - slow drifting */}
+        <motion.div
+          animate={{ x: [0, 80, -40, 0], y: [0, -60, 30, 0], scale: [1, 1.15, 0.95, 1] }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -top-[10%] -left-[10%] w-[600px] h-[600px] rounded-full blur-[160px]"
+          style={{ background: 'radial-gradient(circle, hsla(217,80%,55%,0.2) 0%, transparent 70%)' }}
+        />
+        <motion.div
+          animate={{ x: [0, -60, 50, 0], y: [0, 40, -80, 0], scale: [1, 0.9, 1.1, 1] }}
+          transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -bottom-[10%] -right-[10%] w-[700px] h-[700px] rounded-full blur-[180px]"
+          style={{ background: 'radial-gradient(circle, hsla(200,85%,60%,0.18) 0%, transparent 65%)' }}
+        />
+        <motion.div
+          animate={{ x: [0, 40, -30, 0], y: [0, -30, 50, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[500px] h-[500px] rounded-full blur-[150px]"
+          style={{ background: 'radial-gradient(circle, hsla(230,70%,50%,0.12) 0%, transparent 60%)' }}
         />
 
-        {/* Floating particles - white/blue */}
+        {/* Constellation grid lines */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.03]">
+          <defs>
+            <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+
+        {/* Floating glowing dots */}
         {particles.map(p => (
-          <div
+          <motion.div
             key={p.id}
+            animate={{
+              y: [0, -(100 + p.size * 30), -(200 + p.size * 50)],
+              opacity: [0, p.opacity, 0],
+              scale: [0.5, 1, 0.3],
+            }}
+            transition={{
+              duration: p.duration,
+              repeat: Infinity,
+              delay: p.delay,
+              ease: 'easeOut',
+            }}
             className="absolute rounded-full"
             style={{
               left: p.left,
-              bottom: '-20px',
+              bottom: '5%',
               width: p.size,
               height: p.size,
-              opacity: p.opacity,
-              background: p.id % 3 === 0 ? 'hsla(210,90%,75%,0.6)' : 'hsla(0,0%,100%,0.5)',
-              animation: `particle-float ${p.duration}s linear ${p.delay}s infinite`,
+              background: p.id % 4 === 0
+                ? 'hsla(210,100%,80%,0.8)'
+                : p.id % 3 === 0
+                  ? 'hsla(220,90%,70%,0.6)'
+                  : 'hsla(0,0%,100%,0.5)',
+              boxShadow: p.id % 4 === 0 ? '0 0 8px hsla(210,100%,80%,0.4)' : 'none',
             }}
           />
         ))}
 
-        {/* Rotating ring decorations */}
+        {/* Orbiting rings with dash animation */}
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 90, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-[12%] right-[12%] w-40 h-40 border border-white/[0.06] rounded-full"
-        />
+          transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+          className="absolute top-[8%] right-[8%] w-48 h-48"
+        >
+          <svg viewBox="0 0 200 200" className="w-full h-full">
+            <circle cx="100" cy="100" r="90" fill="none" stroke="hsla(0,0%,100%,0.06)" strokeWidth="1" strokeDasharray="8 12" />
+            <circle cx="100" cy="100" r="70" fill="none" stroke="hsla(210,80%,70%,0.05)" strokeWidth="0.5" strokeDasharray="4 16" />
+          </svg>
+        </motion.div>
         <motion.div
           animate={{ rotate: -360 }}
-          transition={{ duration: 120, repeat: Infinity, ease: 'linear' }}
-          className="absolute bottom-[18%] left-[8%] w-56 h-56 border border-white/[0.04] rounded-full"
+          transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
+          className="absolute bottom-[12%] left-[5%] w-64 h-64"
+        >
+          <svg viewBox="0 0 200 200" className="w-full h-full">
+            <circle cx="100" cy="100" r="95" fill="none" stroke="hsla(0,0%,100%,0.04)" strokeWidth="1" strokeDasharray="6 14" />
+            <circle cx="100" cy="100" r="60" fill="none" stroke="hsla(220,70%,60%,0.04)" strokeWidth="0.5" strokeDasharray="3 12" />
+          </svg>
+        </motion.div>
+
+        {/* Horizontal light beam sweep */}
+        <motion.div
+          animate={{ x: ['-100%', '200%'] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', repeatDelay: 4 }}
+          className="absolute top-[30%] w-[400px] h-[2px]"
+          style={{ background: 'linear-gradient(90deg, transparent, hsla(210,90%,70%,0.15), transparent)' }}
         />
         <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 70, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-[45%] right-[25%] w-24 h-24 border border-white/[0.05] rounded-full"
+          animate={{ x: ['200%', '-100%'] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', repeatDelay: 6 }}
+          className="absolute top-[65%] w-[300px] h-[1px]"
+          style={{ background: 'linear-gradient(90deg, transparent, hsla(220,80%,75%,0.1), transparent)' }}
         />
 
-        {/* Wave SVG at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
-          <svg viewBox="0 0 1440 120" className="w-full h-auto opacity-[0.06]" preserveAspectRatio="none">
-            <motion.path
-              d="M0,60 C360,120 720,0 1080,60 C1260,90 1380,40 1440,60 L1440,120 L0,120 Z"
-              fill="white"
-              animate={{ d: [
-                "M0,60 C360,120 720,0 1080,60 C1260,90 1380,40 1440,60 L1440,120 L0,120 Z",
-                "M0,80 C360,20 720,100 1080,40 C1260,20 1380,80 1440,50 L1440,120 L0,120 Z",
-                "M0,60 C360,120 720,0 1080,60 C1260,90 1380,40 1440,60 L1440,120 L0,120 Z",
-              ]}}
-              transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-            />
-          </svg>
-          <svg viewBox="0 0 1440 120" className="w-full h-auto opacity-[0.04] -mt-16" preserveAspectRatio="none">
-            <motion.path
-              d="M0,40 C480,100 960,10 1440,70 L1440,120 L0,120 Z"
-              fill="white"
-              animate={{ d: [
-                "M0,40 C480,100 960,10 1440,70 L1440,120 L0,120 Z",
-                "M0,70 C480,10 960,100 1440,40 L1440,120 L0,120 Z",
-                "M0,40 C480,100 960,10 1440,70 L1440,120 L0,120 Z",
-              ]}}
-              transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-            />
-          </svg>
-        </div>
+        {/* Corner accent glow */}
+        <div className="absolute top-0 left-0 w-[300px] h-[300px] opacity-[0.08]"
+          style={{ background: 'radial-gradient(circle at 0% 0%, hsla(210,80%,60%,1) 0%, transparent 60%)' }}
+        />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] opacity-[0.06]"
+          style={{ background: 'radial-gradient(circle at 100% 100%, hsla(220,70%,55%,1) 0%, transparent 60%)' }}
+        />
       </div>
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 text-center pt-28 pb-24">
