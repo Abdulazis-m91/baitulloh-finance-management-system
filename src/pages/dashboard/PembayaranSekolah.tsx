@@ -176,87 +176,29 @@ export default function PembayaranSekolah() {
     setShowStruk(true);
   };
 
-  const downloadStrukAsPDF = (): boolean => {
-    if (!strukData) return false;
+  const downloadStrukAsPDF = async (): Promise<boolean> => {
+    if (!strukRef.current) return false;
     try {
-      const doc = new jsPDF({ unit: 'mm', format: [80, 160] });
-      const w = 80;
-      let y = 8;
-      const lm = 6; // left margin
-      const rm = w - 6; // right margin x
-
-      // Header
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('YAYASAN BAITULLOH', w / 2, y, { align: 'center' });
-      y += 5;
-      doc.setFontSize(6);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Struk ${metode === 'Cicil' ? 'Cicilan' : 'Pembayaran'} SPP`.toUpperCase(), w / 2, y, { align: 'center' });
-      y += 4;
-      doc.setDrawColor(180);
-      doc.setLineDashPattern([1, 1], 0);
-      doc.line(lm, y, rm, y);
-      y += 5;
-
-      // Detail rows
-      const addRow = (label: string, value: string) => {
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'normal');
-        doc.text(label, lm, y);
-        doc.setFont('helvetica', 'bold');
-        doc.text(value, rm, y, { align: 'right' });
-        y += 4.5;
-      };
-
-      addRow('Tanggal', formatDate(strukData.tanggal));
-      addRow('Nama Siswa', strukData.nama_siswa);
-      addRow('NISN', strukData.nisn);
-      addRow('Jenjang/Kelas', `${strukData.jenjang} - ${strukData.kelas}`);
-      addRow('Bulan', strukData.bulan);
-      addRow('Metode', metode === 'Lunas' && strukData.hasCicilanAktif ? 'Pelunasan (Cicil → Lunas)' : strukData.metode);
-
-      // Cicilan breakdown
-      if (metode === 'Lunas' && strukData.hasCicilanAktif && strukData.totalCicilanSebelumnya > 0) {
-        y += 1;
-        doc.line(lm, y, rm, y);
-        y += 4;
-        doc.setFontSize(6);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Total Cicilan Sebelumnya', lm, y);
-        doc.text(formatRupiah(strukData.totalCicilanSebelumnya), rm, y, { align: 'right' });
-        y += 3.5;
-        doc.text('Pelunasan Sekarang', lm, y);
-        doc.text(formatRupiah(strukData.nominal), rm, y, { align: 'right' });
-        y += 3.5;
-      }
-
-      // Total
-      y += 1;
-      doc.line(lm, y, rm, y);
-      y += 5;
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      const nomLabel = `Nominal${metode === 'Lunas' && strukData.hasCicilanAktif ? ' (Total)' : ''}`;
-      doc.text(nomLabel, lm, y);
-      const nomValue = metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal;
-      doc.text(formatRupiah(nomValue), rm, y, { align: 'right' });
-      y += 5;
-
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Petugas', lm, y);
-      doc.setFont('helvetica', 'bold');
-      doc.text(strukData.petugas, rm, y, { align: 'right' });
-      y += 5;
-
-      doc.line(lm, y, rm, y);
-      y += 4;
-      doc.setFontSize(5);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Terima kasih atas pembayarannya', w / 2, y, { align: 'center' });
-
-      doc.save(`struk-pembayaran-${strukData.nama_siswa?.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
+      const images = strukRef.current.querySelectorAll('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+      }));
+      const canvas = await html2canvas(strukRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const pdfWidth = 80; // mm
+      const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
+      const doc = new jsPDF({ unit: 'mm', format: [pdfWidth, pdfHeight + 10] });
+      doc.addImage(imgData, 'PNG', 0, 5, pdfWidth, pdfHeight);
+      doc.save(`struk-pembayaran-${strukData?.nama_siswa?.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
       return true;
     } catch (err) {
       console.error('Download struk PDF error:', err);
