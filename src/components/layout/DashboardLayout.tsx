@@ -82,7 +82,7 @@ export default function DashboardLayout() {
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.path === '/dashboard'}
+              end={item.path === '/dashboard' || item.path === '/dashboard/pesantren'}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
                 `group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
