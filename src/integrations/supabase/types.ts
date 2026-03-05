@@ -14,16 +14,240 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cicilan: {
+        Row: {
+          bulan: string
+          created_at: string
+          id: string
+          nominal: number
+          petugas: string
+          siswa_id: string
+          tanggal: string
+        }
+        Insert: {
+          bulan: string
+          created_at?: string
+          id?: string
+          nominal: number
+          petugas: string
+          siswa_id: string
+          tanggal?: string
+        }
+        Update: {
+          bulan?: string
+          created_at?: string
+          id?: string
+          nominal?: number
+          petugas?: string
+          siswa_id?: string
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cicilan_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pembayaran: {
+        Row: {
+          bulan: string
+          created_at: string
+          id: string
+          jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kelas: string
+          metode: Database["public"]["Enums"]["metode_bayar"]
+          nama_siswa: string
+          nisn: string
+          nominal: number
+          petugas: string
+          siswa_id: string | null
+          tanggal: string
+        }
+        Insert: {
+          bulan: string
+          created_at?: string
+          id?: string
+          jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kelas: string
+          metode: Database["public"]["Enums"]["metode_bayar"]
+          nama_siswa: string
+          nisn: string
+          nominal: number
+          petugas: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Update: {
+          bulan?: string
+          created_at?: string
+          id?: string
+          jenjang?: Database["public"]["Enums"]["jenjang_type"]
+          kelas?: string
+          metode?: Database["public"]["Enums"]["metode_bayar"]
+          nama_siswa?: string
+          nisn?: string
+          nominal?: number
+          petugas?: string
+          siswa_id?: string | null
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pembayaran_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pengeluaran: {
+        Row: {
+          created_at: string
+          id: string
+          jenis_keperluan: string
+          keterangan: string
+          nominal: number
+          petugas: string
+          sumber_dana: Database["public"]["Enums"]["jenjang_type"]
+          tanggal: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jenis_keperluan: string
+          keterangan: string
+          nominal: number
+          petugas: string
+          sumber_dana: Database["public"]["Enums"]["jenjang_type"]
+          tanggal?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jenis_keperluan?: string
+          keterangan?: string
+          nominal?: number
+          petugas?: string
+          sumber_dana?: Database["public"]["Enums"]["jenjang_type"]
+          tanggal?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          barcode: string
+          biaya_per_bulan: number
+          created_at: string
+          deposit: number
+          foto: string | null
+          id: string
+          jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kelas: string
+          nama_lengkap: string
+          nama_orang_tua: string
+          nisn: string
+          nomor_whatsapp: string
+          tunggakan_pesantren: string[]
+          tunggakan_sekolah: string[]
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string
+          biaya_per_bulan?: number
+          created_at?: string
+          deposit?: number
+          foto?: string | null
+          id?: string
+          jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kelas: string
+          nama_lengkap: string
+          nama_orang_tua: string
+          nisn: string
+          nomor_whatsapp: string
+          tunggakan_pesantren?: string[]
+          tunggakan_sekolah?: string[]
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string
+          biaya_per_bulan?: number
+          created_at?: string
+          deposit?: number
+          foto?: string | null
+          id?: string
+          jenjang?: Database["public"]["Enums"]["jenjang_type"]
+          kelas?: string
+          nama_lengkap?: string
+          nama_orang_tua?: string
+          nisn?: string
+          nomor_whatsapp?: string
+          tunggakan_pesantren?: string[]
+          tunggakan_sekolah?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "petugas_sekolah" | "petugas_pesantren"
+      jenjang_type: "SMP" | "SMA"
+      metode_bayar: "Lunas" | "Cicil" | "Deposit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +374,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "petugas_sekolah", "petugas_pesantren"],
+      jenjang_type: ["SMP", "SMA"],
+      metode_bayar: ["Lunas", "Cicil", "Deposit"],
+    },
   },
 } as const
