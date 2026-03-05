@@ -147,6 +147,38 @@ export default function DashboardLayout() {
               )}
             </NavLink>
           ))}
+
+          {(role === 'admin' || role === 'petugas_pesantren') && (
+            <>
+              <p className="px-4 py-2 mt-2 text-[10px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.2em]">Pesantren</p>
+            </>
+          )}
+          {(role === 'admin' || role === 'petugas_pesantren') && menuItemsPesantren.map((item, i) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/dashboard/pesantren'}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  isActive ? 'bg-sidebar-accent text-white shadow-sm' : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-white/20 shadow-sm' : 'bg-sidebar-accent/50 group-hover:bg-sidebar-accent'}`}>
+                    <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-sidebar-foreground/60 group-hover:text-sidebar-foreground'}`} />
+                  </div>
+                  <span>{item.label}</span>
+                  {isActive && (
+                    <motion.div layoutId="sidebar-indicator-pesantren" className="ml-auto w-1.5 h-1.5 rounded-full bg-white"
+                      transition={{ type: 'spring', stiffness: 300, damping: 25 }} />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
         </nav>
 
         {/* User section */}
