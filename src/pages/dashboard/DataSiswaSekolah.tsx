@@ -64,8 +64,11 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
             <div>
               <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Barcode / RFID</label>
               <input value={form.barcode} onChange={e => setForm(prev => ({ ...prev, barcode: e.target.value }))}
-                placeholder="Scan atau ketik kode barcode / RFID..."
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus font-mono" />
+                onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+                autoFocus
+                autoComplete="off"
+                placeholder="Tempelkan kartu RFID atau ketik manual..."
+                className="w-full px-4 py-2.5 rounded-xl border-2 border-primary/40 bg-primary/5 text-foreground text-sm input-focus font-mono focus:border-primary focus:ring-2 focus:ring-primary/20" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -276,7 +279,7 @@ export default function DataSiswaSekolah() {
             <thead>
               <tr className="bg-muted/30 border-b border-border">
                 {['No', 'NISN', 'Nama Lengkap', 'Jenjang', 'Kelas', 'Status', 'Orang Tua', 'WhatsApp', 'Aksi'].map(h => (
-                  <th key={h} className={`py-4 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider ${h === 'Aksi' ? 'text-center' : 'text-left'}`}>{h}</th>
+                  <th key={h} className="py-4 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider text-left">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -302,9 +305,14 @@ export default function DataSiswaSekolah() {
                     )}
                   </td>
                   <td className="py-4 px-4 text-muted-foreground text-xs">{s.namaOrangTua}</td>
-                  <td className="py-4 px-4 text-muted-foreground text-xs font-mono">{s.nomorWhatsApp}</td>
                   <td className="py-4 px-4">
-                    <div className="flex items-center justify-center gap-1">
+                    <a href={`https://wa.me/${s.nomorWhatsApp.replace('+', '')}`} target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-bold font-mono text-success hover:underline">
+                      {s.nomorWhatsApp}
+                    </a>
+                  </td>
+                  <td className="py-4 px-4">
+                    <div className="flex items-center justify-start gap-1">
                       {[
                         { icon: Eye, color: 'text-info hover:bg-info/10', action: () => setShowDetail(s), title: 'Lihat' },
                         { icon: Edit, color: 'text-warning hover:bg-warning/10', action: () => openEdit(s), title: 'Edit' },
