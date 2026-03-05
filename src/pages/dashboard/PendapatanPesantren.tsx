@@ -124,9 +124,9 @@ export default function PendapatanPesantren() {
       </div>
 
       {/* Table */}
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+      <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
         <div className="overflow-x-auto">
-          <table key={activeTab} className="w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/30 border-b border-border">
                 {headers.map(h => (
