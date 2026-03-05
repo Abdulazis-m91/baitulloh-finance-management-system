@@ -154,12 +154,8 @@ export default function LoginDialog({ open, onClose }: LoginDialogProps) {
                 transition={{ delay: 0.5 }}
                 className="mt-6 p-4 rounded-2xl bg-muted/50 border border-border"
               >
-                <p className="text-xs text-muted-foreground font-semibold mb-2 uppercase tracking-wider">Demo Akun</p>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-mono">sekolah@baitulloh.sch.id / sekolah123</p>
-                  <p className="text-xs text-muted-foreground font-mono">pesantren@baitulloh.sch.id / pesantren123</p>
-                  <p className="text-xs text-muted-foreground font-mono">admin@baitulloh.sch.id / admin123</p>
-                </div>
+                <p className="text-xs text-muted-foreground font-semibold mb-2 uppercase tracking-wider">Info Login</p>
+                <p className="text-xs text-muted-foreground">Gunakan akun yang telah didaftarkan oleh Administrator</p>
               </motion.div>
             </div>
 
