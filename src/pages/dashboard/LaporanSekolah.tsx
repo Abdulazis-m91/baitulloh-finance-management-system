@@ -12,6 +12,7 @@ const bulanNama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli
 
 export default function LaporanSekolah() {
   const [activeTab, setActiveTab] = useState<Tab>('SMP');
+  const printRef = useRef<HTMLDivElement>(null);
   const { data: students = [], isLoading: l1 } = useStudents();
   const { data: pembayaranAll = [], isLoading: l2 } = usePembayaran();
   const { data: pengeluaranAll = [], isLoading: l3 } = usePengeluaran();
