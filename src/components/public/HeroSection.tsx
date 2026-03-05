@@ -158,7 +158,7 @@ export default function HeroSection() {
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-            className="w-20 h-20 rounded-2xl object-contain mx-auto mb-8"
+            className="w-28 h-28 rounded-2xl object-contain mx-auto mb-8 drop-shadow-lg"
           />
 
           <motion.p
