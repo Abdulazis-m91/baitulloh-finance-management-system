@@ -19,7 +19,7 @@ export default function PembayaranSekolah() {
   const [nominalCicilInput, setNominalCicilInput] = useState('');
   const [showStruk, setShowStruk] = useState(false);
   const [strukData, setStrukData] = useState<any>(null);
-  const strukRef = useRef<HTMLDivElement>(null);
+  const strukRef = useRef<HTMLDivElement>(null); // kept for visual preview
 
   const { data: students = [], isLoading } = useStudents();
   const { data: cicilanSiswa = [] } = useCicilanBySiswa(selectedStudent?.id);
