@@ -41,15 +41,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        await fetchUserData(session.user.id);
+        // Don't await - prevents blocking signInWithPassword from resolving
+        fetchUserData(session.user.id).then(() => setLoading(false));
       } else {
         setIsLoggedIn(false);
         setRole(null);
         setUserName('');
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
