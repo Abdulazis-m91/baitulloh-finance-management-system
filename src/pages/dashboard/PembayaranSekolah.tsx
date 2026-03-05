@@ -4,7 +4,7 @@ import { Search, User, CreditCard, Scan, Loader2, X, Download } from 'lucide-rea
 import { useStudents, useInsertPembayaran, useUpdateStudent, useCicilanBySiswa, useInsertCicilan, useDeleteCicilanBySiswaAndBulan, type StudentDB, type CicilanDB } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
-import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import logoYB from '@/assets/logo-yb.png';
 
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
