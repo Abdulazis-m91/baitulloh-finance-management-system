@@ -23,6 +23,15 @@ export default function LaporanSekolah() {
   const tahunIni = now.getFullYear();
   const bulanTahun = `${bulanIni.toUpperCase()} - ${tahunIni}`;
 
+  const getTunggakanPerKelas = (jenjang: 'SMP' | 'SMA') => {
+    const kelasList = jenjang === 'SMP' ? ['7', '8', '9'] : ['10', '11', '12'];
+    return kelasList.map(kelas => {
+      const siswa = students.filter(s => s.jenjang === jenjang && s.kelas === kelas && s.tunggakan_sekolah.length > 0);
+      const nominal = siswa.reduce((a, s) => a + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0);
+      return { kelas, jumlah: siswa.length, nominal };
+    });
+  };
+
   const getData = (jenjang: 'SMP' | 'SMA') => {
     const pembayaran = pembayaranAll.filter(p => p.jenjang === jenjang);
     const pengeluaran = pengeluaranAll.filter(e => e.sumber_dana === jenjang);
@@ -191,14 +200,15 @@ export default function LaporanSekolah() {
           </motion.div>
 
           {/* Jendela Total Tunggakan */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
-            <div className="p-6 border-b border-border bg-muted/20">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-3xl border border-destructive/20 shadow-elegant overflow-hidden" style={{ backgroundColor: 'hsl(0 84% 60% / 0.08)' }}>
+            <div className="p-6 border-b border-destructive/15" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
               <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg gradient-warning flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-warning-foreground" /></div>
+                <div className="w-8 h-8 rounded-lg gradient-danger flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-destructive-foreground" /></div>
                 TOTAL TUNGGAKAN
               </h3>
+              <p className="text-xs text-muted-foreground mt-1">Periode : {bulanIni} - {tahunIni}</p>
             </div>
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-destructive/10">
               {/* Tunggakan SMP */}
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} className="p-6">
                 <div className="flex items-center justify-between">
@@ -209,8 +219,9 @@ export default function LaporanSekolah() {
                   <p className="text-2xl font-extrabold text-destructive">{formatRupiah(smp.totalTunggakan)}</p>
                 </div>
                 <div className="mt-3 ml-[52px] space-y-1">
-                  <p className="text-xs text-muted-foreground">Semua Kelas Jenjang SMP</p>
-                  <p className="text-xs text-muted-foreground">Jumlah Siswa Menunggak : <span className="font-semibold text-foreground">{smp.jumlahMenunggak} siswa</span></p>
+                  {getTunggakanPerKelas('SMP').map(k => (
+                    <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} siswa</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
+                  ))}
                 </div>
               </motion.div>
 
@@ -224,19 +235,20 @@ export default function LaporanSekolah() {
                   <p className="text-2xl font-extrabold text-destructive">{formatRupiah(sma.totalTunggakan)}</p>
                 </div>
                 <div className="mt-3 ml-[52px] space-y-1">
-                  <p className="text-xs text-muted-foreground">Semua Kelas Jenjang SMA</p>
-                  <p className="text-xs text-muted-foreground">Jumlah Siswa Menunggak : <span className="font-semibold text-foreground">{sma.jumlahMenunggak} siswa</span></p>
+                  {getTunggakanPerKelas('SMA').map(k => (
+                    <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} siswa</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
+                  ))}
                 </div>
               </motion.div>
 
               {/* Total Keseluruhan */}
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }} className="p-6 gradient-card">
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }} className="p-6" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive-foreground" /></div>
                     <p className="font-extrabold text-foreground text-lg">TOTAL TUNGGAKAN SISWA ({bulanTahun})</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-primary">{formatRupiah(totalTunggakanAll)}</p>
+                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(totalTunggakanAll)}</p>
                 </div>
               </motion.div>
             </div>
