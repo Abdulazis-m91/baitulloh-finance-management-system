@@ -143,7 +143,7 @@ export default function LaporanSekolah() {
     );
   };
 
-  const printRef = useRef<HTMLDivElement>(null);
+
 
   const handlePrint = () => {
     if (!printRef.current) return;
