@@ -150,11 +150,11 @@ export default function PendapatanPesantren() {
             </tbody>
             <tfoot>
               <tr className="bg-muted/50 border-t-2 border-border">
-                <td colSpan={headers.length - 1} className="py-4 px-4 font-bold text-foreground text-sm">TOTAL — {todayStr} · {monthStr}</td>
+                <td colSpan={8} className="py-4 px-4 font-bold text-foreground text-sm">TOTAL — {todayStr} · {monthStr}</td>
                 <td className="py-4 px-4 text-right font-extrabold text-primary text-base">{formatRupiah(totalNominal)}</td>
               </tr>
               <tr className="bg-muted/30">
-                <td colSpan={headers.length} className="py-2 px-4 text-xs text-muted-foreground text-center">Total dari {data.length} transaksi</td>
+                <td colSpan={9} className="py-2 px-4 text-xs text-muted-foreground text-center">Total dari {data.length} transaksi</td>
               </tr>
             </tfoot>
           </table>
