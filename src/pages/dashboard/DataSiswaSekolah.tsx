@@ -31,7 +31,17 @@ type StudentFormPopupProps = {
   handleWhatsAppChange: (value: string) => void;
 };
 
-const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan, handleWhatsAppChange }: StudentFormPopupProps) => (
+const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan, handleWhatsAppChange }: StudentFormPopupProps) => {
+  const rfidRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      rfidRef.current?.focus();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={onClose}>
     <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={modalSpring}
       className="bg-card rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto p-7" onClick={e => e.stopPropagation()}>
@@ -63,12 +73,14 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
 
             <div>
               <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Barcode / RFID</label>
-              <input value={form.barcode} onChange={e => setForm(prev => ({ ...prev, barcode: e.target.value }))}
+              <input 
+                ref={rfidRef}
+                value={form.barcode} 
+                onChange={e => setForm(prev => ({ ...prev, barcode: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
-                autoFocus
                 autoComplete="off"
-                placeholder="Tempelkan kartu RFID atau ketik manual..."
-                className="w-full px-4 py-2.5 rounded-xl border-2 border-primary/40 bg-primary/5 text-foreground text-sm input-focus font-mono focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                placeholder="📡 Tempelkan kartu RFID — kursor otomatis aktif di sini..."
+                className="w-full px-4 py-3 rounded-xl border-2 border-primary/40 bg-primary/5 text-foreground text-sm input-focus font-mono focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-primary/40" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -146,7 +158,8 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
       </form>
     </motion.div>
   </motion.div>
-);
+  );
+};
 
 export default function DataSiswaSekolah() {
   const [search, setSearch] = useState('');
