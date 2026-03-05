@@ -361,6 +361,33 @@ export type Database = {
           },
         ]
       }
+      pendapatan_lain_pesantren: {
+        Row: {
+          created_at: string
+          id: string
+          nama: string
+          nominal: number
+          petugas: string
+          tanggal: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nama: string
+          nominal: number
+          petugas: string
+          tanggal?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nama?: string
+          nominal?: number
+          petugas?: string
+          tanggal?: string
+        }
+        Relationships: []
+      }
       pengeluaran: {
         Row: {
           created_at: string
