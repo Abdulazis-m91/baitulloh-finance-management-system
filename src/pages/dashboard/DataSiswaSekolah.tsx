@@ -253,10 +253,21 @@ export default function DataSiswaSekolah() {
   };
 
   const openEdit = (s: StudentDB) => {
+    // Parse existing tunggakan to pre-fill year and months
+    const tahunSet = new Set<string>();
+    const bulanSet = new Set<string>();
+    s.tunggakan_sekolah.forEach(t => {
+      const parts = t.split('-');
+      if (parts.length === 2) {
+        tahunSet.add(parts[0]);
+        bulanSet.add(parts[1]);
+      }
+    });
+    const tahun = tahunSet.size === 1 ? [...tahunSet][0] : '';
     setForm({
       nisn: s.nisn, barcode: s.barcode, namaLengkap: s.nama_lengkap, jenjang: s.jenjang, kelas: s.kelas,
       namaOrangTua: s.nama_orang_tua, nomorWhatsApp: s.nomor_whatsapp,
-      tunggakanTahun: '', tunggakanBulan: [],
+      tunggakanTahun: tahun, tunggakanBulan: [...bulanSet],
     });
     setShowEdit(s);
   };
@@ -276,11 +287,16 @@ export default function DataSiswaSekolah() {
 
   const handleEdit = () => {
     if (!showEdit) return;
+    // Build tunggakan array from form
+    const tunggakan = form.tunggakanTahun
+      ? form.tunggakanBulan.map(b => `${form.tunggakanTahun}-${b}`)
+      : showEdit.tunggakan_sekolah; // keep existing if no year selected
     updateStudentMut.mutate({
       id: showEdit.id,
       nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
       jenjang: form.jenjang as 'SMP' | 'SMA', kelas: form.kelas,
       nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
+      tunggakan_sekolah: tunggakan,
     });
     setShowEdit(null);
   };
@@ -428,7 +444,7 @@ export default function DataSiswaSekolah() {
               </div>
               <div className="flex gap-6 mb-6">
                 <div className="flex-shrink-0 flex flex-col items-center">
-                  <div className="w-28 h-28 rounded-full gradient-primary flex items-center justify-center shadow-glow-primary border-4 border-card">
+                  <div className="w-28 h-28 rounded-2xl gradient-primary flex items-center justify-center shadow-glow-primary border-4 border-card">
                     <User className="w-12 h-12 text-primary-foreground" />
                   </div>
                 </div>
@@ -458,12 +474,16 @@ export default function DataSiswaSekolah() {
                       <AlertTriangle className="w-3.5 h-3.5 text-destructive" /> Daftar Tunggakan
                     </p>
                     <div className="grid grid-cols-2 gap-2">
-                      {showDetail.tunggakan_sekolah.map(b => (
-                        <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
-                          <span className="text-foreground">{b}</span>
-                          <span className="text-destructive font-bold">{formatRupiah(showDetail.biaya_per_bulan)}</span>
-                        </div>
-                      ))}
+                      {showDetail.tunggakan_sekolah.map(b => {
+                        const parts = b.split('-');
+                        const displayText = parts.length === 2 ? `${parts[0]} - ${parts[1]}` : b;
+                        return (
+                          <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
+                            <span className="text-foreground">{displayText}</span>
+                            <span className="text-destructive font-bold">{formatRupiah(showDetail.biaya_per_bulan)}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="flex justify-between p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-sm font-extrabold mt-2">
                       <span className="text-foreground">Total Tunggakan</span>
@@ -491,12 +511,16 @@ export default function DataSiswaSekolah() {
               </div>
               <p className="text-sm text-muted-foreground mb-4">{showTunggakan.nama_lengkap} · <span className="font-bold text-foreground">{showTunggakan.jenjang} {showTunggakan.kelas}</span></p>
               <div className="space-y-2">
-                {showTunggakan.tunggakan_sekolah.map(b => (
-                  <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
-                    <span className="text-foreground">{b}</span>
-                    <span className="text-destructive font-bold">{formatRupiah(showTunggakan.biaya_per_bulan)}</span>
-                  </div>
-                ))}
+                {showTunggakan.tunggakan_sekolah.map(b => {
+                  const parts = b.split('-');
+                  const displayText = parts.length === 2 ? `${parts[0]} - ${parts[1]}` : b;
+                  return (
+                    <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
+                      <span className="text-foreground">{displayText}</span>
+                      <span className="text-destructive font-bold">{formatRupiah(showTunggakan.biaya_per_bulan)}</span>
+                    </div>
+                  );
+                })}
                 <div className="flex justify-between p-4 rounded-xl bg-destructive/10 border border-destructive/20 font-extrabold text-sm">
                   <span className="text-foreground">Total</span>
                   <span className="text-destructive">{formatRupiah(showTunggakan.tunggakan_sekolah.length * showTunggakan.biaya_per_bulan)}</span>
