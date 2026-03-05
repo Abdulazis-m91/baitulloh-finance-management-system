@@ -83,7 +83,7 @@ export default function PetugasYayasan() {
   const roleLabel = (role: string) => role === 'petugas_sekolah' ? 'Petugas Sekolah' : 'Petugas Pesantren';
   const roleBadgeColor = (role: string) => role === 'petugas_sekolah' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary';
 
-  const FormPopup = ({ title, onClose, onSubmit }: { title: string; onClose: () => void; onSubmit: () => void }) => (
+  const renderFormPopup = (title: string, onClose: () => void, onSubmit: () => void) => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={onClose}>
       <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
@@ -194,8 +194,8 @@ export default function PetugasYayasan() {
 
       {/* Popups */}
       <AnimatePresence>
-        {showAdd && <FormPopup title="Tambah Petugas" onClose={() => setShowAdd(false)} onSubmit={handleAdd} />}
-        {showEdit && <FormPopup title="Edit Petugas" onClose={() => setShowEdit(null)} onSubmit={handleEdit} />}
+        {showAdd && renderFormPopup("Tambah Petugas", () => setShowAdd(false), handleAdd)}
+        {showEdit && renderFormPopup("Edit Petugas", () => setShowEdit(null), handleEdit)}
 
         {showDetail && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
