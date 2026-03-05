@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Download, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStudents } from '@/hooks/useSupabaseData';
 import {
