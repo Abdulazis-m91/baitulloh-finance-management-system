@@ -36,7 +36,7 @@ export default function LaporanSekolah() {
   };
 
   const getData = (jenjang: 'SMP' | 'SMA') => {
-    const pembayaran = pembayaranAll.filter(p => p.jenjang === jenjang);
+    const pembayaran = pembayaranAll.filter(p => p.jenjang === jenjang && p.metode === 'Lunas');
     const pengeluaran = pengeluaranAll.filter(e => e.sumber_dana === jenjang);
     const siswaMenunggak = students.filter(s => s.jenjang === jenjang && s.tunggakan_sekolah.length > 0);
     const totalPemasukan = pembayaran.reduce((a, p) => a + p.nominal, 0);

@@ -15,14 +15,15 @@ export default function DashboardPesantren() {
 
   if (l1 || l2 || l3) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
-  const totalPemasukan = pembayaran.reduce((acc, p) => acc + p.nominal, 0);
+  const pembayaranLunas = pembayaran.filter(p => p.metode === 'Lunas');
+  const totalPemasukan = pembayaranLunas.reduce((acc, p) => acc + p.nominal, 0);
   const santriMenunggak = students.filter(s => s.tunggakan_pesantren.length > 0);
   const totalTunggakan = santriMenunggak.reduce((acc, s) => {
     const kat = (s.kategori as KategoriSantri) || 'REGULER';
     const biaya = KATEGORI_BIAYA[kat]?.total || 450000;
     return acc + s.tunggakan_pesantren.length * biaya;
   }, 0);
-  const santriMembayar = new Set(pembayaran.map(p => p.siswa_id)).size;
+  const santriMembayar = new Set(pembayaranLunas.map(p => p.siswa_id)).size;
   const totalPengeluaran = pengeluaran.reduce((acc, p) => acc + p.nominal, 0);
 
   const stats = [
