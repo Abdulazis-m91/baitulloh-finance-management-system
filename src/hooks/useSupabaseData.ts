@@ -168,3 +168,40 @@ export function useCicilan() {
     },
   });
 }
+
+export function useCicilanBySiswa(siswaId: string | undefined) {
+  return useQuery({
+    queryKey: ['cicilan', siswaId],
+    enabled: !!siswaId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('cicilan').select('*').eq('siswa_id', siswaId!).order('tanggal', { ascending: false });
+      if (error) throw error;
+      return data as CicilanDB[];
+    },
+  });
+}
+
+export function useInsertCicilan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (record: Omit<CicilanDB, 'id' | 'created_at'>) => {
+      const { data, error } = await supabase.from('cicilan').insert(record).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cicilan'] }); toast.success('Cicilan berhasil dicatat'); },
+    onError: (e) => toast.error(`Gagal mencatat cicilan: ${e.message}`),
+  });
+}
+
+export function useDeleteCicilanBySiswaAndBulan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ siswa_id, bulan }: { siswa_id: string; bulan: string }) => {
+      const { error } = await supabase.from('cicilan').delete().eq('siswa_id', siswa_id).eq('bulan', bulan);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cicilan'] }); },
+    onError: (e) => toast.error(`Gagal menghapus cicilan: ${e.message}`),
+  });
+}
