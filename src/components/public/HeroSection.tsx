@@ -38,43 +38,82 @@ export default function HeroSection() {
     <section className="relative min-h-[100vh] flex items-center justify-center overflow-hidden pt-20">
       {/* Animated Background */}
       <div className="absolute inset-0 gradient-hero">
-        {/* Large ambient orbs */}
-        <div className="absolute top-20 left-[10%] w-[400px] h-[400px] rounded-full bg-secondary/8 blur-[100px] animate-float-slow" />
-        <div className="absolute bottom-20 right-[10%] w-[500px] h-[500px] rounded-full bg-primary-foreground/5 blur-[120px] animate-float-slow" style={{ animationDelay: '4s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-secondary/4 blur-[150px] animate-pulse-glow" />
+        {/* Shifting light orbs */}
+        <div className="absolute top-[10%] left-[5%] w-[500px] h-[500px] rounded-full blur-[140px] animate-float-slow"
+          style={{ background: 'radial-gradient(circle, hsla(217,71%,55%,0.25) 0%, transparent 70%)' }} />
+        <div className="absolute bottom-[5%] right-[5%] w-[600px] h-[600px] rounded-full blur-[160px] animate-float-slow"
+          style={{ background: 'radial-gradient(circle, hsla(210,80%,60%,0.2) 0%, transparent 70%)', animationDelay: '5s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[180px] animate-pulse-glow"
+          style={{ background: 'radial-gradient(circle, hsla(220,70%,50%,0.15) 0%, transparent 60%)' }} />
+        <div className="absolute top-[60%] left-[30%] w-[400px] h-[400px] rounded-full blur-[120px] animate-float"
+          style={{ background: 'radial-gradient(circle, hsla(200,80%,65%,0.12) 0%, transparent 70%)', animationDelay: '3s' }} />
 
-        {/* Geometric pattern */}
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.3) 1px, transparent 0)', backgroundSize: '40px 40px' }}
+        {/* Dot grid pattern */}
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: 'radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,0.5) 1px, transparent 0)', backgroundSize: '32px 32px' }}
         />
 
-        {/* Floating particles */}
+        {/* Floating particles - white/blue */}
         {particles.map(p => (
           <div
             key={p.id}
-            className="absolute rounded-full bg-secondary/30"
+            className="absolute rounded-full"
             style={{
               left: p.left,
               bottom: '-20px',
               width: p.size,
               height: p.size,
               opacity: p.opacity,
+              background: p.id % 3 === 0 ? 'hsla(210,90%,75%,0.6)' : 'hsla(0,0%,100%,0.5)',
               animation: `particle-float ${p.duration}s linear ${p.delay}s infinite`,
             }}
           />
         ))}
 
-        {/* Decorative Islamic geometric shapes */}
+        {/* Rotating ring decorations */}
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-[15%] right-[15%] w-32 h-32 border border-secondary/10 rounded-full"
+          transition={{ duration: 90, repeat: Infinity, ease: 'linear' }}
+          className="absolute top-[12%] right-[12%] w-40 h-40 border border-white/[0.06] rounded-full"
         />
         <motion.div
           animate={{ rotate: -360 }}
-          transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
-          className="absolute bottom-[20%] left-[10%] w-48 h-48 border border-primary-foreground/5 rounded-full"
+          transition={{ duration: 120, repeat: Infinity, ease: 'linear' }}
+          className="absolute bottom-[18%] left-[8%] w-56 h-56 border border-white/[0.04] rounded-full"
         />
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 70, repeat: Infinity, ease: 'linear' }}
+          className="absolute top-[45%] right-[25%] w-24 h-24 border border-white/[0.05] rounded-full"
+        />
+
+        {/* Wave SVG at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
+          <svg viewBox="0 0 1440 120" className="w-full h-auto opacity-[0.06]" preserveAspectRatio="none">
+            <motion.path
+              d="M0,60 C360,120 720,0 1080,60 C1260,90 1380,40 1440,60 L1440,120 L0,120 Z"
+              fill="white"
+              animate={{ d: [
+                "M0,60 C360,120 720,0 1080,60 C1260,90 1380,40 1440,60 L1440,120 L0,120 Z",
+                "M0,80 C360,20 720,100 1080,40 C1260,20 1380,80 1440,50 L1440,120 L0,120 Z",
+                "M0,60 C360,120 720,0 1080,60 C1260,90 1380,40 1440,60 L1440,120 L0,120 Z",
+              ]}}
+              transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </svg>
+          <svg viewBox="0 0 1440 120" className="w-full h-auto opacity-[0.04] -mt-16" preserveAspectRatio="none">
+            <motion.path
+              d="M0,40 C480,100 960,10 1440,70 L1440,120 L0,120 Z"
+              fill="white"
+              animate={{ d: [
+                "M0,40 C480,100 960,10 1440,70 L1440,120 L0,120 Z",
+                "M0,70 C480,10 960,100 1440,40 L1440,120 L0,120 Z",
+                "M0,40 C480,100 960,10 1440,70 L1440,120 L0,120 Z",
+              ]}}
+              transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </svg>
+        </div>
       </div>
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 text-center pt-28 pb-24">
