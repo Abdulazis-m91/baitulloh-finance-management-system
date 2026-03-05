@@ -130,12 +130,11 @@ export default function PendapatanPesantren() {
             </thead>
             <tbody>
               {pagedData.length === 0 && (
-                <tr><td colSpan={headers.length} className="py-16 text-center text-muted-foreground">
+                <tr><td colSpan={9} className="py-16 text-center text-muted-foreground">
                   <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3"><Download className="w-8 h-8 text-muted-foreground/30" /></div>Tidak ada data
                 </td></tr>
               )}
-
-              {(activeTab === 'Pembayaran' || activeTab === 'Deposit') && pagedData.map((p: any, i: number) => (
+              {pagedData.map((p: any, i: number) => (
                 <tr key={p.id} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
                   <td className="py-4 px-4 text-muted-foreground">{formatDate(p.tanggal)}</td>
@@ -146,30 +145,6 @@ export default function PendapatanPesantren() {
                   <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-accent/50 text-accent-foreground text-xs font-bold">{p.bulan}</span></td>
                   <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(p.nominal)}</td>
                   <td className="py-4 px-4 text-muted-foreground">{p.petugas}</td>
-                </tr>
-              ))}
-
-              {(['Konsumsi', 'Operasional', 'Pembangunan'] as Tab[]).includes(activeTab) && pagedData.map((c: any, i: number) => (
-                <tr key={c.id} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
-                  <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{formatDate(c.tanggal)}</td>
-                  <td className="py-4 px-4 text-foreground font-semibold">{c.nama_siswa}</td>
-                  <td className="py-4 px-4"><span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground text-xs font-semibold">{c.kategori}</span></td>
-                  <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-accent/50 text-accent-foreground text-xs font-bold">{c.bulan}</span></td>
-                  <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(c.nominal)}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{c.petugas}</td>
-                </tr>
-              ))}
-
-              {activeTab === 'Cicilan' && pagedData.map((c: any, i: number) => (
-                <tr key={c.id} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
-                  <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{formatDate(c.tanggal)}</td>
-                  <td className="py-4 px-4 text-foreground font-semibold">{c.namaSiswa}</td>
-                  <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-primary/5 text-primary text-xs font-bold">{c.jenjang}</span></td>
-                  <td className="py-4 px-4 text-foreground">{c.kelas}</td>
-                  <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-warning/10 text-warning text-xs font-bold">{c.bulan}</span></td>
-                  <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(c.nominal)}</td>
                 </tr>
               ))}
             </tbody>
