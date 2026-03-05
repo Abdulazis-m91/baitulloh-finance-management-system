@@ -291,9 +291,9 @@ export default function DataSiswaSekolah() {
 
   const handleEdit = () => {
     if (!showEdit) return;
-    // Build tunggakan array from form
+    // Use the selected months directly (consistent with DB format: plain month names)
     const tunggakan = form.tunggakanTahun
-      ? form.tunggakanBulan.map(b => `${form.tunggakanTahun}-${b}`)
+      ? [...form.tunggakanBulan]
       : showEdit.tunggakan_sekolah; // keep existing if no year selected
     updateStudentMut.mutate({
       id: showEdit.id,
