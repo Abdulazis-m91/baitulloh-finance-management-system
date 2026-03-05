@@ -4,6 +4,7 @@ import { Search, X, User, BookOpen } from 'lucide-react';
 import { mockStudents } from '@/data/mockData';
 import { kelasOptions } from '@/data/mockData';
 import { formatRupiah } from '@/lib/format';
+import logoYB from '@/assets/logo-yb.png';
 
 export default function HeroSection() {
   const [nama, setNama] = useState('');
@@ -151,14 +152,14 @@ export default function HeroSection() {
           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
         >
           {/* Logo */}
-          <motion.div
+          <motion.img
+            src={logoYB}
+            alt="Logo Yayasan Baitulloh"
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-            className="w-20 h-20 rounded-2xl gradient-gold flex items-center justify-center mx-auto mb-8 shadow-glow-gold"
-          >
-            <span className="text-3xl font-bold font-arabic text-foreground">ب</span>
-          </motion.div>
+            className="w-20 h-20 rounded-2xl object-contain mx-auto mb-8"
+          />
 
           <motion.p
             initial={{ opacity: 0 }}

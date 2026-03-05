@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import logoYB from '@/assets/logo-yb.png';
 
 interface LoginDialogProps {
   open: boolean;
@@ -171,14 +172,14 @@ export default function LoginDialog({ open, onClose }: LoginDialogProps) {
               <div className="absolute bottom-32 right-20 w-2 h-2 rounded-full bg-secondary/20 animate-bounce-gentle" style={{ animationDelay: '1s' }} />
 
               <div className="relative z-10">
-                <motion.div
+                <motion.img
+                  src={logoYB}
+                  alt="Logo Yayasan Baitulloh"
                   initial={{ scale: 0.5, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 200, delay: 0.3 }}
-                  className="w-28 h-28 rounded-3xl gradient-gold flex items-center justify-center mb-8 mx-auto shadow-glow-gold"
-                >
-                  <span className="text-4xl font-bold font-arabic text-foreground">ب</span>
-                </motion.div>
+                  className="w-28 h-28 rounded-3xl object-contain mb-8 mx-auto"
+                />
                 <motion.h3
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
