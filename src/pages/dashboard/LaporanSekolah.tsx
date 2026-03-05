@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info, Users } from 'lucide-react';
 import { useStudents, usePembayaran, usePengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
