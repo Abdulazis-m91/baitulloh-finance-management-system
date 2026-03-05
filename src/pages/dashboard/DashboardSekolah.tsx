@@ -16,7 +16,8 @@ export default function DashboardSekolah() {
     );
   }
 
-  const totalPemasukan = pembayaran.reduce((acc, p) => acc + p.nominal, 0);
+  const pembayaranLunas = pembayaran.filter(p => p.metode === 'Lunas');
+  const totalPemasukan = pembayaranLunas.reduce((acc, p) => acc + p.nominal, 0);
   const siswaMenunggak = students.filter(s => s.tunggakan_sekolah.length > 0);
   const totalTunggakan = siswaMenunggak.reduce((acc, s) => acc + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0);
   const siswaMembayar = new Set(pembayaran.map(p => p.siswa_id)).size;
