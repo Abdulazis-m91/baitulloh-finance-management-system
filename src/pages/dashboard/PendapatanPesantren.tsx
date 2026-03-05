@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Download, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStudents } from '@/hooks/useSupabaseData';
 import {
@@ -37,11 +36,11 @@ export default function PendapatanPesantren() {
     if (activeTab === 'Pembayaran') {
       return pembayaran.filter(p => p.metode !== 'Deposit' && (!filterJenjang || p.jenjang === filterJenjang) && (!filterKelas || p.kelas === filterKelas) && (!filterKategori || p.kategori === filterKategori));
     }
-    if (activeTab === 'Konsumsi') return konsumsi.filter(c => !filterKategori || c.kategori === filterKategori);
-    if (activeTab === 'Operasional') return operasional.filter(c => !filterKategori || c.kategori === filterKategori);
-    if (activeTab === 'Pembangunan') return pembangunan.filter(c => !filterKategori || c.kategori === filterKategori);
+    if (activeTab === 'Konsumsi') return konsumsi.filter(c => !filterKategori || c.kategori === filterKategori).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Operasional') return operasional.filter(c => !filterKategori || c.kategori === filterKategori).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Pembangunan') return pembangunan.filter(c => !filterKategori || c.kategori === filterKategori).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
     if (activeTab === 'Cicilan') {
-      return cicilan.map(c => ({ ...c, namaSiswa: studentMap[c.siswa_id]?.nama_lengkap || '', jenjang: studentMap[c.siswa_id]?.jenjang || '-', kelas: studentMap[c.siswa_id]?.kelas || '-' }));
+      return cicilan.map(c => ({ ...c, nama_siswa: studentMap[c.siswa_id]?.nama_lengkap || '', jenjang: studentMap[c.siswa_id]?.jenjang || '-', kelas: studentMap[c.siswa_id]?.kelas || '-', kategori: '-', petugas: c.petugas }));
     }
     if (activeTab === 'Deposit') {
       return pembayaran.filter(p => p.metode === 'Deposit' && (!filterJenjang || p.jenjang === filterJenjang) && (!filterKelas || p.kelas === filterKelas) && (!filterKategori || p.kategori === filterKategori));
@@ -69,13 +68,8 @@ export default function PendapatanPesantren() {
 
   const tabIcons: Record<Tab, string> = { 'Pembayaran': '📌', 'Konsumsi': '🍚', 'Operasional': '🏗️', 'Pembangunan': '🏢', 'Cicilan': '💳', 'Deposit': '💰' };
 
-  const renderHeaders = () => {
-    switch (activeTab) {
-      case 'Pembayaran': case 'Deposit': return ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Kategori', 'Bulan', 'Nominal', 'Petugas'];
-      case 'Konsumsi': case 'Operasional': case 'Pembangunan': return ['No', 'Tanggal', 'Nama', 'Kategori', 'Bulan', 'Nominal', 'Petugas'];
-      case 'Cicilan': return ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Bulan', 'Nominal'];
-      default: return [];
-    }
+  const renderHeaders = (): string[] => {
+    return ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Kategori', 'Bulan', 'Nominal', 'Petugas'];
   };
 
   const headers = renderHeaders();
@@ -83,24 +77,24 @@ export default function PendapatanPesantren() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+        <div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Pendapatan Pesantren</h1>
           <p className="text-muted-foreground text-sm mt-1">Riwayat pendapatan dari pembayaran santri</p>
-        </motion.div>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
+        </div>
+        <button onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine hover:opacity-90 transition-opacity">
           <Download className="w-4 h-4" /> Export Excel
-        </motion.button>
+        </button>
       </div>
 
       {/* Tabs */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex gap-1 bg-muted p-1.5 rounded-2xl flex-wrap">
+      <div className="flex gap-1 bg-muted p-1.5 rounded-2xl flex-wrap">
         {tabs.map(tab => (
-          <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab(tab); setFilterJenjang(''); setFilterKelas(''); setFilterKategori(''); setPage(1); }}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+          <button key={tab} onClick={() => { setActiveTab(tab); setFilterJenjang(''); setFilterKelas(''); setFilterKategori(''); setPage(1); }}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'}`}>
             {tabIcons[tab]} {tab}
-          </motion.button>
+          </button>
         ))}
-      </motion.div>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
@@ -124,9 +118,9 @@ export default function PendapatanPesantren() {
       </div>
 
       {/* Table */}
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+      <div className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table key={activeTab} className="w-full text-sm">
             <thead>
               <tr className="bg-muted/30 border-b border-border">
                 {headers.map(h => (
@@ -136,13 +130,12 @@ export default function PendapatanPesantren() {
             </thead>
             <tbody>
               {pagedData.length === 0 && (
-                <tr><td colSpan={headers.length} className="py-16 text-center text-muted-foreground">
+                <tr><td colSpan={9} className="py-16 text-center text-muted-foreground">
                   <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3"><Download className="w-8 h-8 text-muted-foreground/30" /></div>Tidak ada data
                 </td></tr>
               )}
-
-              {(activeTab === 'Pembayaran' || activeTab === 'Deposit') && pagedData.map((p: any, i: number) => (
-                <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
+              {pagedData.map((p: any, i: number) => (
+                <tr key={p.id} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
                   <td className="py-4 px-4 text-muted-foreground">{formatDate(p.tanggal)}</td>
                   <td className="py-4 px-4 text-foreground font-semibold">{p.nama_siswa}</td>
@@ -152,43 +145,16 @@ export default function PendapatanPesantren() {
                   <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-accent/50 text-accent-foreground text-xs font-bold">{p.bulan}</span></td>
                   <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(p.nominal)}</td>
                   <td className="py-4 px-4 text-muted-foreground">{p.petugas}</td>
-                </motion.tr>
-              ))}
-
-              {(['Konsumsi', 'Operasional', 'Pembangunan'] as Tab[]).includes(activeTab) && pagedData.map((c: any, i: number) => (
-                <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
-                  <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{formatDate(c.tanggal)}</td>
-                  <td className="py-4 px-4 text-foreground font-semibold">{c.nama_siswa}</td>
-                  <td className="py-4 px-4"><span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground text-xs font-semibold">{c.kategori}</span></td>
-                  <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-accent/50 text-accent-foreground text-xs font-bold">{c.bulan}</span></td>
-                  <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(c.nominal)}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{c.petugas}</td>
-                </motion.tr>
-              ))}
-
-              {activeTab === 'Cicilan' && pagedData.map((c: any, i: number) => (
-                <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
-                  <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{formatDate(c.tanggal)}</td>
-                  <td className="py-4 px-4 text-foreground font-semibold">{c.namaSiswa}</td>
-                  <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-primary/5 text-primary text-xs font-bold">{c.jenjang}</span></td>
-                  <td className="py-4 px-4 text-foreground">{c.kelas}</td>
-                  <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-warning/10 text-warning text-xs font-bold">{c.bulan}</span></td>
-                  <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(c.nominal)}</td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="bg-muted/50 border-t-2 border-border">
-                <td colSpan={2} className="py-4 px-4 font-bold text-foreground text-sm">TOTAL</td>
-                <td className="py-4 px-4 text-muted-foreground text-xs">{todayStr}</td>
-                <td className="py-4 px-4 text-muted-foreground text-xs">{monthStr}</td>
-                <td colSpan={headers.length - 5} className="py-4 px-4"></td>
+                <td colSpan={8} className="py-4 px-4 font-bold text-foreground text-sm">TOTAL — {todayStr} · {monthStr}</td>
                 <td className="py-4 px-4 text-right font-extrabold text-primary text-base">{formatRupiah(totalNominal)}</td>
               </tr>
               <tr className="bg-muted/30">
-                <td colSpan={headers.length} className="py-2 px-4 text-xs text-muted-foreground text-center">Total dari {data.length} transaksi</td>
+                <td colSpan={9} className="py-2 px-4 text-xs text-muted-foreground text-center">Total dari {data.length} transaksi</td>
               </tr>
             </tfoot>
           </table>
@@ -203,7 +169,7 @@ export default function PendapatanPesantren() {
             </div>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }
