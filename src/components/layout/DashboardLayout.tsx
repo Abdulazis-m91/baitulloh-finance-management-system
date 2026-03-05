@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CreditCard, Users, TrendingUp, TrendingDown,
-  BookOpen, FileText, LogOut, Menu, X, Bell
+  BookOpen, FileText, LogOut, Menu, X, Bell, Shield, UserCog
 } from 'lucide-react';
 import { useState } from 'react';
 import logoYB from '@/assets/logo-yb.png';
@@ -25,6 +25,11 @@ const menuItemsPesantren = [
   { icon: TrendingUp, label: 'Pendapatan Pesantren', path: '/dashboard/pendapatan-pesantren' },
   { icon: TrendingDown, label: 'Pengeluaran Pesantren', path: '/dashboard/pengeluaran-pesantren' },
   { icon: FileText, label: 'Laporan Pesantren', path: '/dashboard/laporan-pesantren' },
+];
+
+const menuItemsAdmin = [
+  { icon: Shield, label: 'Kontrol Admin', path: '/dashboard/admin-control' },
+  { icon: UserCog, label: 'Petugas Yayasan', path: '/dashboard/petugas-yayasan' },
 ];
 
 export default function DashboardLayout() {
@@ -77,8 +82,41 @@ export default function DashboardLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto mt-2">
-          <p className="px-4 py-2 text-[10px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.2em]">Menu Utama</p>
-          {(role === 'petugas_pesantren' ? menuItemsPesantren : menuItemsSekolah).map((item, i) => (
+          {role === 'admin' && (
+            <>
+              <p className="px-4 py-2 text-[10px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.2em]">Admin</p>
+              {menuItemsAdmin.map((item) => (
+                <NavLink key={item.path} to={item.path} end
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      isActive ? 'bg-sidebar-accent text-white shadow-sm' : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-white/20 shadow-sm' : 'bg-sidebar-accent/50 group-hover:bg-sidebar-accent'}`}>
+                        <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-sidebar-foreground/60 group-hover:text-sidebar-foreground'}`} />
+                      </div>
+                      <span>{item.label}</span>
+                      {isActive && (
+                        <motion.div layoutId="sidebar-indicator" className="ml-auto w-1.5 h-1.5 rounded-full bg-white"
+                          transition={{ type: 'spring', stiffness: 300, damping: 25 }} />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </>
+          )}
+
+          {(role === 'admin' || role === 'petugas_sekolah') && (
+            <>
+              <p className="px-4 py-2 text-[10px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.2em]">Sekolah</p>
+            </>
+          )}
+          {(role === 'admin' || role === 'petugas_sekolah') && menuItemsSekolah.map((item, i) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -104,6 +142,38 @@ export default function DashboardLayout() {
                       className="ml-auto w-1.5 h-1.5 rounded-full bg-white"
                       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+
+          {(role === 'admin' || role === 'petugas_pesantren') && (
+            <>
+              <p className="px-4 py-2 mt-2 text-[10px] font-bold text-sidebar-foreground/30 uppercase tracking-[0.2em]">Pesantren</p>
+            </>
+          )}
+          {(role === 'admin' || role === 'petugas_pesantren') && menuItemsPesantren.map((item, i) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/dashboard/pesantren'}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  isActive ? 'bg-sidebar-accent text-white shadow-sm' : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-white/20 shadow-sm' : 'bg-sidebar-accent/50 group-hover:bg-sidebar-accent'}`}>
+                    <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-sidebar-foreground/60 group-hover:text-sidebar-foreground'}`} />
+                  </div>
+                  <span>{item.label}</span>
+                  {isActive && (
+                    <motion.div layoutId="sidebar-indicator-pesantren" className="ml-auto w-1.5 h-1.5 rounded-full bg-white"
+                      transition={{ type: 'spring', stiffness: 300, damping: 25 }} />
                   )}
                 </>
               )}
