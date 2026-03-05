@@ -1,12 +1,25 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle } from 'lucide-react';
+import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar } from 'lucide-react';
 import { mockStudents, kelasOptions, bulanList } from '@/data/mockData';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
 type FilterStatus = '' | 'lunas' | 'menunggak';
+type StudentForm = {
+  nisn: string; namaLengkap: string; jenjang: string; kelas: string;
+  namaOrangTua: string; nomorWhatsApp: string;
+  tunggakanTahun: string; tunggakanBulan: string[];
+};
+
+const emptyForm: StudentForm = {
+  nisn: '', namaLengkap: '', jenjang: '', kelas: '',
+  namaOrangTua: '', nomorWhatsApp: '', tunggakanTahun: '', tunggakanBulan: [],
+};
+
+const modalOverlay = "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4";
+const modalSpring = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
 export default function DataSiswaSekolah() {
   const [search, setSearch] = useState('');
@@ -15,8 +28,11 @@ export default function DataSiswaSekolah() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('');
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState<typeof mockStudents[0] | null>(null);
   const [showDetail, setShowDetail] = useState<typeof mockStudents[0] | null>(null);
   const [showTunggakan, setShowTunggakan] = useState<typeof mockStudents[0] | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<typeof mockStudents[0] | null>(null);
+  const [form, setForm] = useState<StudentForm>(emptyForm);
   const perPage = 15;
 
   const filtered = mockStudents.filter(s => {
@@ -45,16 +61,147 @@ export default function DataSiswaSekolah() {
     toast.success('Data berhasil diekspor ke Excel');
   };
 
-  const handleDelete = (name: string) => {
-    if (confirm(`Apakah anda yakin akan menghapus data ${name}?`)) {
-      toast.success('Data berhasil dihapus');
+  const handleDelete = () => {
+    if (showDeleteConfirm) {
+      toast.success(`Data ${showDeleteConfirm.namaLengkap} berhasil dihapus`);
+      setShowDeleteConfirm(null);
     }
+  };
+
+  const openEdit = (s: typeof mockStudents[0]) => {
+    setForm({
+      nisn: s.nisn, namaLengkap: s.namaLengkap, jenjang: s.jenjang, kelas: s.kelas,
+      namaOrangTua: s.namaOrangTua, nomorWhatsApp: s.nomorWhatsApp,
+      tunggakanTahun: '', tunggakanBulan: [],
+    });
+    setShowEdit(s);
+  };
+
+  const openAdd = () => {
+    setForm(emptyForm);
+    setShowAdd(true);
   };
 
   const sendWhatsApp = (s: typeof mockStudents[0]) => {
     const msg = encodeURIComponent(`Assalamu'alaikum. Yth. ${s.namaOrangTua}, kami informasikan bahwa ${s.namaLengkap} (${s.jenjang} ${s.kelas}) memiliki tunggakan SPP sebanyak ${s.tunggakanSekolah.length} bulan (${s.tunggakanSekolah.join(', ')}). Total: ${formatRupiah(s.tunggakanSekolah.length * s.biayaPerBulan)}. Mohon segera melakukan pembayaran. Terima kasih.`);
     window.open(`https://wa.me/${s.nomorWhatsApp}?text=${msg}`, '_blank');
   };
+
+  const toggleBulan = (b: string) => {
+    setForm(prev => ({
+      ...prev,
+      tunggakanBulan: prev.tunggakanBulan.includes(b)
+        ? prev.tunggakanBulan.filter(x => x !== b)
+        : [...prev.tunggakanBulan, b]
+    }));
+  };
+
+  const StudentFormPopup = ({ title, onClose, onSubmit }: { title: string; onClose: () => void; onSubmit: () => void }) => (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={onClose}>
+      <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={modalSpring}
+        className="bg-card rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-7" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-bold text-foreground text-xl">{title}</h3>
+          <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onClose} className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></motion.button>
+        </div>
+
+        <form onSubmit={e => { e.preventDefault(); onSubmit(); }} className="space-y-5">
+          {/* Top: Photo left, Form right */}
+          <div className="flex gap-6">
+            {/* Photo frame */}
+            <div className="flex-shrink-0 flex flex-col items-center gap-3">
+              <div className="w-28 h-28 rounded-full gradient-primary flex items-center justify-center shadow-glow-primary border-4 border-card">
+                <User className="w-12 h-12 text-primary-foreground" />
+              </div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Foto Siswa</p>
+            </div>
+
+            {/* Form fields */}
+            <div className="flex-1 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">NISN</label>
+                  <input value={form.nisn} onChange={e => setForm({ ...form, nisn: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Nama Lengkap</label>
+                  <input value={form.namaLengkap} onChange={e => setForm({ ...form, namaLengkap: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Jenjang</label>
+                  <select value={form.jenjang} onChange={e => setForm({ ...form, jenjang: e.target.value, kelas: '' })} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required>
+                    <option value="">Pilih</option><option>SMP</option><option>SMA</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Kelas</label>
+                  <select value={form.kelas} onChange={e => setForm({ ...form, kelas: e.target.value })} disabled={!form.jenjang} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50" required>
+                    <option value="">{form.jenjang ? 'Pilih Kelas' : 'Pilih jenjang dulu'}</option>
+                    {form.jenjang && kelasOptions[form.jenjang]?.map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Nama Orang Tua</label>
+                  <input value={form.namaOrangTua} onChange={e => setForm({ ...form, namaOrangTua: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">No. WhatsApp</label>
+                  <input value={form.nomorWhatsApp} onChange={e => setForm({ ...form, nomorWhatsApp: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tunggakan Awal */}
+          <div className="border-t border-border pt-5">
+            <label className="text-xs font-semibold text-foreground mb-1 block uppercase tracking-wider flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-primary" /> Tunggakan Awal (opsional)
+            </label>
+            <p className="text-xs text-muted-foreground mb-3">Pilih tahun lalu centang bulan-bulan tunggakan</p>
+            <div className="flex gap-4 items-start">
+              {/* Year dropdown */}
+              <div className="flex-shrink-0 w-32">
+                <select value={form.tunggakanTahun} onChange={e => setForm({ ...form, tunggakanTahun: e.target.value, tunggakanBulan: [] })}
+                  className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+                  <option value="">Tahun</option>
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </div>
+
+              {/* Month checkboxes - only show when year is selected */}
+              {form.tunggakanTahun && (
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {bulanList.map(b => (
+                      <label key={b} className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all text-xs font-medium border ${
+                        form.tunggakanBulan.includes(b)
+                          ? 'bg-primary/10 border-primary/30 text-primary'
+                          : 'bg-muted/30 border-border hover:bg-muted/60 text-foreground'
+                      }`}>
+                        <input type="checkbox" checked={form.tunggakanBulan.includes(b)} onChange={() => toggleBulan(b)} className="rounded border-border accent-primary w-3.5 h-3.5" />
+                        {b}
+                      </label>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </div>
+
+          <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} type="submit"
+            className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine shadow-glow-primary text-sm">
+            {title === 'Tambah Data Siswa' ? 'Simpan Data' : 'Perbarui Data'}
+          </motion.button>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
 
   return (
     <div className="space-y-6">
@@ -64,7 +211,7 @@ export default function DataSiswaSekolah() {
           <p className="text-muted-foreground text-sm mt-1">Kelola data siswa sekolah</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-wrap gap-2">
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine shadow-glow-primary">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={openAdd} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine shadow-glow-primary">
             <Plus className="w-4 h-4" /> Tambah Data
           </motion.button>
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
@@ -86,18 +233,14 @@ export default function DataSiswaSekolah() {
             <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Cari nama atau NISN..." className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
           </div>
           <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-            <option value="">Semua Jenjang</option>
-            <option value="SMP">SMP</option>
-            <option value="SMA">SMA</option>
+            <option value="">Semua Jenjang</option><option value="SMP">SMP</option><option value="SMA">SMA</option>
           </select>
           <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }} disabled={!filterJenjang} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50">
             <option value="">{filterJenjang ? 'Semua Kelas' : 'Pilih jenjang'}</option>
             {filterJenjang && kelasOptions[filterJenjang]?.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
           <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value as FilterStatus); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-            <option value="">Semua Status</option>
-            <option value="lunas">Lunas</option>
-            <option value="menunggak">Belum Lunas</option>
+            <option value="">Semua Status</option><option value="lunas">Lunas</option><option value="menunggak">Belum Lunas</option>
           </select>
         </div>
       </motion.div>
@@ -115,13 +258,8 @@ export default function DataSiswaSekolah() {
             </thead>
             <tbody>
               {paginated.map((s, i) => (
-                <motion.tr
-                  key={s.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors group"
-                >
+                <motion.tr key={s.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
+                  className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors group">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * perPage + i + 1}</td>
                   <td className="py-4 px-4 text-foreground font-mono text-xs">{s.nisn}</td>
                   <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.namaLengkap}</td>
@@ -131,12 +269,8 @@ export default function DataSiswaSekolah() {
                   <td className="py-4 px-4 text-foreground font-medium">{s.kelas}</td>
                   <td className="py-4 px-4">
                     {s.tunggakanSekolah.length > 0 ? (
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowTunggakan(s)}
-                        className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                      >
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTunggakan(s)}
+                        className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
                         {s.tunggakanSekolah.length} bulan ↗
                       </motion.button>
                     ) : (
@@ -149,8 +283,8 @@ export default function DataSiswaSekolah() {
                     <div className="flex items-center justify-center gap-1">
                       {[
                         { icon: Eye, color: 'text-info hover:bg-info/10', action: () => setShowDetail(s), title: 'Lihat' },
-                        { icon: Edit, color: 'text-warning hover:bg-warning/10', action: () => {}, title: 'Edit' },
-                        { icon: Trash2, color: 'text-destructive hover:bg-destructive/10', action: () => handleDelete(s.namaLengkap), title: 'Hapus' },
+                        { icon: Edit, color: 'text-warning hover:bg-warning/10', action: () => openEdit(s), title: 'Edit' },
+                        { icon: Trash2, color: 'text-destructive hover:bg-destructive/10', action: () => setShowDeleteConfirm(s), title: 'Hapus' },
                       ].map(({ icon: Icon, color, action, title }) => (
                         <motion.button key={title} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={action} className={`p-2 rounded-xl ${color} transition-colors`} title={title}>
                           <Icon className="w-4 h-4" />
@@ -168,13 +302,13 @@ export default function DataSiswaSekolah() {
             </tbody>
           </table>
         </div>
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-4 border-t border-border">
             <p className="text-xs text-muted-foreground font-medium">Menampilkan {paginated.length} dari {filtered.length} data</p>
             <div className="flex gap-1.5">
               {Array.from({ length: totalPages }, (_, i) => (
-                <motion.button key={i} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setPage(i + 1)} className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${page === i + 1 ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'hover:bg-muted text-muted-foreground'}`}>
+                <motion.button key={i} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setPage(i + 1)}
+                  className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${page === i + 1 ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'hover:bg-muted text-muted-foreground'}`}>
                   {i + 1}
                 </motion.button>
               ))}
@@ -183,51 +317,79 @@ export default function DataSiswaSekolah() {
         )}
       </motion.div>
 
-      {/* Detail Popup */}
+      {/* ===== DETAIL POPUP (wider) ===== */}
       <AnimatePresence>
         {showDetail && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowDetail(null)}>
-            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-card rounded-3xl shadow-2xl w-full max-w-md p-7" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-foreground text-lg">Detail Siswa</h3>
-                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowDetail(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={() => setShowDetail(null)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={modalSpring}
+              className="bg-card rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-7" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-foreground text-xl">Detail Siswa</h3>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowDetail(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></motion.button>
               </div>
-              <div className="flex items-center gap-4 p-5 rounded-2xl gradient-card border border-border mb-5">
-                <div className="w-18 h-18 rounded-2xl gradient-primary flex items-center justify-center shadow-glow-primary" style={{ width: 72, height: 72 }}><User className="w-9 h-9 text-primary-foreground" /></div>
-                <div>
-                  <h4 className="font-extrabold text-foreground text-lg">{showDetail.namaLengkap}</h4>
-                  <p className="text-sm text-muted-foreground">NISN: {showDetail.nisn}</p>
-                  <p className="text-sm text-muted-foreground">{showDetail.jenjang} - Kelas {showDetail.kelas}</p>
-                  <p className="text-sm text-muted-foreground">Wali: {showDetail.namaOrangTua}</p>
-                </div>
-              </div>
-              {showDetail.tunggakanSekolah.length > 0 ? (
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-2 uppercase tracking-wider"><AlertTriangle className="w-3.5 h-3.5 text-destructive" /> Tunggakan</p>
-                  {showDetail.tunggakanSekolah.map(b => (
-                    <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
-                      <span className="text-foreground">{b}</span>
-                      <span className="text-destructive font-bold">{formatRupiah(showDetail.biayaPerBulan)}</span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-sm font-extrabold">
-                    <span className="text-foreground">Total</span>
-                    <span className="text-destructive">{formatRupiah(showDetail.tunggakanSekolah.length * showDetail.biayaPerBulan)}</span>
+
+              {/* Top section: Photo left, Info right */}
+              <div className="flex gap-6 mb-6">
+                <div className="flex-shrink-0 flex flex-col items-center">
+                  <div className="w-28 h-28 rounded-full gradient-primary flex items-center justify-center shadow-glow-primary border-4 border-card">
+                    <User className="w-12 h-12 text-primary-foreground" />
                   </div>
                 </div>
-              ) : (
-                <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 text-center">✓ Tidak ada tunggakan</p>
-              )}
+                <div className="flex-1 space-y-3">
+                  <h4 className="font-extrabold text-foreground text-xl">{showDetail.namaLengkap}</h4>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                    {[
+                      ['NISN', showDetail.nisn],
+                      ['Jenjang', showDetail.jenjang],
+                      ['Kelas', showDetail.kelas],
+                      ['Biaya/Bulan', formatRupiah(showDetail.biayaPerBulan)],
+                      ['Nama Orang Tua', showDetail.namaOrangTua],
+                      ['No. WhatsApp', showDetail.nomorWhatsApp],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex flex-col">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{label}</span>
+                        <span className="text-sm text-foreground font-medium">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom: Tunggakan */}
+              <div className="border-t border-border pt-5">
+                {showDetail.tunggakanSekolah.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-3 uppercase tracking-wider">
+                      <AlertTriangle className="w-3.5 h-3.5 text-destructive" /> Daftar Tunggakan
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {showDetail.tunggakanSekolah.map(b => (
+                        <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
+                          <span className="text-foreground">{b}</span>
+                          <span className="text-destructive font-bold">{formatRupiah(showDetail.biayaPerBulan)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-sm font-extrabold mt-2">
+                      <span className="text-foreground">Total Tunggakan</span>
+                      <span className="text-destructive">{formatRupiah(showDetail.tunggakanSekolah.length * showDetail.biayaPerBulan)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 text-center">✓ Tidak ada tunggakan</p>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Tunggakan Popup */}
+      {/* ===== TUNGGAKAN POPUP ===== */}
       <AnimatePresence>
         {showTunggakan && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowTunggakan(null)}>
-            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-card rounded-3xl shadow-2xl w-full max-w-sm p-7" onClick={e => e.stopPropagation()}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={() => setShowTunggakan(null)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={modalSpring}
+              className="bg-card rounded-3xl shadow-2xl w-full max-w-sm p-7" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-foreground text-lg">Detail Tunggakan</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowTunggakan(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
@@ -250,41 +412,51 @@ export default function DataSiswaSekolah() {
         )}
       </AnimatePresence>
 
-      {/* Add Student Popup */}
+      {/* ===== ADD STUDENT POPUP ===== */}
       <AnimatePresence>
         {showAdd && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowAdd(false)}>
-            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-card rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-7" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-foreground text-lg">Tambah Data Siswa</h3>
-                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowAdd(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
+          <StudentFormPopup
+            title="Tambah Data Siswa"
+            onClose={() => setShowAdd(false)}
+            onSubmit={() => { toast.success('Data berhasil ditambahkan'); setShowAdd(false); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ===== EDIT STUDENT POPUP ===== */}
+      <AnimatePresence>
+        {showEdit && (
+          <StudentFormPopup
+            title="Edit Data Siswa"
+            onClose={() => setShowEdit(null)}
+            onSubmit={() => { toast.success('Data berhasil diperbarui'); setShowEdit(null); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ===== DELETE CONFIRMATION POPUP ===== */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={modalSpring}
+              className="bg-card rounded-3xl shadow-2xl w-full max-w-sm p-7 text-center" onClick={e => e.stopPropagation()}>
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-destructive" />
               </div>
-              <form onSubmit={e => { e.preventDefault(); toast.success('Data berhasil ditambahkan'); setShowAdd(false); }} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">NISN</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
-                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nama Lengkap</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Jenjang</label><select className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required><option value="">Pilih</option><option>SMP</option><option>SMA</option></select></div>
-                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Kelas</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nama Orang Tua</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
-                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">No. WhatsApp</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Tunggakan Awal (opsional)</label>
-                  <p className="text-xs text-muted-foreground mb-3">Pilih bulan-bulan tunggakan jika ada</p>
-                  <div className="flex flex-wrap gap-2">
-                    {bulanList.map(b => (
-                      <label key={b} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 cursor-pointer transition-colors">
-                        <input type="checkbox" className="rounded border-border" /> <span className="text-xs text-foreground font-medium">{b}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} type="submit" className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine shadow-glow-primary">Simpan Data</motion.button>
-              </form>
+              <h3 className="font-bold text-foreground text-lg mb-2">Konfirmasi Hapus</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Apakah Anda yakin akan menghapus data <span className="font-bold text-foreground">{showDeleteConfirm.namaLengkap}</span>?
+              </p>
+              <div className="flex gap-3">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowDeleteConfirm(null)}
+                  className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-bold text-sm hover:bg-muted/80 transition-colors">
+                  Batal
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleDelete}
+                  className="flex-1 py-3 rounded-xl gradient-danger text-destructive-foreground font-bold text-sm btn-shine">
+                  Ya, Hapus
+                </motion.button>
+              </div>
             </motion.div>
           </motion.div>
         )}
