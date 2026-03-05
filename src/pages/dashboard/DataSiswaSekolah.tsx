@@ -254,6 +254,7 @@ export default function DataSiswaSekolah() {
 
   const openEdit = (s: StudentDB) => {
     // Parse existing tunggakan to pre-fill year and months
+    // Supports both "2026-Januari" and plain "Januari" formats
     const tahunSet = new Set<string>();
     const bulanSet = new Set<string>();
     s.tunggakan_sekolah.forEach(t => {
@@ -261,9 +262,12 @@ export default function DataSiswaSekolah() {
       if (parts.length === 2) {
         tahunSet.add(parts[0]);
         bulanSet.add(parts[1]);
+      } else if (parts.length === 1 && bulanList.includes(parts[0])) {
+        // Plain month name without year prefix
+        bulanSet.add(parts[0]);
       }
     });
-    const tahun = tahunSet.size === 1 ? [...tahunSet][0] : '';
+    const tahun = tahunSet.size === 1 ? [...tahunSet][0] : (bulanSet.size > 0 ? new Date().getFullYear().toString() : '');
     setForm({
       nisn: s.nisn, barcode: s.barcode, namaLengkap: s.nama_lengkap, jenjang: s.jenjang, kelas: s.kelas,
       namaOrangTua: s.nama_orang_tua, nomorWhatsApp: s.nomor_whatsapp,
