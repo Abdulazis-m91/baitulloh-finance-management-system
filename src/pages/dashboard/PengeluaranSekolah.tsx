@@ -5,7 +5,7 @@ import { usePengeluaran, useInsertPengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
-import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import logoYB from '@/assets/logo-yb.png';
 
 type Tab = 'pengeluaran' | 'rekap_smp' | 'rekap_sma';
