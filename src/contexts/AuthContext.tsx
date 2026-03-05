@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 type UserRole = 'admin' | 'petugas_sekolah' | 'petugas_pesantren' | null;
 
@@ -6,42 +7,75 @@ interface AuthState {
   isLoggedIn: boolean;
   role: UserRole;
   userName: string;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
-
-const mockUsers = [
-  { email: 'admin@baitulloh.sch.id', password: 'admin123', role: 'admin' as UserRole, name: 'Administrator' },
-  { email: 'sekolah@baitulloh.sch.id', password: 'sekolah123', role: 'petugas_sekolah' as UserRole, name: 'Petugas Sekolah' },
-  { email: 'pesantren@baitulloh.sch.id', password: 'pesantren123', role: 'petugas_pesantren' as UserRole, name: 'Petugas Pesantren' },
-];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<UserRole>(null);
   const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const login = (email: string, password: string): boolean => {
-    const user = mockUsers.find(u => u.email === email && u.password === password);
-    if (user) {
-      setIsLoggedIn(true);
-      setRole(user.role);
-      setUserName(user.name);
-      return true;
-    }
-    return false;
+  const fetchUserData = async (userId: string) => {
+    // Get role
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+
+    // Get profile
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('user_id', userId)
+      .single();
+
+    setRole((roleData?.role as UserRole) || null);
+    setUserName(profileData?.display_name || '');
+    setIsLoggedIn(true);
   };
 
-  const logout = () => {
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        await fetchUserData(session.user.id);
+      } else {
+        setIsLoggedIn(false);
+        setRole(null);
+        setUserName('');
+      }
+      setLoading(false);
+    });
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        await fetchUserData(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return !error;
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     setIsLoggedIn(false);
     setRole(null);
     setUserName('');
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, role, userName, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, role, userName, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
