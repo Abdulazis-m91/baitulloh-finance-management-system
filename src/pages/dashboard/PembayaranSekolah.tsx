@@ -207,9 +207,9 @@ export default function PembayaranSekolah() {
     }
   };
 
-  const saveStruk = () => {
+  const saveStruk = async () => {
     if (!strukData) return;
-    const downloaded = downloadStrukAsPDF();
+    const downloaded = await downloadStrukAsPDF();
     if (!downloaded) return;
 
     const { student, hasCicilanAktif, totalCicilanSebelumnya, totalBayarUtuh, ...record } = strukData;
