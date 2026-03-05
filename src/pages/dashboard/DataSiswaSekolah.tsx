@@ -33,13 +33,84 @@ type StudentFormPopupProps = {
 
 const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan, handleWhatsAppChange }: StudentFormPopupProps) => {
   const rfidRef = useRef<HTMLInputElement>(null);
+  const [rfidFocused, setRfidFocused] = useState(false);
+  const [rfidLastEvent, setRfidLastEvent] = useState<string>('');
+  const [rfidFlash, setRfidFlash] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       rfidRef.current?.focus();
+      console.log('[RFID] Auto-focus triggered after animation delay');
     }, 400);
     return () => clearTimeout(timer);
   }, []);
+
+  // Global keydown listener as fallback — captures keys even if focus is lost
+  useEffect(() => {
+    let buffer = '';
+    let bufferTimer: ReturnType<typeof setTimeout>;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in another input
+      const active = document.activeElement;
+      if (active && active !== rfidRef.current && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) {
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        if (buffer.length > 0) {
+          console.log('[RFID] Scanner Enter detected, buffer:', buffer);
+          setForm(prev => ({ ...prev, barcode: prev.barcode + buffer }));
+          buffer = '';
+          setRfidFlash(true);
+          setTimeout(() => setRfidFlash(false), 600);
+          toast.success(`✅ Kartu RFID terbaca: ${buffer}`);
+        }
+        e.preventDefault();
+        return;
+      }
+
+      if (e.key.length === 1) {
+        buffer += e.key;
+        console.log('[RFID] Key captured:', e.key, '| Buffer:', buffer);
+        clearTimeout(bufferTimer);
+        bufferTimer = setTimeout(() => {
+          console.log('[RFID] Buffer timeout, flushing:', buffer);
+          if (buffer.length > 2) {
+            // Likely scanner input (fast burst of chars)
+            setForm(prev => ({ ...prev, barcode: prev.barcode + buffer }));
+            setRfidFlash(true);
+            setTimeout(() => setRfidFlash(false), 600);
+            toast.success(`✅ Kartu RFID terbaca!`);
+          }
+          buffer = '';
+        }, 150); // Scanners type fast, humans don't reach 150ms per char
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      clearTimeout(bufferTimer);
+    };
+  }, [setForm]);
+
+  const handleRfidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    console.log('[RFID] onChange fired, value:', val);
+    setForm(prev => ({ ...prev, barcode: val }));
+    setRfidLastEvent(`Input: ${val.slice(-10)}`);
+    if (val.length > 0) {
+      setRfidFlash(true);
+      setTimeout(() => setRfidFlash(false), 600);
+    }
+  };
+
+  const handleRfidKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    console.log('[RFID] onKeyDown:', e.key, '| keyCode:', e.keyCode, '| current value:', form.barcode);
+    setRfidLastEvent(`Key: ${e.key} (${e.keyCode})`);
+    if (e.key === 'Enter') e.preventDefault();
+  };
 
   return (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={onClose}>
@@ -73,14 +144,31 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
 
             <div>
               <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Barcode / RFID</label>
-              <input 
-                ref={rfidRef}
-                value={form.barcode} 
-                onChange={e => setForm(prev => ({ ...prev, barcode: e.target.value }))}
-                onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
-                autoComplete="off"
-                placeholder="📡 Tempelkan kartu RFID — kursor otomatis aktif di sini..."
-                className="w-full px-4 py-3 rounded-xl border-2 border-primary/40 bg-primary/5 text-foreground text-sm input-focus font-mono focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-primary/40" />
+              <div className="relative">
+                <input 
+                  ref={rfidRef}
+                  value={form.barcode} 
+                  onChange={handleRfidChange}
+                  onKeyDown={handleRfidKeyDown}
+                  onFocus={() => { setRfidFocused(true); console.log('[RFID] Input FOCUSED'); }}
+                  onBlur={() => { setRfidFocused(false); console.log('[RFID] Input BLURRED'); }}
+                  onInput={(e) => console.log('[RFID] onInput event:', (e.target as HTMLInputElement).value)}
+                  autoComplete="off"
+                  inputMode="none"
+                  placeholder="📡 Tempelkan kartu RFID — kursor otomatis aktif di sini..."
+                  className={`w-full px-4 py-3 rounded-xl border-2 text-foreground text-sm input-focus font-mono transition-all duration-300
+                    ${rfidFlash ? 'border-green-500 bg-green-500/10 ring-4 ring-green-500/30' : rfidFocused ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-primary/40 bg-primary/5'}
+                    placeholder:text-primary/40`} 
+                />
+                {/* Live status indicator */}
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className={`inline-block w-2.5 h-2.5 rounded-full ${rfidFocused ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {rfidFocused ? '🟢 Siap scan — tempelkan kartu RFID' : '⚪ Klik field ini untuk mengaktifkan scanner'}
+                    {rfidLastEvent && ` | ${rfidLastEvent}`}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
