@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download } from 'lucide-react';
-import { mockPembayaran, mockStudents } from '@/data/mockData';
+import { Download, Loader2 } from 'lucide-react';
+import { usePembayaran, useStudents, useCicilan } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -13,19 +13,22 @@ export default function PendapatanSekolah() {
   const [filterKelas, setFilterKelas] = useState('');
   const tabs: Tab[] = ['SMP', 'SMA', 'Cicil', 'Deposit'];
 
+  const { data: pembayaran = [], isLoading: l1 } = usePembayaran();
+  const { data: students = [], isLoading: l2 } = useStudents();
+  const { data: cicilan = [], isLoading: l3 } = useCicilan();
+
+  if (l1 || l2 || l3) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+
   const filteredData = () => {
     if (activeTab === 'SMP' || activeTab === 'SMA') {
-      return mockPembayaran.filter(p => p.jenjang === activeTab && (!filterKelas || p.kelas === filterKelas) && p.metode !== 'Deposit');
+      return pembayaran.filter(p => p.jenjang === activeTab && (!filterKelas || p.kelas === filterKelas) && p.metode !== 'Deposit');
     }
     if (activeTab === 'Cicil') {
-      return mockStudents.filter(s => s.cicilan.length > 0).flatMap(s =>
-        s.cicilan.map(c => ({ ...c, namaSiswa: s.namaLengkap, jenjang: s.jenjang, kelas: s.kelas }))
-      );
+      const studentMap = Object.fromEntries(students.map(s => [s.id, s]));
+      return cicilan.map(c => ({ ...c, namaSiswa: studentMap[c.siswa_id]?.nama_lengkap || '', jenjang: studentMap[c.siswa_id]?.jenjang, kelas: studentMap[c.siswa_id]?.kelas }));
     }
     if (activeTab === 'Deposit') {
-      return mockStudents.filter(s => s.deposit > 0).map(s => ({
-        id: s.id, namaSiswa: s.namaLengkap, deposit: s.deposit, jenjang: s.jenjang, kelas: s.kelas
-      }));
+      return students.filter(s => s.deposit > 0).map(s => ({ id: s.id, namaSiswa: s.nama_lengkap, deposit: s.deposit, jenjang: s.jenjang, kelas: s.kelas }));
     }
     return [];
   };
@@ -52,16 +55,10 @@ export default function PendapatanSekolah() {
         </motion.button>
       </div>
 
-      {/* Tabs */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit">
         {tabs.map(tab => (
-          <motion.button
-            key={tab}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => { setActiveTab(tab); setFilterKelas(''); }}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}
-          >
+          <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab(tab); setFilterKelas(''); }}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
             {tab}
           </motion.button>
         ))}
@@ -74,7 +71,6 @@ export default function PendapatanSekolah() {
         </select>
       )}
 
-      {/* Table */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -95,7 +91,7 @@ export default function PendapatanSekolah() {
               {(activeTab === 'SMP' || activeTab === 'SMA') && (filteredData() as any[]).map((p: any, i: number) => (
                 <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                   <td className="py-4 px-4 text-muted-foreground">{formatDate(p.tanggal)}</td>
-                  <td className="py-4 px-4 text-foreground font-semibold">{p.namaSiswa}</td>
+                  <td className="py-4 px-4 text-foreground font-semibold">{p.nama_siswa}</td>
                   <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-primary/5 text-primary text-xs font-bold">{p.bulan}</span></td>
                   <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(p.nominal)}</td>
                   <td className="py-4 px-4 text-muted-foreground">{p.petugas}</td>

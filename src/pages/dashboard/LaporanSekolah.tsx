@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle } from 'lucide-react';
-import { mockStudents, mockPembayaran, mockPengeluaran } from '@/data/mockData';
+import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2 } from 'lucide-react';
+import { useStudents, usePembayaran, usePengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -10,15 +10,20 @@ type Tab = 'SMP' | 'SMA';
 
 export default function LaporanSekolah() {
   const [activeTab, setActiveTab] = useState<Tab>('SMP');
+  const { data: students = [], isLoading: l1 } = useStudents();
+  const { data: pembayaranAll = [], isLoading: l2 } = usePembayaran();
+  const { data: pengeluaranAll = [], isLoading: l3 } = usePengeluaran();
+
+  if (l1 || l2 || l3) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   const getData = (jenjang: Tab) => {
-    const pembayaran = mockPembayaran.filter(p => p.jenjang === jenjang);
-    const pengeluaran = mockPengeluaran.filter(e => e.sumberDana === jenjang);
-    const siswaMenunggak = mockStudents.filter(s => s.jenjang === jenjang && s.tunggakanSekolah.length > 0);
+    const pembayaran = pembayaranAll.filter(p => p.jenjang === jenjang);
+    const pengeluaran = pengeluaranAll.filter(e => e.sumber_dana === jenjang);
+    const siswaMenunggak = students.filter(s => s.jenjang === jenjang && s.tunggakan_sekolah.length > 0);
     const totalPemasukan = pembayaran.reduce((a, p) => a + p.nominal, 0);
     const totalPengeluaran = pengeluaran.reduce((a, e) => a + e.nominal, 0);
-    const totalTunggakan = siswaMenunggak.reduce((a, s) => a + s.tunggakanSekolah.length * s.biayaPerBulan, 0);
-    return { totalPemasukan, totalPengeluaran, totalTunggakan, jumlahMembayar: new Set(pembayaran.map(p => p.siswaId)).size, jumlahMenunggak: siswaMenunggak.length };
+    const totalTunggakan = siswaMenunggak.reduce((a, s) => a + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0);
+    return { totalPemasukan, totalPengeluaran, totalTunggakan, jumlahMembayar: new Set(pembayaran.map(p => p.siswa_id)).size, jumlahMenunggak: siswaMenunggak.length };
   };
 
   const d = getData(activeTab);
@@ -59,7 +64,6 @@ export default function LaporanSekolah() {
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Financial Report */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
           <div className="p-6 border-b border-border bg-muted/20">
             <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
@@ -72,38 +76,27 @@ export default function LaporanSekolah() {
             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="p-6 flex items-center justify-between bg-success/[0.03]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl gradient-success flex items-center justify-center"><TrendingUp className="w-5 h-5 text-success-foreground" /></div>
-                <div>
-                  <p className="font-bold text-foreground">Pemasukan</p>
-                  <p className="text-xs text-muted-foreground">{d.jumlahMembayar} siswa membayar</p>
-                </div>
+                <div><p className="font-bold text-foreground">Pemasukan</p><p className="text-xs text-muted-foreground">{d.jumlahMembayar} siswa membayar</p></div>
               </div>
               <p className="text-xl font-extrabold text-success">{formatRupiah(d.totalPemasukan)}</p>
             </motion.div>
-
             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} className="p-6 flex items-center justify-between bg-destructive/[0.03]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><TrendingDown className="w-5 h-5 text-destructive-foreground" /></div>
-                <div>
-                  <p className="font-bold text-foreground">Pengeluaran</p>
-                  <p className="text-xs text-muted-foreground">Periode bulan ini</p>
-                </div>
+                <div><p className="font-bold text-foreground">Pengeluaran</p><p className="text-xs text-muted-foreground">Periode bulan ini</p></div>
               </div>
               <p className="text-xl font-extrabold text-destructive">{formatRupiah(d.totalPengeluaran)}</p>
             </motion.div>
-
             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="p-6 flex items-center justify-between gradient-card">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"><Wallet className="w-5 h-5 text-foreground" /></div>
-                <div>
-                  <p className="font-extrabold text-foreground">Sisa Keuangan</p>
-                </div>
+                <div><p className="font-extrabold text-foreground">Sisa Keuangan</p></div>
               </div>
               <p className="text-2xl font-extrabold text-primary">{formatRupiah(d.totalPemasukan - d.totalPengeluaran)}</p>
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Tunggakan Report */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
           <div className="p-6 border-b border-border bg-muted/20">
             <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
@@ -117,7 +110,6 @@ export default function LaporanSekolah() {
               <p className="text-5xl font-extrabold text-destructive mb-1">{d.jumlahMenunggak}</p>
               <p className="text-sm text-muted-foreground">siswa</p>
             </motion.div>
-
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }} className="text-center p-8 rounded-2xl gradient-card border border-destructive/10">
               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Total Nominal Tunggakan</p>
               <p className="text-3xl font-extrabold text-destructive">{formatRupiah(d.totalTunggakan)}</p>

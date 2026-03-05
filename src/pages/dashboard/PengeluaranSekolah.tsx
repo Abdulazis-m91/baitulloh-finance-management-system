@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Printer, X, AlertCircle, Receipt } from 'lucide-react';
-import { mockPengeluaran } from '@/data/mockData';
+import { Download, Printer, X, AlertCircle, Receipt, Loader2 } from 'lucide-react';
+import { usePengeluaran, useInsertPengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -25,17 +25,32 @@ export default function PengeluaranSekolah() {
   const [showNota, setShowNota] = useState(false);
   const [notaData, setNotaData] = useState<any>(null);
 
+  const { data: pengeluaranList = [], isLoading } = usePengeluaran();
+  const insertPengeluaran = useInsertPengeluaran();
+
+  if (isLoading) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+
   const handleSubmit = () => {
     if (!keterangan || !jenisKeperluan || !nominal) { toast.error('Mohon lengkapi semua field'); return; }
-    const data = { keterangan, sumberDana, jenisKeperluan, nominal: parseInt(nominal.replace(/\D/g, '')), tanggal: new Date().toISOString().split('T')[0], petugas: 'Petugas A' };
+    const data = { keterangan, sumber_dana: sumberDana, jenis_keperluan: jenisKeperluan, nominal: parseInt(nominal.replace(/\D/g, '')), tanggal: new Date().toISOString().split('T')[0], petugas: 'Petugas A' };
     setNotaData(data);
     setShowNota(true);
   };
 
-  const rekapData = (jenjang: 'SMP' | 'SMA') => mockPengeluaran.filter(e => e.sumberDana === jenjang);
+  const saveNota = () => {
+    if (notaData) {
+      insertPengeluaran.mutate(notaData);
+      setShowNota(false);
+      setKeterangan('');
+      setNominal('');
+      setJenisKeperluan('');
+    }
+  };
+
+  const rekapData = (jenjang: 'SMP' | 'SMA') => pengeluaranList.filter(e => e.sumber_dana === jenjang);
 
   const exportRekap = (jenjang: 'SMP' | 'SMA') => {
-    const ws = XLSX.utils.json_to_sheet(rekapData(jenjang).map(d => ({ Tanggal: formatDate(d.tanggal), Keterangan: d.keterangan, Jenis: d.jenisKeperluan, Nominal: d.nominal, Petugas: d.petugas })));
+    const ws = XLSX.utils.json_to_sheet(rekapData(jenjang).map(d => ({ Tanggal: formatDate(d.tanggal), Keterangan: d.keterangan, Jenis: d.jenis_keperluan, Nominal: d.nominal, Petugas: d.petugas })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Rekap ${jenjang}`);
     XLSX.writeFile(wb, `rekap_pengeluaran_${jenjang.toLowerCase()}.xlsx`);
@@ -111,7 +126,7 @@ export default function PengeluaranSekolah() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border p-7 shadow-elegant">
             <h3 className="font-bold text-foreground mb-5 text-lg">Riwayat Pengeluaran</h3>
             <div className="space-y-3">
-              {mockPengeluaran.map((e, i) => (
+              {pengeluaranList.map((e, i) => (
                 <motion.div key={e.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 + i * 0.05 }} className="p-5 rounded-2xl bg-muted/30 border border-border hover-lift cursor-default group">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{e.keterangan}</p>
@@ -119,8 +134,8 @@ export default function PengeluaranSekolah() {
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span>{formatDate(e.tanggal)}</span>
-                    <span className="px-2 py-0.5 rounded-lg bg-primary/10 text-primary font-bold">{e.sumberDana}</span>
-                    <span>{e.jenisKeperluan}</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-primary/10 text-primary font-bold">{e.sumber_dana}</span>
+                    <span>{e.jenis_keperluan}</span>
                   </div>
                 </motion.div>
               ))}
@@ -150,7 +165,7 @@ export default function PengeluaranSekolah() {
                   <motion.tr key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                     <td className="py-4 px-4 text-muted-foreground">{formatDate(e.tanggal)}</td>
                     <td className="py-4 px-4 text-foreground font-semibold">{e.keterangan}</td>
-                    <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-bold">{e.jenisKeperluan}</span></td>
+                    <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-bold">{e.jenis_keperluan}</span></td>
                     <td className="py-4 px-4 text-right text-destructive font-bold">{formatRupiah(e.nominal)}</td>
                     <td className="py-4 px-4 text-muted-foreground">{e.petugas}</td>
                   </motion.tr>
@@ -179,8 +194,8 @@ export default function PengeluaranSekolah() {
                 {[
                   ['Tanggal', formatDate(notaData.tanggal)],
                   ['Keterangan', notaData.keterangan],
-                  ['Sumber Dana', notaData.sumberDana],
-                  ['Jenis', notaData.jenisKeperluan],
+                  ['Sumber Dana', notaData.sumber_dana],
+                  ['Jenis', notaData.jenis_keperluan],
                 ].map(([l, v]) => (
                   <div key={l} className="flex justify-between text-sm"><span className="text-muted-foreground">{l}</span><span className="text-foreground font-medium">{v}</span></div>
                 ))}
@@ -189,7 +204,7 @@ export default function PengeluaranSekolah() {
               </div>
               <div className="flex gap-3 mt-5">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => window.print()} className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2"><Printer className="w-4 h-4" /> Cetak</motion.button>
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { toast.success('Nota berhasil disimpan'); setShowNota(false); setKeterangan(''); setNominal(''); setJenisKeperluan(''); }} className="flex-1 py-3 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">Simpan</motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveNota} className="flex-1 py-3 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">Simpan</motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowNota(false)} className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors">Batal</motion.button>
               </div>
             </motion.div>
