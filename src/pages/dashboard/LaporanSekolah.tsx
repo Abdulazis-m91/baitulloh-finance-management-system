@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info, Users } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info, Users, Printer } from 'lucide-react';
 import { useStudents, usePembayaran, usePengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
@@ -142,6 +142,74 @@ export default function LaporanSekolah() {
     );
   };
 
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    if (!printRef.current) return;
+    const printContent = printRef.current.innerHTML;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <html>
+        <head>
+          <title>Laporan Total Keuangan - ${bulanIni} ${tahunIni}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+            body { padding: 30px; color: #1a1a1a; }
+            h2 { text-align: center; margin-bottom: 4px; font-size: 20px; }
+            .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+            .section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+            .section-title { font-weight: bold; font-size: 15px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+            .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+            .row.bold { font-weight: bold; font-size: 14px; }
+            .row .label { color: #333; }
+            .row .value { font-weight: 600; }
+            .green { color: #16a34a; }
+            .red { color: #dc2626; }
+            .blue { color: #2563eb; }
+            .detail { padding-left: 16px; font-size: 12px; color: #666; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+            .danger-bg { background: #fef2f2; border-color: #fca5a5; }
+            .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #64748b; margin-top: 16px; }
+            @media print { body { padding: 15px; } }
+          </style>
+        </head>
+        <body>
+          <h2>LAPORAN TOTAL KEUANGAN SEKOLAH</h2>
+          <p class="subtitle">Periode: ${bulanIni} ${tahunIni}</p>
+          <div class="grid">
+            <div class="section">
+              <div class="section-title">💰 LAPORAN KEUANGAN</div>
+              <div class="row bold"><span class="label">TOTAL PENDAPATAN</span><span class="value green">${formatRupiah(smp.totalPemasukan + sma.totalPemasukan)}</span></div>
+              <div class="detail">Pendapatan SMP: ${formatRupiah(smp.totalPemasukan)}</div>
+              <div class="detail" style="margin-bottom:8px">Pendapatan SMA: ${formatRupiah(sma.totalPemasukan)}</div>
+              <div class="row bold"><span class="label">TOTAL PENGELUARAN</span><span class="value red">${formatRupiah(smp.totalPengeluaran + sma.totalPengeluaran)}</span></div>
+              <div class="detail">Pengeluaran SMP: ${formatRupiah(smp.totalPengeluaran)}</div>
+              <div class="detail" style="margin-bottom:8px">Pengeluaran SMA: ${formatRupiah(sma.totalPengeluaran)}</div>
+              <hr style="margin:8px 0;border-color:#eee">
+              <div class="row bold"><span class="label">SISA KEUANGAN (${bulanTahun})</span><span class="value blue">${formatRupiah((smp.totalPemasukan + sma.totalPemasukan) - (smp.totalPengeluaran + sma.totalPengeluaran))}</span></div>
+            </div>
+            <div class="section danger-bg">
+              <div class="section-title">⚠️ TOTAL TUNGGAKAN</div>
+              <div class="row bold"><span class="label">TUNGGAKAN SMP</span><span class="value red">${formatRupiah(smp.totalTunggakan)}</span></div>
+              ${getTunggakanPerKelas('SMP').map(k => `<div class="detail">Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}</div>`).join('')}
+              <div style="margin-bottom:8px"></div>
+              <div class="row bold"><span class="label">TUNGGAKAN SMA</span><span class="value red">${formatRupiah(sma.totalTunggakan)}</span></div>
+              ${getTunggakanPerKelas('SMA').map(k => `<div class="detail">Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}</div>`).join('')}
+              <hr style="margin:8px 0;border-color:#fca5a5">
+              <div class="row bold"><span class="label">TOTAL TUNGGAKAN (${bulanTahun})</span><span class="value red">${formatRupiah(smp.totalTunggakan + sma.totalTunggakan)}</span></div>
+            </div>
+          </div>
+          <div class="info-box">
+            <p>Ini adalah sisa keuangan sekolah ${bulanIni} ${tahunIni} saat ini. Silahkan dicetak dan diarsipkan.</p>
+          </div>
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.print();
+  };
+
   const renderTotalTab = () => {
     const totalPendapatan = smp.totalPemasukan + sma.totalPemasukan;
     const totalPengeluaranAll = smp.totalPengeluaran + sma.totalPengeluaran;
@@ -280,9 +348,16 @@ export default function LaporanSekolah() {
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Laporan Sekolah</h1>
           <p className="text-muted-foreground text-sm mt-1">Laporan keuangan periode {bulanIni} {tahunIni}</p>
         </motion.div>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
-          <Download className="w-4 h-4" /> Export Excel
-        </motion.button>
+        <div className="flex gap-2 flex-wrap">
+          {activeTab === 'Total' && (
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine">
+              <Printer className="w-4 h-4" /> Cetak Laporan
+            </motion.button>
+          )}
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
+            <Download className="w-4 h-4" /> Export Excel
+          </motion.button>
+        </div>
       </div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit flex-wrap">
