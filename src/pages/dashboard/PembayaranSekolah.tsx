@@ -46,17 +46,9 @@ export default function PembayaranSekolah() {
   const hasAnyCicilan = bulanWithCicilan.length > 0;
 
   // Method availability
+  const isLunasEnabled = hasTunggakan;
   const isCicilEnabled = hasTunggakan && !hasAnyCicilan;
-  const isLunasEnabled = hasAnyCicilan;
   const isDepositEnabled = !hasTunggakan;
-
-  // Auto-select first available method when student changes
-  const getDefaultMetode = (): 'Lunas' | 'Cicil' | 'Deposit' => {
-    if (hasTunggakan && !hasAnyCicilan) return 'Cicil';
-    if (hasAnyCicilan) return 'Lunas';
-    if (!hasTunggakan) return 'Deposit';
-    return 'Lunas';
-  };
 
   if (isLoading) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
@@ -72,14 +64,12 @@ export default function PembayaranSekolah() {
     setSearchQuery('');
     setSelectedBulan('');
     setNominalCicilInput('');
-    // Will auto-set metode after cicilan data loads
-    // For now set based on tunggakan only
     if (s.tunggakan_sekolah.length > 0) {
-      setMetode('Cicil');
-      setNominal(0);
+      setMetode('Lunas');
+      setNominal(s.biaya_per_bulan);
     } else {
       setMetode('Deposit');
-      setNominal(s.biaya_per_bulan);
+      setNominal(0);
     }
   };
 
@@ -99,22 +89,18 @@ export default function PembayaranSekolah() {
     setMetode(m);
     setSelectedBulan('');
     setNominalCicilInput('');
-    if (m === 'Deposit' && selectedStudent) {
-      setNominal(selectedStudent.biaya_per_bulan);
-    } else {
-      setNominal(0);
-    }
+    setNominal(0);
   };
 
   const getAvailableMonths = () => {
     if (!selectedStudent) return [];
-    if (metode === 'Cicil') {
-      // Only tunggakan months that don't have active cicilan
-      return selectedStudent.tunggakan_sekolah.filter(b => !bulanWithCicilan.includes(b));
-    }
     if (metode === 'Lunas') {
-      // Only months that have active cicilan
-      return bulanWithCicilan.filter(b => selectedStudent.tunggakan_sekolah.includes(b));
+      // All tunggakan months (with or without cicilan)
+      return selectedStudent.tunggakan_sekolah;
+    }
+    if (metode === 'Cicil') {
+      // Tunggakan months that don't have active cicilan
+      return selectedStudent.tunggakan_sekolah.filter(b => !bulanWithCicilan.includes(b));
     }
     if (metode === 'Deposit') {
       const currentMonth = new Date().getMonth();
@@ -123,21 +109,26 @@ export default function PembayaranSekolah() {
     return [];
   };
 
-  // Compute sisa tunggakan for Lunas
-  const getSisaTunggakan = () => {
-    if (!selectedStudent || !selectedBulan || metode !== 'Lunas') return 0;
-    const totalTunggakan = selectedStudent.biaya_per_bulan;
-    const totalCicilan = (cicilanByBulan[selectedBulan] || []).reduce((sum, c) => sum + c.nominal, 0);
-    return Math.max(0, totalTunggakan - totalCicilan);
+  // For Lunas: check if selected month has cicilan
+  const selectedBulanHasCicilan = selectedBulan ? (cicilanByBulan[selectedBulan]?.length > 0) : false;
+  const totalCicilanForBulan = selectedBulan ? (cicilanByBulan[selectedBulan] || []).reduce((sum, c) => sum + c.nominal, 0) : 0;
+
+  // Compute nominal to pay for Lunas
+  const getLunasNominal = () => {
+    if (!selectedStudent || !selectedBulan) return 0;
+    if (selectedBulanHasCicilan) {
+      // Sisa pelunasan cicilan
+      return Math.max(0, selectedStudent.biaya_per_bulan - totalCicilanForBulan);
+    }
+    // Full payment
+    return selectedStudent.biaya_per_bulan;
   };
 
-  // When bulan changes for Lunas, auto-set nominal
   const handleBulanChange = (bulan: string) => {
     setSelectedBulan(bulan);
     if (metode === 'Lunas' && bulan && selectedStudent) {
-      const totalTunggakan = selectedStudent.biaya_per_bulan;
-      const totalCicilan = (cicilanByBulan[bulan] || []).reduce((sum, c) => sum + c.nominal, 0);
-      setNominal(Math.max(0, totalTunggakan - totalCicilan));
+      const cicilanTotal = (cicilanByBulan[bulan] || []).reduce((sum, c) => sum + c.nominal, 0);
+      setNominal(Math.max(0, selectedStudent.biaya_per_bulan - cicilanTotal));
     }
   };
 
@@ -148,17 +139,18 @@ export default function PembayaranSekolah() {
       const nomCicil = parseInt(nominalCicilInput) || 0;
       if (nomCicil <= 0) { toast.error('Nominal cicilan harus lebih dari 0'); return; }
       if (nomCicil >= selectedStudent.biaya_per_bulan) { toast.error('Nominal cicilan harus kurang dari biaya per bulan. Gunakan metode Lunas.'); return; }
-      // Check total cicilan + this doesn't exceed biaya
-      const existing = (cicilanByBulan[selectedBulan] || []).reduce((s, c) => s + c.nominal, 0);
-      if (existing + nomCicil > selectedStudent.biaya_per_bulan) {
-        toast.error(`Total cicilan melebihi biaya. Sisa: ${formatRupiah(selectedStudent.biaya_per_bulan - existing)}`);
-        return;
-      }
-      setNominal(nomCicil);
+    }
+
+    if (metode === 'Deposit') {
+      const nomDeposit = parseInt(nominalCicilInput) || 0;
+      if (nomDeposit <= 0) { toast.error('Nominal deposit harus lebih dari 0'); return; }
     }
 
     const tanggal = new Date().toISOString().split('T')[0];
-    const finalNominal = metode === 'Cicil' ? (parseInt(nominalCicilInput) || 0) : nominal;
+    const lunasNominal = getLunasNominal();
+    const cicilNominal = parseInt(nominalCicilInput) || 0;
+    const depositNominal = parseInt(nominalCicilInput) || 0;
+    const finalNominal = metode === 'Lunas' ? lunasNominal : metode === 'Cicil' ? cicilNominal : depositNominal;
 
     const data = {
       siswa_id: selectedStudent.id,
@@ -167,13 +159,19 @@ export default function PembayaranSekolah() {
       jenjang: selectedStudent.jenjang,
       kelas: selectedStudent.kelas,
       bulan: selectedBulan,
-      nominal: metode === 'Lunas' ? selectedStudent.biaya_per_bulan : finalNominal,
-      metode: metode === 'Cicil' ? 'Cicil' as const : metode,
+      nominal: finalNominal,
+      metode: metode,
       tanggal,
       petugas: 'Petugas A',
     };
 
-    setStrukData({ ...data, student: selectedStudent, sisaTunggakan: getSisaTunggakan(), totalCicilan: metode === 'Lunas' ? (cicilanByBulan[selectedBulan] || []).reduce((s, c) => s + c.nominal, 0) : 0 });
+    setStrukData({
+      ...data,
+      student: selectedStudent,
+      hasCicilanAktif: selectedBulanHasCicilan,
+      totalCicilanSebelumnya: totalCicilanForBulan,
+      totalBayarUtuh: selectedStudent.biaya_per_bulan,
+    });
     setShowStruk(true);
   };
 
@@ -211,10 +209,10 @@ export default function PembayaranSekolah() {
     const downloaded = await downloadStrukAsImage();
     if (!downloaded) return;
 
-    const { student, sisaTunggakan, totalCicilan, ...record } = strukData;
+    const { student, hasCicilanAktif, totalCicilanSebelumnya, totalBayarUtuh, ...record } = strukData;
 
     if (metode === 'Cicil') {
-      // Save to cicilan table, NOT pembayaran
+      // Save to cicilan table only
       insertCicilan.mutate({
         siswa_id: student.id,
         bulan: record.bulan,
@@ -223,20 +221,21 @@ export default function PembayaranSekolah() {
         petugas: record.petugas,
       });
     } else if (metode === 'Lunas') {
-      // Save combined total to pembayaran (cicilan + sisa)
-      const totalBayar = selectedStudent!.biaya_per_bulan;
+      // Save to pembayaran with full amount (biaya_per_bulan)
       insertPembayaran.mutate({
         ...record,
-        nominal: totalBayar,
+        nominal: totalBayarUtuh, // full biaya per bulan
         metode: 'Lunas' as const,
       });
-      // Remove tunggakan
+      // Remove tunggakan for this month
       updateStudent.mutate({
         id: student.id,
-        tunggakan_sekolah: student.tunggakan_sekolah.filter((b: string) => b !== selectedBulan),
+        tunggakan_sekolah: student.tunggakan_sekolah.filter((b: string) => b !== record.bulan),
       });
-      // Delete cicilan records for this bulan
-      deleteCicilan.mutate({ siswa_id: student.id, bulan: selectedBulan });
+      // If there were cicilan records, delete them
+      if (hasCicilanAktif) {
+        deleteCicilan.mutate({ siswa_id: student.id, bulan: record.bulan });
+      }
     } else if (metode === 'Deposit') {
       insertPembayaran.mutate(record);
       updateStudent.mutate({
@@ -258,20 +257,14 @@ export default function PembayaranSekolah() {
       if (isLunasEnabled) return 'Lunas';
       if (isDepositEnabled) return 'Deposit';
     }
-    if (metode === 'Lunas' && !isLunasEnabled) {
-      if (isCicilEnabled) return 'Cicil';
-      if (isDepositEnabled) return 'Deposit';
-    }
     if (metode === 'Deposit' && !isDepositEnabled) {
-      if (hasTunggakan && !hasAnyCicilan) return 'Cicil';
-      if (hasAnyCicilan) return 'Lunas';
+      if (isLunasEnabled) return 'Lunas';
+      if (isCicilEnabled) return 'Cicil';
     }
     return metode;
   })();
 
-  // Sync if needed
   if (effectiveMetode !== metode && selectedStudent) {
-    // Use setTimeout to avoid setState during render
     setTimeout(() => setMetode(effectiveMetode), 0);
   }
 
