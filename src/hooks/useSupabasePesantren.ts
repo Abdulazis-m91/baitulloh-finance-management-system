@@ -222,3 +222,16 @@ export function usePengeluaranPesantren() {
     },
   });
 }
+
+export function useInsertPengeluaranPesantren() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (record: Omit<PengeluaranPesantrenDB, 'id' | 'created_at'>) => {
+      const { data, error } = await supabase.from('pengeluaran_pesantren').insert(record).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['pengeluaran_pesantren'] }); toast.success('Pengeluaran pesantren berhasil dicatat'); },
+    onError: (e) => toast.error(`Gagal: ${e.message}`),
+  });
+}
