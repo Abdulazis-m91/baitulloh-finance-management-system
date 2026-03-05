@@ -108,9 +108,9 @@ export default function PengeluaranSekolah() {
     }
   };
 
-  const saveNota = async () => {
+  const saveNota = () => {
     if (notaData) {
-      const downloaded = await downloadNotaAsImage();
+      const downloaded = downloadNotaAsPDF();
       if (downloaded) {
         insertPengeluaran.mutate(notaData);
         setShowNota(false);
