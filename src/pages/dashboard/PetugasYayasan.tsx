@@ -9,7 +9,7 @@ interface Petugas {
   display_name: string;
   phone: string;
   email: string;
-  role: 'petugas_sekolah' | 'petugas_pesantren';
+  role: 'admin' | 'petugas_sekolah' | 'petugas_pesantren';
 }
 
 type PetugasForm = {
@@ -17,7 +17,7 @@ type PetugasForm = {
   nomorHP: string;
   email: string;
   password: string;
-  role: 'petugas_sekolah' | 'petugas_pesantren';
+  role: 'admin' | 'petugas_sekolah' | 'petugas_pesantren';
 };
 
 const emptyForm: PetugasForm = { namaLengkap: '', nomorHP: '+62', email: '', password: '', role: 'petugas_sekolah' };
@@ -139,8 +139,8 @@ export default function PetugasYayasan() {
     setShowEdit(p);
   };
 
-  const roleLabel = (role: string) => role === 'petugas_sekolah' ? 'Petugas Sekolah' : 'Petugas Pesantren';
-  const roleBadgeColor = (role: string) => role === 'petugas_sekolah' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary';
+  const roleLabel = (role: string) => role === 'admin' ? 'Admin' : role === 'petugas_sekolah' ? 'Petugas Sekolah' : 'Petugas Pesantren';
+  const roleBadgeColor = (role: string) => role === 'admin' ? 'bg-destructive/10 text-destructive' : role === 'petugas_sekolah' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary';
 
   const renderFormPopup = (title: string, onClose: () => void, onSubmit: () => void) => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -182,6 +182,7 @@ export default function PetugasYayasan() {
             <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Role</label>
             <select value={form.role} onChange={e => setForm(prev => ({ ...prev, role: e.target.value as any }))}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+              <option value="admin">Admin</option>
               <option value="petugas_sekolah">Petugas Sekolah</option>
               <option value="petugas_pesantren">Petugas Pesantren</option>
             </select>
