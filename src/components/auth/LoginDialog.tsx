@@ -162,40 +162,27 @@ export default function LoginDialog({ open, onClose }: LoginDialogProps) {
 
             {/* Right - Decorative */}
             <div className="hidden md:flex gradient-hero relative flex-col items-center justify-center p-12 text-center overflow-hidden">
-              {/* Animated decorations */}
+              {/* Static subtle decorations */}
               <div className="absolute inset-0 opacity-[0.04]"
                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 1px, transparent 0)', backgroundSize: '32px 32px' }}
               />
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: 'linear' }} className="absolute top-10 right-10 w-24 h-24 rounded-full border border-secondary/15" />
-              <motion.div animate={{ rotate: -360 }} transition={{ duration: 60, repeat: Infinity, ease: 'linear' }} className="absolute bottom-20 left-10 w-32 h-32 rounded-full border border-primary-foreground/8" />
-              <div className="absolute top-20 left-20 w-3 h-3 rounded-full bg-secondary/30 animate-bounce-gentle" />
-              <div className="absolute bottom-32 right-20 w-2 h-2 rounded-full bg-secondary/20 animate-bounce-gentle" style={{ animationDelay: '1s' }} />
+              <div className="absolute top-10 right-10 w-24 h-24 rounded-full border border-white/10" />
+              <div className="absolute bottom-20 left-10 w-32 h-32 rounded-full border border-white/5" />
+              <div className="absolute top-20 left-20 w-3 h-3 rounded-full bg-white/20" />
+              <div className="absolute bottom-32 right-20 w-2 h-2 rounded-full bg-white/15" />
 
               <div className="relative z-10">
-                <motion.img
+                <img
                   src={logoYB}
                   alt="Logo Yayasan Baitulloh"
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 200, delay: 0.3 }}
                   className="w-36 h-36 rounded-3xl object-contain mb-8 mx-auto drop-shadow-lg"
                 />
-                <motion.h3
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-2xl font-extrabold text-primary-foreground mb-3 tracking-tight"
-                >
+                <h3 className="text-2xl font-extrabold text-primary-foreground mb-3 tracking-tight">
                   Yayasan Baitulloh
-                </motion.h3>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  className="text-primary-foreground/50 text-sm leading-relaxed max-w-xs"
-                >
+                </h3>
+                <p className="text-primary-foreground/50 text-sm leading-relaxed max-w-xs">
                   Sistem Informasi Keuangan Terpadu untuk Mengelola Transaksi Yayasan
-                </motion.p>
+                </p>
               </div>
             </div>
           </motion.div>
