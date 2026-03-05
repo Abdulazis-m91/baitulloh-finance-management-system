@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Printer, X, AlertCircle, Receipt, Loader2 } from 'lucide-react';
 import { usePengeluaran, useInsertPengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+import logoYB from '@/assets/logo-yb.png';
 
 type Tab = 'pengeluaran' | 'rekap_smp' | 'rekap_sma';
 
@@ -16,6 +18,8 @@ const tataTertib = [
   'Petugas bertanggung jawab penuh atas keakuratan data yang diinput ke sistem.',
 ];
 
+const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
 export default function PengeluaranSekolah() {
   const [activeTab, setActiveTab] = useState<Tab>('pengeluaran');
   const [keterangan, setKeterangan] = useState('');
@@ -24,6 +28,7 @@ export default function PengeluaranSekolah() {
   const [nominal, setNominal] = useState('');
   const [showNota, setShowNota] = useState(false);
   const [notaData, setNotaData] = useState<any>(null);
+  const notaRef = useRef<HTMLDivElement>(null);
 
   const { data: pengeluaranList = [], isLoading } = usePengeluaran();
   const insertPengeluaran = useInsertPengeluaran();
@@ -37,8 +42,22 @@ export default function PengeluaranSekolah() {
     setShowNota(true);
   };
 
-  const saveNota = () => {
+  const downloadNotaAsImage = async () => {
+    if (!notaRef.current) return;
+    try {
+      const canvas = await html2canvas(notaRef.current, { backgroundColor: '#ffffff', scale: 2 });
+      const link = document.createElement('a');
+      link.download = `nota-pengeluaran-${Date.now()}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+    } catch {
+      toast.error('Gagal mendownload nota');
+    }
+  };
+
+  const saveNota = async () => {
     if (notaData) {
+      await downloadNotaAsImage();
       insertPengeluaran.mutate(notaData);
       setShowNota(false);
       setKeterangan('');
@@ -48,6 +67,17 @@ export default function PengeluaranSekolah() {
   };
 
   const rekapData = (jenjang: 'SMP' | 'SMA') => pengeluaranList.filter(e => e.sumber_dana === jenjang);
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const rekapBulanIni = (jenjang: 'SMP' | 'SMA') => {
+    return rekapData(jenjang).filter(e => {
+      const d = new Date(e.tanggal);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+  };
 
   const exportRekap = (jenjang: 'SMP' | 'SMA') => {
     const ws = XLSX.utils.json_to_sheet(rekapData(jenjang).map(d => ({ Tanggal: formatDate(d.tanggal), Keterangan: d.keterangan, Jenis: d.jenis_keperluan, Nominal: d.nominal, Petugas: d.petugas })));
@@ -96,8 +126,9 @@ export default function PengeluaranSekolah() {
                   <select value={jenisKeperluan} onChange={e => setJenisKeperluan(e.target.value)} className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
                     <option value="">Pilih</option>
                     <option value="Perlengkapan Sekolah">Perlengkapan</option>
-                    <option value="Gaji">Gaji</option>
                     <option value="Kebutuhan Kantor">Kantor</option>
+                    <option value="Gaji">Gaji</option>
+                    <option value="Lainnya">Lainnya</option>
                   </select>
                 </div>
               </div>
@@ -144,37 +175,53 @@ export default function PengeluaranSekolah() {
         </div>
       )}
 
-      {(activeTab === 'rekap_smp' || activeTab === 'rekap_sma') && (
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          <div className="flex justify-end">
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => exportRekap(activeTab === 'rekap_smp' ? 'SMP' : 'SMA')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
-              <Download className="w-4 h-4" /> Export Excel
-            </motion.button>
-          </div>
-          <div className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/30 border-b border-border">
-                  {['Tanggal', 'Keterangan', 'Jenis', 'Nominal', 'Petugas'].map(h => (
-                    <th key={h} className={`py-4 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider ${h === 'Nominal' ? 'text-right' : 'text-left'}`}>{h}</th>
+      {(activeTab === 'rekap_smp' || activeTab === 'rekap_sma') && (() => {
+        const jenjang = activeTab === 'rekap_smp' ? 'SMP' : 'SMA';
+        const data = rekapData(jenjang);
+        const dataBulanIni = rekapBulanIni(jenjang);
+        const totalBulanIni = dataBulanIni.reduce((s, e) => s + e.nominal, 0);
+        return (
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="flex justify-end">
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => exportRekap(jenjang)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
+                <Download className="w-4 h-4" /> Export Excel
+              </motion.button>
+            </div>
+            <div className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/30 border-b border-border">
+                    {['No', 'Tanggal', 'Keterangan', 'Jenis', 'Nominal', 'Petugas'].map(h => (
+                      <th key={h} className={`py-4 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider ${h === 'Nominal' ? 'text-right' : 'text-left'}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((e, i) => (
+                    <motion.tr key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
+                      <td className="py-4 px-4 text-muted-foreground">{i + 1}</td>
+                      <td className="py-4 px-4 text-muted-foreground">{formatDate(e.tanggal)}</td>
+                      <td className="py-4 px-4 text-foreground font-semibold">{e.keterangan}</td>
+                      <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-bold">{e.jenis_keperluan}</span></td>
+                      <td className="py-4 px-4 text-right text-destructive font-bold">{formatRupiah(e.nominal)}</td>
+                      <td className="py-4 px-4 text-muted-foreground">{e.petugas}</td>
+                    </motion.tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rekapData(activeTab === 'rekap_smp' ? 'SMP' : 'SMA').map((e, i) => (
-                  <motion.tr key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
-                    <td className="py-4 px-4 text-muted-foreground">{formatDate(e.tanggal)}</td>
-                    <td className="py-4 px-4 text-foreground font-semibold">{e.keterangan}</td>
-                    <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-bold">{e.jenis_keperluan}</span></td>
-                    <td className="py-4 px-4 text-right text-destructive font-bold">{formatRupiah(e.nominal)}</td>
-                    <td className="py-4 px-4 text-muted-foreground">{e.petugas}</td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      )}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-muted/50 border-t-2 border-border">
+                    <td colSpan={2} className="py-4 px-4 font-extrabold text-foreground text-sm">TOTAL</td>
+                    <td className="py-4 px-4 text-xs text-muted-foreground font-semibold">{bulanNames[currentMonth]} {currentYear}</td>
+                    <td className="py-4 px-4 text-xs text-muted-foreground font-semibold">{dataBulanIni.length} Transaksi</td>
+                    <td className="py-4 px-4 text-right font-extrabold text-destructive text-base">{formatRupiah(totalBulanIni)}</td>
+                    <td className="py-4 px-4"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* Nota Popup */}
       <AnimatePresence>
@@ -185,11 +232,13 @@ export default function PengeluaranSekolah() {
                 <h3 className="font-bold text-foreground text-lg">Nota Pengeluaran</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowNota(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
-              <div className="border-2 border-dashed border-border rounded-2xl p-6 space-y-3 bg-muted/20">
+              
+              {/* Nota content for capture */}
+              <div ref={notaRef} className="border-2 border-dashed border-border rounded-2xl p-6 space-y-3 bg-white">
                 <div className="text-center mb-5 pb-4 border-b border-dashed border-border">
-                  <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center mx-auto mb-2 shadow-sm"><span className="text-sm font-bold font-arabic text-foreground">ب</span></div>
-                  <h4 className="font-extrabold text-foreground">YAYASAN BAITULLOH</h4>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Nota Pengeluaran</p>
+                  <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl mx-auto mb-2 object-contain" />
+                  <h4 className="font-extrabold text-gray-900">YAYASAN BAITULLOH</h4>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Nota Pengeluaran</p>
                 </div>
                 {[
                   ['Tanggal', formatDate(notaData.tanggal)],
@@ -197,11 +246,12 @@ export default function PengeluaranSekolah() {
                   ['Sumber Dana', notaData.sumber_dana],
                   ['Jenis', notaData.jenis_keperluan],
                 ].map(([l, v]) => (
-                  <div key={l} className="flex justify-between text-sm"><span className="text-muted-foreground">{l}</span><span className="text-foreground font-medium">{v}</span></div>
+                  <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium">{v}</span></div>
                 ))}
-                <div className="border-t border-dashed border-border pt-3 flex justify-between text-sm font-extrabold"><span className="text-foreground">Nominal</span><span className="text-destructive text-lg">{formatRupiah(notaData.nominal)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Petugas</span><span className="text-foreground">{notaData.petugas}</span></div>
+                <div className="border-t border-dashed border-gray-300 pt-3 flex justify-between text-sm font-extrabold"><span className="text-gray-900">Nominal</span><span className="text-red-600 text-lg">{formatRupiah(notaData.nominal)}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{notaData.petugas}</span></div>
               </div>
+
               <div className="flex gap-3 mt-5">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => window.print()} className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2"><Printer className="w-4 h-4" /> Cetak</motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveNota} className="flex-1 py-3 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">Simpan</motion.button>
