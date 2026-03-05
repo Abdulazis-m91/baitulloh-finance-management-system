@@ -35,7 +35,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[100vh] flex items-center justify-center overflow-hidden pt-20">
       {/* Animated Background */}
       <div className="absolute inset-0 gradient-hero">
         {/* Large ambient orbs */}
@@ -97,7 +97,7 @@ export default function HeroSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-secondary/80 text-sm font-semibold uppercase tracking-[0.3em] mb-4"
+            className="text-white/80 text-sm font-semibold uppercase tracking-[0.3em] mb-4"
           >
             Sistem Informasi Keuangan
           </motion.p>
@@ -106,17 +106,16 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
-            className="text-4xl md:text-6xl font-extrabold text-primary-foreground mb-5 leading-tight tracking-tight"
+            className="text-4xl md:text-6xl font-extrabold text-white mb-5 leading-tight tracking-tight"
           >
-            Bendahara{' '}
-            <span className="text-gradient-gold">Yayasan Baitulloh</span>
+            Yayasan Baitulloh
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="text-primary-foreground/60 text-lg mb-12 max-w-lg mx-auto leading-relaxed"
+            className="text-white/60 text-lg mb-12 max-w-lg mx-auto leading-relaxed"
           >
             Cek informasi pembayaran dan tunggakan siswa dengan mudah dan cepat
           </motion.p>
