@@ -23,15 +23,18 @@ export default function LoginDialog({ open, onClose }: LoginDialogProps) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    // Simulate network delay
-    await new Promise(r => setTimeout(r, 500));
-    const success = login(email, password);
-    setLoading(false);
-    if (success) {
-      onClose();
-      navigate('/dashboard');
-    } else {
-      setError('Email atau password salah');
+    try {
+      const success = await login(email, password);
+      if (success) {
+        onClose();
+        navigate('/dashboard');
+      } else {
+        setError('Email atau password salah');
+      }
+    } catch {
+      setError('Terjadi kesalahan, coba lagi');
+    } finally {
+      setLoading(false);
     }
   };
 
