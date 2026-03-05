@@ -19,6 +19,7 @@ import PembayaranPesantren from "./pages/dashboard/PembayaranPesantren";
 import DataSantriPesantren from "./pages/dashboard/DataSantriPesantren";
 import PendapatanPesantren from "./pages/dashboard/PendapatanPesantren";
 import PengeluaranPesantren from "./pages/dashboard/PengeluaranPesantren";
+import LaporanPesantren from "./pages/dashboard/LaporanPesantren";
 
 const queryClient = new QueryClient();
 
