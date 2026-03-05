@@ -34,14 +34,9 @@ export default function DataSiswaSekolah() {
 
   const exportExcel = () => {
     const data = filtered.map((s, i) => ({
-      No: i + 1,
-      NISN: s.nisn,
-      'Nama Lengkap': s.namaLengkap,
-      Jenjang: s.jenjang,
-      Kelas: s.kelas,
+      No: i + 1, NISN: s.nisn, 'Nama Lengkap': s.namaLengkap, Jenjang: s.jenjang, Kelas: s.kelas,
       'Status Pembiayaan': s.tunggakanSekolah.length > 0 ? `Menunggak (${s.tunggakanSekolah.length} bulan)` : 'Lunas',
-      'Nama Orang Tua': s.namaOrangTua,
-      'No. WhatsApp': s.nomorWhatsApp,
+      'Nama Orang Tua': s.namaOrangTua, 'No. WhatsApp': s.nomorWhatsApp,
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -64,157 +59,164 @@ export default function DataSiswaSekolah() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Data Siswa Sekolah</h1>
-          <p className="text-muted-foreground text-sm mt-1">Kelola data siswa</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Data Siswa</h1>
+          <p className="text-muted-foreground text-sm mt-1">Kelola data siswa sekolah</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-wrap gap-2">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine shadow-glow-primary">
             <Plus className="w-4 h-4" /> Tambah Data
-          </button>
-          <button onClick={exportExcel} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-success text-success-foreground text-sm font-semibold hover:opacity-90 transition-opacity">
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
             <Download className="w-4 h-4" /> Export Excel
-          </button>
+          </motion.button>
           {filterStatus === 'menunggak' && (
-            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-warning text-warning-foreground text-sm font-semibold hover:opacity-90 transition-opacity">
+            <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ scale: 1.02 }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-warning text-warning-foreground text-sm font-bold btn-shine">
               <Send className="w-4 h-4" /> Tagih Sekaligus
-            </button>
+            </motion.button>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Filters */}
-      <div className="bg-card rounded-2xl border border-border p-4 shadow-elegant">
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card rounded-3xl border border-border p-5 shadow-elegant">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Cari nama atau NISN..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all text-sm"
-            />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Cari nama atau NISN..." className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
           </div>
-          <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }} className="px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+          <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
             <option value="">Semua Jenjang</option>
             <option value="SMP">SMP</option>
             <option value="SMA">SMA</option>
           </select>
-          <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }} disabled={!filterJenjang} className="px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50">
+          <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }} disabled={!filterJenjang} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50">
             <option value="">{filterJenjang ? 'Semua Kelas' : 'Pilih jenjang'}</option>
             {filterJenjang && kelasOptions[filterJenjang]?.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
-          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value as FilterStatus); setPage(1); }} className="px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value as FilterStatus); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
             <option value="">Semua Status</option>
             <option value="lunas">Lunas</option>
             <option value="menunggak">Belum Lunas</option>
           </select>
         </div>
-      </div>
+      </motion.div>
 
       {/* Table */}
-      <div className="bg-card rounded-2xl border border-border shadow-elegant overflow-hidden">
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-muted/50 border-b border-border">
-                <th className="text-left py-3 px-4 text-muted-foreground font-medium">No</th>
-                <th className="text-left py-3 px-4 text-muted-foreground font-medium">NISN</th>
-                <th className="text-left py-3 px-4 text-muted-foreground font-medium">Nama Lengkap</th>
-                <th className="text-left py-3 px-4 text-muted-foreground font-medium">Jenjang</th>
-                <th className="text-left py-3 px-4 text-muted-foreground font-medium">Kelas</th>
-                <th className="text-left py-3 px-4 text-muted-foreground font-medium">Status</th>
-                <th className="text-left py-3 px-4 text-muted-foreground font-medium">Orang Tua</th>
-                <th className="text-left py-3 px-4 text-muted-foreground font-medium">WhatsApp</th>
-                <th className="text-center py-3 px-4 text-muted-foreground font-medium">Aksi</th>
+              <tr className="bg-muted/30 border-b border-border">
+                {['No', 'NISN', 'Nama Lengkap', 'Jenjang', 'Kelas', 'Status', 'Orang Tua', 'WhatsApp', 'Aksi'].map(h => (
+                  <th key={h} className={`py-4 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider ${h === 'Aksi' ? 'text-center' : 'text-left'}`}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {paginated.map((s, i) => (
-                <tr key={s.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <td className="py-3 px-4 text-foreground">{(page - 1) * perPage + i + 1}</td>
-                  <td className="py-3 px-4 text-foreground">{s.nisn}</td>
-                  <td className="py-3 px-4 text-foreground font-medium">{s.namaLengkap}</td>
-                  <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : 'bg-primary/10 text-primary'}`}>{s.jenjang}</span></td>
-                  <td className="py-3 px-4 text-foreground">{s.kelas}</td>
-                  <td className="py-3 px-4">
+                <motion.tr
+                  key={s.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors group"
+                >
+                  <td className="py-4 px-4 text-muted-foreground">{(page - 1) * perPage + i + 1}</td>
+                  <td className="py-4 px-4 text-foreground font-mono text-xs">{s.nisn}</td>
+                  <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.namaLengkap}</td>
+                  <td className="py-4 px-4">
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : 'bg-primary/10 text-primary'}`}>{s.jenjang}</span>
+                  </td>
+                  <td className="py-4 px-4 text-foreground font-medium">{s.kelas}</td>
+                  <td className="py-4 px-4">
                     {s.tunggakanSekolah.length > 0 ? (
-                      <button onClick={() => setShowTunggakan(s)} className="px-2 py-0.5 rounded-full text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
-                        {s.tunggakanSekolah.length} bulan
-                      </button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowTunggakan(s)}
+                        className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                      >
+                        {s.tunggakanSekolah.length} bulan ↗
+                      </motion.button>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">Lunas</span>
+                      <span className="px-3 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">✓ Lunas</span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-muted-foreground">{s.namaOrangTua}</td>
-                  <td className="py-3 px-4 text-muted-foreground text-xs">{s.nomorWhatsApp}</td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-4 text-muted-foreground text-xs">{s.namaOrangTua}</td>
+                  <td className="py-4 px-4 text-muted-foreground text-xs font-mono">{s.nomorWhatsApp}</td>
+                  <td className="py-4 px-4">
                     <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => setShowDetail(s)} className="p-1.5 rounded-lg hover:bg-info/10 text-info transition-colors" title="Lihat">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 rounded-lg hover:bg-warning/10 text-warning transition-colors" title="Edit">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(s.namaLengkap)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors" title="Hapus">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {[
+                        { icon: Eye, color: 'text-info hover:bg-info/10', action: () => setShowDetail(s), title: 'Lihat' },
+                        { icon: Edit, color: 'text-warning hover:bg-warning/10', action: () => {}, title: 'Edit' },
+                        { icon: Trash2, color: 'text-destructive hover:bg-destructive/10', action: () => handleDelete(s.namaLengkap), title: 'Hapus' },
+                      ].map(({ icon: Icon, color, action, title }) => (
+                        <motion.button key={title} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={action} className={`p-2 rounded-xl ${color} transition-colors`} title={title}>
+                          <Icon className="w-4 h-4" />
+                        </motion.button>
+                      ))}
                       {s.tunggakanSekolah.length > 0 && (
-                        <button onClick={() => sendWhatsApp(s)} className="p-1.5 rounded-lg hover:bg-success/10 text-success transition-colors" title="WhatsApp">
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => sendWhatsApp(s)} className="p-2 rounded-xl text-success hover:bg-success/10 transition-colors" title="WhatsApp">
                           <MessageCircle className="w-4 h-4" />
-                        </button>
+                        </motion.button>
                       )}
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>
         </div>
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-            <p className="text-xs text-muted-foreground">Menampilkan {paginated.length} dari {filtered.length} data</p>
-            <div className="flex gap-1">
+          <div className="flex items-center justify-between px-5 py-4 border-t border-border">
+            <p className="text-xs text-muted-foreground font-medium">Menampilkan {paginated.length} dari {filtered.length} data</p>
+            <div className="flex gap-1.5">
               {Array.from({ length: totalPages }, (_, i) => (
-                <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${page === i + 1 ? 'gradient-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}>
+                <motion.button key={i} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setPage(i + 1)} className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${page === i + 1 ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'hover:bg-muted text-muted-foreground'}`}>
                   {i + 1}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Detail Popup */}
       <AnimatePresence>
         {showDetail && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowDetail(null)}>
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-card rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-foreground">Detail Siswa</h3>
-                <button onClick={() => setShowDetail(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowDetail(null)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-card rounded-3xl shadow-2xl w-full max-w-md p-7" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-foreground text-lg">Detail Siswa</h3>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowDetail(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-muted mb-4">
-                <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center"><User className="w-8 h-8 text-primary-foreground" /></div>
+              <div className="flex items-center gap-4 p-5 rounded-2xl gradient-card border border-border mb-5">
+                <div className="w-18 h-18 rounded-2xl gradient-primary flex items-center justify-center shadow-glow-primary" style={{ width: 72, height: 72 }}><User className="w-9 h-9 text-primary-foreground" /></div>
                 <div>
-                  <h4 className="font-bold text-foreground">{showDetail.namaLengkap}</h4>
+                  <h4 className="font-extrabold text-foreground text-lg">{showDetail.namaLengkap}</h4>
                   <p className="text-sm text-muted-foreground">NISN: {showDetail.nisn}</p>
                   <p className="text-sm text-muted-foreground">{showDetail.jenjang} - Kelas {showDetail.kelas}</p>
-                  <p className="text-sm text-muted-foreground">Orang Tua: {showDetail.namaOrangTua}</p>
+                  <p className="text-sm text-muted-foreground">Wali: {showDetail.namaOrangTua}</p>
                 </div>
               </div>
-              {showDetail.tunggakanSekolah.length > 0 && (
+              {showDetail.tunggakanSekolah.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground flex items-center gap-1"><AlertTriangle className="w-4 h-4 text-destructive" /> Tunggakan:</p>
+                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-2 uppercase tracking-wider"><AlertTriangle className="w-3.5 h-3.5 text-destructive" /> Tunggakan</p>
                   {showDetail.tunggakanSekolah.map(b => (
-                    <div key={b} className="flex justify-between p-2 rounded-lg bg-destructive/5 text-sm">
+                    <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
                       <span className="text-foreground">{b}</span>
-                      <span className="text-destructive font-medium">{formatRupiah(showDetail.biayaPerBulan)}</span>
+                      <span className="text-destructive font-bold">{formatRupiah(showDetail.biayaPerBulan)}</span>
                     </div>
                   ))}
+                  <div className="flex justify-between p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-sm font-extrabold">
+                    <span className="text-foreground">Total</span>
+                    <span className="text-destructive">{formatRupiah(showDetail.tunggakanSekolah.length * showDetail.biayaPerBulan)}</span>
+                  </div>
                 </div>
+              ) : (
+                <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 text-center">✓ Tidak ada tunggakan</p>
               )}
             </motion.div>
           </motion.div>
@@ -224,21 +226,21 @@ export default function DataSiswaSekolah() {
       {/* Tunggakan Popup */}
       <AnimatePresence>
         {showTunggakan && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowTunggakan(null)}>
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowTunggakan(null)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-card rounded-3xl shadow-2xl w-full max-w-sm p-7" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-foreground">Detail Tunggakan</h3>
-                <button onClick={() => setShowTunggakan(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></button>
+                <h3 className="font-bold text-foreground text-lg">Detail Tunggakan</h3>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowTunggakan(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
-              <p className="text-sm text-muted-foreground mb-3">{showTunggakan.namaLengkap} ({showTunggakan.jenjang} {showTunggakan.kelas})</p>
+              <p className="text-sm text-muted-foreground mb-4">{showTunggakan.namaLengkap} · <span className="font-bold text-foreground">{showTunggakan.jenjang} {showTunggakan.kelas}</span></p>
               <div className="space-y-2">
                 {showTunggakan.tunggakanSekolah.map(b => (
-                  <div key={b} className="flex justify-between p-2 rounded-lg bg-destructive/5 text-sm">
+                  <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
                     <span className="text-foreground">{b}</span>
-                    <span className="text-destructive font-medium">{formatRupiah(showTunggakan.biayaPerBulan)}</span>
+                    <span className="text-destructive font-bold">{formatRupiah(showTunggakan.biayaPerBulan)}</span>
                   </div>
                 ))}
-                <div className="flex justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/20 font-bold text-sm">
+                <div className="flex justify-between p-4 rounded-xl bg-destructive/10 border border-destructive/20 font-extrabold text-sm">
                   <span className="text-foreground">Total</span>
                   <span className="text-destructive">{formatRupiah(showTunggakan.tunggakanSekolah.length * showTunggakan.biayaPerBulan)}</span>
                 </div>
@@ -251,37 +253,37 @@ export default function DataSiswaSekolah() {
       {/* Add Student Popup */}
       <AnimatePresence>
         {showAdd && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowAdd(false)}>
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-foreground">Tambah Data Siswa</h3>
-                <button onClick={() => setShowAdd(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowAdd(false)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-card rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-7" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-foreground text-lg">Tambah Data Siswa</h3>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowAdd(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
               <form onSubmit={e => { e.preventDefault(); toast.success('Data berhasil ditambahkan'); setShowAdd(false); }} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><label className="text-sm font-medium text-foreground mb-1 block">NISN</label><input className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" required /></div>
-                  <div><label className="text-sm font-medium text-foreground mb-1 block">Nama Lengkap</label><input className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" required /></div>
+                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">NISN</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
+                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nama Lengkap</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><label className="text-sm font-medium text-foreground mb-1 block">Jenjang</label><select className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" required><option value="">Pilih</option><option>SMP</option><option>SMA</option></select></div>
-                  <div><label className="text-sm font-medium text-foreground mb-1 block">Kelas</label><input className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" required /></div>
+                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Jenjang</label><select className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required><option value="">Pilih</option><option>SMP</option><option>SMA</option></select></div>
+                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Kelas</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><label className="text-sm font-medium text-foreground mb-1 block">Nama Orang Tua</label><input className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" required /></div>
-                  <div><label className="text-sm font-medium text-foreground mb-1 block">No. WhatsApp</label><input className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" required /></div>
+                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nama Orang Tua</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
+                  <div><label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">No. WhatsApp</label><input className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required /></div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-1 block">Tunggakan Awal (opsional)</label>
-                  <p className="text-xs text-muted-foreground mb-2">Pilih bulan-bulan tunggakan jika ada</p>
+                  <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Tunggakan Awal (opsional)</label>
+                  <p className="text-xs text-muted-foreground mb-3">Pilih bulan-bulan tunggakan jika ada</p>
                   <div className="flex flex-wrap gap-2">
                     {bulanList.map(b => (
-                      <label key={b} className="flex items-center gap-1.5 text-xs text-foreground">
-                        <input type="checkbox" className="rounded" /> {b}
+                      <label key={b} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 cursor-pointer transition-colors">
+                        <input type="checkbox" className="rounded border-border" /> <span className="text-xs text-foreground font-medium">{b}</span>
                       </label>
                     ))}
                   </div>
                 </div>
-                <button type="submit" className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity">Simpan Data</button>
+                <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} type="submit" className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine shadow-glow-primary">Simpan Data</motion.button>
               </form>
             </motion.div>
           </motion.div>
