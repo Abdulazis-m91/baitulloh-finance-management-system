@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, User, BookOpen, MessageCircle, ChevronRight } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
-import { supabase } from '@/integrations/supabase/client';
 import logoYB from '@/assets/logo-yb.png';
 
 interface MergedResult {
@@ -58,13 +57,6 @@ export default function HeroSection() {
       if (jenjang) params.set('jenjang', jenjang);
       if (kelas) params.set('kelas', kelas);
 
-      const { data, error } = await supabase.functions.invoke('public-search', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        body: null,
-      });
-
-      // Use fetch directly since supabase.functions.invoke doesn't support GET params well
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-search?${params.toString()}`;
       const res = await fetch(url, {
         headers: {
