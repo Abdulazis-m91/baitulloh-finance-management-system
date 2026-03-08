@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Users, CreditCard, TrendingDown, AlertTriangle, Shield, Loader2, Database } from 'lucide-react';
 import { useSantri } from '@/hooks/useSupabaseSantri';
 import { usePembayaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren, useCicilanPesantren, usePengeluaranPesantren } from '@/hooks/useSupabasePesantren';
-import { usePembayaran, usePengeluaran, useCicilan } from '@/hooks/useSupabaseData';
+import { useStudents, usePembayaran, usePengeluaran, useCicilan } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
