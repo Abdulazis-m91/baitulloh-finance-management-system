@@ -282,7 +282,7 @@ export default function DataSantriPesantren() {
     const biaya = KATEGORI_BIAYA[form.kategori];
     insertStudent.mutate({
       nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
-      jenjang: form.jenjang as 'SMP' | 'SMA' | 'Reguler', kelas: form.kelas,
+      jenjang: form.jenjang as any, kelas: form.kelas,
       nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
       foto: null, tunggakan_pesantren: form.tunggakanBulan,
       biaya_per_bulan: biaya.total, deposit: 0, kategori: form.kategori,
@@ -296,7 +296,7 @@ export default function DataSantriPesantren() {
     const tunggakan = form.tunggakanTahun ? [...form.tunggakanBulan] : showEdit.tunggakan_pesantren;
     updateStudentMut.mutate({
       id: showEdit.id, nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
-      jenjang: form.jenjang as 'SMP' | 'SMA' | 'Reguler', kelas: form.kelas,
+      jenjang: form.jenjang as any, kelas: form.kelas,
       nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
       tunggakan_pesantren: tunggakan, kategori: form.kategori, biaya_per_bulan: biaya.total,
     });
@@ -372,7 +372,7 @@ export default function DataSantriPesantren() {
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * perPage + i + 1}</td>
                   <td className="py-4 px-4 text-foreground font-mono text-xs">{s.nisn}</td>
                   <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.nama_lengkap}</td>
-                  <td className="py-4 px-4"><span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : s.jenjang === 'Reguler' ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary'}`}>{s.jenjang}</span></td>
+                  <td className="py-4 px-4"><span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : (s.jenjang as string) === 'Reguler' ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary'}`}>{s.jenjang}</span></td>
                   <td className="py-4 px-4 text-foreground font-medium">{s.kelas}</td>
                   <td className="py-4 px-4">
                     {s.tunggakan_pesantren.length > 0 ? (
