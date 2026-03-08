@@ -31,7 +31,8 @@ export default function AdminControl() {
   const [deleting, setDeleting] = useState(false);
   const qc = useQueryClient();
 
-  const { data: students = [], isLoading: loadStudents } = useStudents();
+  const { data: santriList = [], isLoading: loadStudents } = useSantri();
+  const { data: students = [] } = useStudents();
   const { data: pembayaranPesantren = [] } = usePembayaranPesantren();
   const { data: konsumsi = [] } = useKonsumsiPesantren();
   const { data: operasional = [] } = useOperasionalPesantren();

@@ -18,7 +18,7 @@ const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli
 export default function PembayaranPesantren() {
   const [searchQuery, setSearchQuery] = useState('');
   const [barcodeQuery, setBarcodeQuery] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState<StudentDB | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<SantriDB | null>(null);
   const [metode, setMetode] = useState<'Lunas' | 'Cicil' | 'Deposit'>('Lunas');
   const [selectedBulan, setSelectedBulan] = useState('');
   const [nominal, setNominal] = useState(0);
@@ -27,18 +27,18 @@ export default function PembayaranPesantren() {
   const [strukData, setStrukData] = useState<any>(null);
   const strukRef = useRef<HTMLDivElement>(null);
 
-  const { data: students = [], isLoading } = useStudents();
+  const { data: students = [], isLoading } = useSantri();
   const { data: cicilanSiswa = [] } = useCicilanPesantrenBySiswa(selectedStudent?.id);
   const insertPembayaran = useInsertPembayaranPesantren();
   const insertKonsumsi = useInsertKonsumsi();
   const insertOperasional = useInsertOperasional();
   const insertPembangunan = useInsertPembangunan();
-  const updateStudent = useUpdateStudent();
+  const updateStudent = useUpdateSantri();
   const insertCicilan = useInsertCicilanPesantren();
   const deleteCicilan = useDeleteCicilanPesantrenBySiswaAndBulan();
 
-  const getKategori = (s: StudentDB): KategoriSantri => (s.kategori as KategoriSantri) || 'REGULER';
-  const getBiaya = (s: StudentDB) => KATEGORI_BIAYA[getKategori(s)];
+  const getKategori = (s: SantriDB): KategoriSantri => (s.kategori as KategoriSantri) || 'REGULER';
+  const getBiaya = (s: SantriDB) => KATEGORI_BIAYA[getKategori(s)];
 
   const hasTunggakan = selectedStudent ? selectedStudent.tunggakan_pesantren.length > 0 : false;
 
@@ -61,7 +61,7 @@ export default function PembayaranPesantren() {
     ? students.filter(s => s.nama_lengkap.toLowerCase().includes(searchQuery.toLowerCase()) || s.nisn.includes(searchQuery)).slice(0, 5)
     : [];
 
-  const selectStudent = (s: StudentDB) => {
+  const selectStudent = (s: SantriDB) => {
     setSelectedStudent(s); setSearchQuery(''); setSelectedBulan(''); setNominalCicilInput('');
     if (s.tunggakan_pesantren.length > 0) { setMetode('Lunas'); setNominal(getBiaya(s).total); }
     else { setMetode('Deposit'); setNominal(0); }

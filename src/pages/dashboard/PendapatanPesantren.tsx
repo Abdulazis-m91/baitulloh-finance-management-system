@@ -33,7 +33,7 @@ export default function PendapatanPesantren() {
   const { data: operasional = [], isLoading: l3 } = useOperasionalPesantren();
   const { data: pembangunan = [], isLoading: l4 } = usePembangunanPesantren();
   const { data: cicilan = [], isLoading: l5 } = useCicilanPesantren();
-  const { data: students = [], isLoading: l6 } = useStudents();
+  const { data: students = [], isLoading: l6 } = useSantri();
   const { data: pendapatanLain = [], isLoading: l7 } = usePendapatanLainPesantren();
   const insertKonsumsi = useInsertKonsumsi();
 

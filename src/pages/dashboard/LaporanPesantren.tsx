@@ -18,7 +18,7 @@ const bulanNama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli
 export default function LaporanPesantren() {
   const [activeTab, setActiveTab] = useState<Tab>('Total');
 
-  const { data: students = [], isLoading: l1 } = useStudents();
+  const { data: students = [], isLoading: l1 } = useSantri();
   const { data: pembayaran = [], isLoading: l2 } = usePembayaranPesantren();
   const { data: konsumsi = [], isLoading: l3 } = useKonsumsiPesantren();
   const { data: operasional = [], isLoading: l4 } = useOperasionalPesantren();
