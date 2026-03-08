@@ -52,10 +52,10 @@ export default function LaporanPesantren() {
   const totalPengeluaran = pengeluaranKonsumsi + pengeluaranOperasional + pengeluaranPembangunan;
 
   // Tunggakan pesantren
-  const getTunggakanPerKelas = (jenjang: 'SMP' | 'SMA') => {
-    const allKelas = [...new Set(students.filter(s => s.jenjang === jenjang).map(s => s.kelas))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+  const getTunggakanPerKelas = (jenjang: string) => {
+    const allKelas = [...new Set(students.filter(s => (s.jenjang as string) === jenjang).map(s => s.kelas))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
     return allKelas.map(kelas => {
-      const siswa = students.filter(s => s.jenjang === jenjang && s.kelas === kelas && s.tunggakan_pesantren.length > 0);
+      const siswa = students.filter(s => (s.jenjang as string) === jenjang && s.kelas === kelas && s.tunggakan_pesantren.length > 0);
       const nominal = siswa.reduce((a, s) => a + s.tunggakan_pesantren.length * s.biaya_per_bulan, 0);
       return { kelas, jumlah: siswa.length, nominal };
     });
@@ -63,9 +63,11 @@ export default function LaporanPesantren() {
 
   const totalTunggakanSMP = students.filter(s => s.jenjang === 'SMP' && s.tunggakan_pesantren.length > 0).reduce((a, s) => a + s.tunggakan_pesantren.length * s.biaya_per_bulan, 0);
   const totalTunggakanSMA = students.filter(s => s.jenjang === 'SMA' && s.tunggakan_pesantren.length > 0).reduce((a, s) => a + s.tunggakan_pesantren.length * s.biaya_per_bulan, 0);
+  const totalTunggakanReguler = students.filter(s => (s.jenjang as string) === 'Reguler' && s.tunggakan_pesantren.length > 0).reduce((a, s) => a + s.tunggakan_pesantren.length * s.biaya_per_bulan, 0);
   const jumlahMenunggakSMP = students.filter(s => s.jenjang === 'SMP' && s.tunggakan_pesantren.length > 0).length;
   const jumlahMenunggakSMA = students.filter(s => s.jenjang === 'SMA' && s.tunggakan_pesantren.length > 0).length;
-  const totalTunggakan = totalTunggakanSMP + totalTunggakanSMA;
+  const jumlahMenunggakReguler = students.filter(s => (s.jenjang as string) === 'Reguler' && s.tunggakan_pesantren.length > 0).length;
+  const totalTunggakan = totalTunggakanSMP + totalTunggakanSMA + totalTunggakanReguler;
 
   const getDanaData = (dana: 'Konsumsi' | 'Operasional' | 'Pembangunan') => {
     const pendapatan = dana === 'Konsumsi' ? pendapatanKonsumsi : dana === 'Operasional' ? pendapatanOperasional : pendapatanPembangunan;
@@ -165,6 +167,12 @@ export default function LaporanPesantren() {
       doc.text(`   Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}`, margin + 2, y); y += 4;
     });
     y += 2; doc.setTextColor(0);
+    drawRow('Tunggakan Reguler', formatRupiah(totalTunggakanReguler), true, [220, 38, 38]);
+    getTunggakanPerKelas('Reguler').forEach(k => {
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
+      doc.text(`   Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}`, margin + 2, y); y += 4;
+    });
+    y += 2; doc.setTextColor(0);
     drawLine();
     drawRow(`TOTAL TUNGGAKAN (${bulanTahun})`, formatRupiah(totalTunggakan), true, [220, 38, 38]);
     y += 8;
@@ -222,7 +230,7 @@ export default function LaporanPesantren() {
           <div className="p-6 space-y-6">
             <div className="text-center p-8 rounded-2xl bg-destructive/5 border border-destructive/10">
               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Jumlah Santri Menunggak</p>
-              <p className="text-5xl font-extrabold text-destructive mb-1">{jumlahMenunggakSMP + jumlahMenunggakSMA}</p>
+              <p className="text-5xl font-extrabold text-destructive mb-1">{jumlahMenunggakSMP + jumlahMenunggakSMA + jumlahMenunggakReguler}</p>
               <p className="text-sm text-muted-foreground">santri</p>
             </div>
             <div className="text-center p-8 rounded-2xl gradient-card border border-destructive/10">
@@ -324,6 +332,20 @@ export default function LaporanPesantren() {
                 </div>
                 <div className="mt-3 ml-[52px] space-y-1">
                   {getTunggakanPerKelas('SMA').map(k => (
+                    <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} santri</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
+                  ))}
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
+                    <p className="font-extrabold text-foreground text-lg">TUNGGAKAN REGULER</p>
+                  </div>
+                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(totalTunggakanReguler)}</p>
+                </div>
+                <div className="mt-3 ml-[52px] space-y-1">
+                  {getTunggakanPerKelas('Reguler').map(k => (
                     <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} santri</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
                   ))}
                 </div>

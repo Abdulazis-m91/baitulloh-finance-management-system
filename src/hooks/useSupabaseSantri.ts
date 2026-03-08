@@ -6,7 +6,7 @@ export interface SantriDB {
   id: string;
   nisn: string;
   nama_lengkap: string;
-  jenjang: 'SMP' | 'SMA';
+  jenjang: 'SMP' | 'SMA' | 'Reguler';
   kelas: string;
   nama_orang_tua: string;
   nomor_whatsapp: string;

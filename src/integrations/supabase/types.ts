@@ -619,7 +619,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "petugas_sekolah" | "petugas_pesantren"
-      jenjang_type: "SMP" | "SMA"
+      jenjang_type: "SMP" | "SMA" | "Reguler"
       metode_bayar: "Lunas" | "Cicil" | "Deposit"
     }
     CompositeTypes: {
@@ -749,7 +749,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "petugas_sekolah", "petugas_pesantren"],
-      jenjang_type: ["SMP", "SMA"],
+      jenjang_type: ["SMP", "SMA", "Reguler"],
       metode_bayar: ["Lunas", "Cicil", "Deposit"],
     },
   },

@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-const kelasOptions: Record<string, string[]> = { SMP: ['7A','7B','8A','8B','9A','9B'], SMA: ['10A','10B','11A','11B','12A','12B'] };
+const kelasOptions: Record<string, string[]> = { SMP: ['7A','7B','8A','8B','9A','9B'], SMA: ['10A','10B','11A','11B','12A','12B'], Reguler: ['Reguler'] };
 
 type FilterStatus = '' | 'lunas' | 'menunggak';
 type StudentForm = {
@@ -97,7 +97,7 @@ function SantriFormPopup({ title, onClose, onSubmit, form, setForm, toggleBulan,
                 <div><label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Jenjang</label>
                   <select value={form.jenjang} onChange={e => setForm(p => ({ ...p, jenjang: e.target.value, kelas: '' }))}
                     className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required>
-                    <option value="">Pilih</option><option>SMP</option><option>SMA</option>
+                    <option value="">Pilih</option><option>SMP</option><option>SMA</option><option>Reguler</option>
                   </select></div>
                 <div><label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Kelas</label>
                   <select value={form.kelas} onChange={e => setForm(p => ({ ...p, kelas: e.target.value }))} disabled={!form.jenjang}
@@ -282,7 +282,7 @@ export default function DataSantriPesantren() {
     const biaya = KATEGORI_BIAYA[form.kategori];
     insertStudent.mutate({
       nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
-      jenjang: form.jenjang as 'SMP' | 'SMA', kelas: form.kelas,
+      jenjang: form.jenjang as any, kelas: form.kelas,
       nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
       foto: null, tunggakan_pesantren: form.tunggakanBulan,
       biaya_per_bulan: biaya.total, deposit: 0, kategori: form.kategori,
@@ -296,7 +296,7 @@ export default function DataSantriPesantren() {
     const tunggakan = form.tunggakanTahun ? [...form.tunggakanBulan] : showEdit.tunggakan_pesantren;
     updateStudentMut.mutate({
       id: showEdit.id, nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
-      jenjang: form.jenjang as 'SMP' | 'SMA', kelas: form.kelas,
+      jenjang: form.jenjang as any, kelas: form.kelas,
       nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
       tunggakan_pesantren: tunggakan, kategori: form.kategori, biaya_per_bulan: biaya.total,
     });
@@ -338,7 +338,7 @@ export default function DataSantriPesantren() {
               className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
           </div>
           <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-            <option value="">Semua Jenjang</option><option value="SMP">SMP</option><option value="SMA">SMA</option>
+            <option value="">Semua Jenjang</option><option value="SMP">SMP</option><option value="SMA">SMA</option><option value="Reguler">Reguler</option>
           </select>
           <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }} disabled={!filterJenjang} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50">
             <option value="">{filterJenjang ? 'Semua Kelas' : 'Pilih jenjang'}</option>
@@ -372,7 +372,7 @@ export default function DataSantriPesantren() {
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * perPage + i + 1}</td>
                   <td className="py-4 px-4 text-foreground font-mono text-xs">{s.nisn}</td>
                   <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.nama_lengkap}</td>
-                  <td className="py-4 px-4"><span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : 'bg-primary/10 text-primary'}`}>{s.jenjang}</span></td>
+                  <td className="py-4 px-4"><span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : (s.jenjang as string) === 'Reguler' ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary'}`}>{s.jenjang}</span></td>
                   <td className="py-4 px-4 text-foreground font-medium">{s.kelas}</td>
                   <td className="py-4 px-4">
                     {s.tunggakan_pesantren.length > 0 ? (
