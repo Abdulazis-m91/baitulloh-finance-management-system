@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, AlertTriangle, Users, UserX, ArrowUpRight, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useStudents } from '@/hooks/useSupabaseData';
+import { useSantri } from '@/hooks/useSupabaseSantri';
 import { usePembayaranPesantren, usePengeluaranPesantren, KATEGORI_BIAYA, KategoriSantri } from '@/hooks/useSupabasePesantren';
 import { formatRupiah, formatDate } from '@/lib/format';
 

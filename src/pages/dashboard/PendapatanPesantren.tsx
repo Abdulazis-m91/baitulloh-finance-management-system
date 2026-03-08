@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Download, Loader2, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
-import { useStudents } from '@/hooks/useSupabaseData';
+import { useSantri } from '@/hooks/useSupabaseSantri';
 import {
   usePembayaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren,
   useCicilanPesantren, KATEGORI_LIST, useInsertKonsumsi,

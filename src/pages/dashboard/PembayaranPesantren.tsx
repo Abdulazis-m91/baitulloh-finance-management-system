@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, User, CreditCard, Scan, Loader2, X, Download } from 'lucide-react';
-import { useStudents, useUpdateStudent, type StudentDB } from '@/hooks/useSupabaseData';
+import { useSantri, useUpdateSantri, type SantriDB } from '@/hooks/useSupabaseSantri';
 import {
   useInsertPembayaranPesantren, useInsertKonsumsi, useInsertOperasional, useInsertPembangunan,
   useCicilanPesantrenBySiswa, useInsertCicilanPesantren, useDeleteCicilanPesantrenBySiswaAndBulan,

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Users, CreditCard, TrendingDown, AlertTriangle, Shield, Loader2, Database } from 'lucide-react';
-import { useStudents } from '@/hooks/useSupabaseData';
+import { useSantri } from '@/hooks/useSupabaseSantri';
 import { usePembayaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren, useCicilanPesantren, usePengeluaranPesantren } from '@/hooks/useSupabasePesantren';
 import { usePembayaran, usePengeluaran, useCicilan } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';

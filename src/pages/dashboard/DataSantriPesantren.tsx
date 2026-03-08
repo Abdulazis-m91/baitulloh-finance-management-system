@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
-import { useStudents, useInsertStudent, useUpdateStudent, useDeleteStudent, type StudentDB } from '@/hooks/useSupabaseData';
+import { useSantri, useInsertSantri, useUpdateSantri, useDeleteSantri, type SantriDB } from '@/hooks/useSupabaseSantri';
 import { useCicilanPesantrenBySiswa, KATEGORI_LIST, KATEGORI_BIAYA, KategoriSantri } from '@/hooks/useSupabasePesantren';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
