@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, User, BookOpen, MessageCircle, ChevronRight } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
-import { supabase } from '@/integrations/supabase/client';
 import logoYB from '@/assets/logo-yb.png';
 
 interface MergedResult {
