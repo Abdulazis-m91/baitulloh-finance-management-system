@@ -230,7 +230,7 @@ export default function LaporanPesantren() {
           <div className="p-6 space-y-6">
             <div className="text-center p-8 rounded-2xl bg-destructive/5 border border-destructive/10">
               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Jumlah Santri Menunggak</p>
-              <p className="text-5xl font-extrabold text-destructive mb-1">{jumlahMenunggakSMP + jumlahMenunggakSMA}</p>
+              <p className="text-5xl font-extrabold text-destructive mb-1">{jumlahMenunggakSMP + jumlahMenunggakSMA + jumlahMenunggakReguler}</p>
               <p className="text-sm text-muted-foreground">santri</p>
             </div>
             <div className="text-center p-8 rounded-2xl gradient-card border border-destructive/10">
