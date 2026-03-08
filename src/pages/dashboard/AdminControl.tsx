@@ -45,7 +45,7 @@ export default function AdminControl() {
 
   if (loadStudents) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
-  const santri = students.filter(s => s.kategori && s.kategori !== '');
+  const santri = santriList;
   const santriByKategori = (k: string) => santri.filter(s => s.kategori === k).length;
 
   const totalKonsumsiMasuk = konsumsi.reduce((s, e) => s + e.nominal, 0);
