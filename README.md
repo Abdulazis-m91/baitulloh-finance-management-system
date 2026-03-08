@@ -43,6 +43,26 @@ Centralized control panel for managing financial data.
 
 ---
 
+## 📷 Screenshots
+
+**Screenshot 1 – Homepage**  
+
+![Homepage](./public/screenshots/homepage.png)
+
+**Screenshot 2 – School Treasurer Dashboard**  
+
+![Dashboard](./public/screenshots/dashboard.png)
+
+**Screenshot 3 – Islamic Boarding School Financial Reports**  
+
+![Reports](./public/screenshots/reports.png)
+
+**Screenshot 4 – Admin Control Panel**  
+
+![Admin](./public/screenshots/admin.png)
+
+---
+
 # 🛠 Tech Stack
 
 **Frontend**
