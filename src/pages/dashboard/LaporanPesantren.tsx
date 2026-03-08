@@ -167,6 +167,12 @@ export default function LaporanPesantren() {
       doc.text(`   Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}`, margin + 2, y); y += 4;
     });
     y += 2; doc.setTextColor(0);
+    drawRow('Tunggakan Reguler', formatRupiah(totalTunggakanReguler), true, [220, 38, 38]);
+    getTunggakanPerKelas('Reguler').forEach(k => {
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
+      doc.text(`   Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}`, margin + 2, y); y += 4;
+    });
+    y += 2; doc.setTextColor(0);
     drawLine();
     drawRow(`TOTAL TUNGGAKAN (${bulanTahun})`, formatRupiah(totalTunggakan), true, [220, 38, 38]);
     y += 8;
