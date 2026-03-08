@@ -58,13 +58,6 @@ export default function HeroSection() {
       if (jenjang) params.set('jenjang', jenjang);
       if (kelas) params.set('kelas', kelas);
 
-      const { data, error } = await supabase.functions.invoke('public-search', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        body: null,
-      });
-
-      // Use fetch directly since supabase.functions.invoke doesn't support GET params well
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-search?${params.toString()}`;
       const res = await fetch(url, {
         headers: {
