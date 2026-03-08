@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import jsPDF from 'jspdf';
 import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info, Users, Printer } from 'lucide-react';
-import { useStudents } from '@/hooks/useSupabaseData';
+import { useSantri } from '@/hooks/useSupabaseSantri';
 import {
   usePembayaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren,
   usePengeluaranPesantren, usePendapatanLainPesantren, KATEGORI_LIST,
@@ -18,7 +18,7 @@ const bulanNama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli
 export default function LaporanPesantren() {
   const [activeTab, setActiveTab] = useState<Tab>('Total');
 
-  const { data: students = [], isLoading: l1 } = useStudents();
+  const { data: students = [], isLoading: l1 } = useSantri();
   const { data: pembayaran = [], isLoading: l2 } = usePembayaranPesantren();
   const { data: konsumsi = [], isLoading: l3 } = useKonsumsiPesantren();
   const { data: operasional = [], isLoading: l4 } = useOperasionalPesantren();

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
-import { useStudents, useInsertStudent, useUpdateStudent, useDeleteStudent, type StudentDB } from '@/hooks/useSupabaseData';
+import { useSantri, useInsertSantri, useUpdateSantri, useDeleteSantri, type SantriDB } from '@/hooks/useSupabaseSantri';
 import { useCicilanPesantrenBySiswa, KATEGORI_LIST, KATEGORI_BIAYA, KategoriSantri } from '@/hooks/useSupabasePesantren';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
@@ -151,7 +151,7 @@ function SantriFormPopup({ title, onClose, onSubmit, form, setForm, toggleBulan,
 }
 
 // Detail popup with cicilan info
-function DetailSantriPopup({ student, onClose }: { student: StudentDB; onClose: () => void }) {
+function DetailSantriPopup({ student, onClose }: { student: SantriDB; onClose: () => void }) {
   const { data: cicilanSiswa = [] } = useCicilanPesantrenBySiswa(student.id);
   const kat = (student.kategori as KategoriSantri) || 'REGULER';
   const biaya = KATEGORI_BIAYA[kat];
@@ -227,17 +227,17 @@ export default function DataSantriPesantren() {
   const [filterKategori, setFilterKategori] = useState('');
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
-  const [showEdit, setShowEdit] = useState<StudentDB | null>(null);
-  const [showDetail, setShowDetail] = useState<StudentDB | null>(null);
-  const [showTunggakan, setShowTunggakan] = useState<StudentDB | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<StudentDB | null>(null);
+  const [showEdit, setShowEdit] = useState<SantriDB | null>(null);
+  const [showDetail, setShowDetail] = useState<SantriDB | null>(null);
+  const [showTunggakan, setShowTunggakan] = useState<SantriDB | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<SantriDB | null>(null);
   const [form, setForm] = useState<StudentForm>(emptyForm);
   const perPage = 15;
 
-  const { data: students = [], isLoading } = useStudents();
-  const insertStudent = useInsertStudent();
-  const updateStudentMut = useUpdateStudent();
-  const deleteStudentMut = useDeleteStudent();
+  const { data: students = [], isLoading } = useSantri();
+  const insertStudent = useInsertSantri();
+  const updateStudentMut = useUpdateSantri();
+  const deleteStudentMut = useDeleteSantri();
 
   if (isLoading) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
@@ -266,7 +266,7 @@ export default function DataSantriPesantren() {
 
   const handleDelete = () => { if (showDeleteConfirm) { deleteStudentMut.mutate(showDeleteConfirm.id); setShowDeleteConfirm(null); } };
 
-  const openEdit = (s: StudentDB) => {
+  const openEdit = (s: SantriDB) => {
     const tahunSet = new Set<string>(); const bulanSet = new Set<string>();
     s.tunggakan_pesantren.forEach(t => { const parts = t.split('-'); if (parts.length === 2) { tahunSet.add(parts[0]); bulanSet.add(parts[1]); } else if (bulanList.includes(t)) bulanSet.add(t); });
     const tahun = tahunSet.size === 1 ? [...tahunSet][0] : (bulanSet.size > 0 ? new Date().getFullYear().toString() : '');
@@ -284,7 +284,7 @@ export default function DataSantriPesantren() {
       nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
       jenjang: form.jenjang as 'SMP' | 'SMA', kelas: form.kelas,
       nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
-      foto: null, tunggakan_sekolah: [], tunggakan_pesantren: form.tunggakanBulan,
+      foto: null, tunggakan_pesantren: form.tunggakanBulan,
       biaya_per_bulan: biaya.total, deposit: 0, kategori: form.kategori,
     });
     setShowAdd(false);
@@ -303,7 +303,7 @@ export default function DataSantriPesantren() {
     setShowEdit(null);
   };
 
-  const sendWhatsApp = (s: StudentDB) => {
+  const sendWhatsApp = (s: SantriDB) => {
     const kat = (s.kategori as KategoriSantri) || 'REGULER';
     const biaya = KATEGORI_BIAYA[kat].total;
     const msg = encodeURIComponent(`Assalamu'alaikum. Yth. ${s.nama_orang_tua}, kami informasikan bahwa ${s.nama_lengkap} (${s.jenjang} ${s.kelas}) memiliki tunggakan pesantren sebanyak ${s.tunggakan_pesantren.length} bulan. Total: ${formatRupiah(s.tunggakan_pesantren.length * biaya)}. Mohon segera melakukan pembayaran. Terima kasih.`);

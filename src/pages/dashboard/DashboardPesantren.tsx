@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, AlertTriangle, Users, UserX, ArrowUpRight, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useStudents } from '@/hooks/useSupabaseData';
+import { useSantri } from '@/hooks/useSupabaseSantri';
 import { usePembayaranPesantren, usePengeluaranPesantren, KATEGORI_BIAYA, KategoriSantri } from '@/hooks/useSupabasePesantren';
 import { formatRupiah, formatDate } from '@/lib/format';
 
 const PAGE_SIZE = 20;
 
 export default function DashboardPesantren() {
-  const { data: students = [], isLoading: l1 } = useStudents();
+  const { data: students = [], isLoading: l1 } = useSantri();
   const { data: pembayaran = [], isLoading: l2 } = usePembayaranPesantren();
   const { data: pengeluaran = [], isLoading: l3 } = usePengeluaranPesantren();
   const [page, setPage] = useState(1);

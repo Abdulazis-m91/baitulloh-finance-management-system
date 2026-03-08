@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Users, CreditCard, TrendingDown, AlertTriangle, Shield, Loader2, Database } from 'lucide-react';
-import { useStudents } from '@/hooks/useSupabaseData';
+import { useSantri } from '@/hooks/useSupabaseSantri';
 import { usePembayaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren, useCicilanPesantren, usePengeluaranPesantren } from '@/hooks/useSupabasePesantren';
-import { usePembayaran, usePengeluaran, useCicilan } from '@/hooks/useSupabaseData';
+import { useStudents, usePembayaran, usePengeluaran, useCicilan } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
@@ -31,7 +31,8 @@ export default function AdminControl() {
   const [deleting, setDeleting] = useState(false);
   const qc = useQueryClient();
 
-  const { data: students = [], isLoading: loadStudents } = useStudents();
+  const { data: santriList = [], isLoading: loadStudents } = useSantri();
+  const { data: students = [] } = useStudents();
   const { data: pembayaranPesantren = [] } = usePembayaranPesantren();
   const { data: konsumsi = [] } = useKonsumsiPesantren();
   const { data: operasional = [] } = useOperasionalPesantren();
@@ -44,7 +45,7 @@ export default function AdminControl() {
 
   if (loadStudents) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
-  const santri = students.filter(s => s.kategori && s.kategori !== '');
+  const santri = santriList;
   const santriByKategori = (k: string) => santri.filter(s => s.kategori === k).length;
 
   const totalKonsumsiMasuk = konsumsi.reduce((s, e) => s + e.nominal, 0);
@@ -77,7 +78,7 @@ export default function AdminControl() {
     setDeleteTarget({
       label: 'SEMUA DATA (kecuali petugas)',
       action: async () => {
-        const tables = ['cicilan', 'cicilan_pesantren', 'konsumsi_pesantren', 'operasional_pesantren', 'pembangunan_pesantren', 'pembayaran', 'pembayaran_pesantren', 'pengeluaran', 'pengeluaran_pesantren', 'pendapatan_lain_pesantren', 'students'];
+        const tables = ['cicilan', 'cicilan_pesantren', 'konsumsi_pesantren', 'operasional_pesantren', 'pembangunan_pesantren', 'pembayaran', 'pembayaran_pesantren', 'pengeluaran', 'pengeluaran_pesantren', 'pendapatan_lain_pesantren', 'students', 'santri'];
         for (const t of tables) {
           await deleteAll(t);
         }
@@ -150,7 +151,7 @@ export default function AdminControl() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <ControlCard icon={Users} title="Kontrol Santri Pesantren" color="gradient-primary"
-              onDelete={() => setDeleteTarget({ label: 'Santri', action: async () => { await deleteAll('students'); } })} deleteLabel="Hapus Data Santri">
+              onDelete={() => setDeleteTarget({ label: 'Santri', action: async () => { await deleteAll('santri'); } })} deleteLabel="Hapus Data Santri">
               <InfoRow label="Dalam Daerah" value={`${santriByKategori('DALAM DAERAH')} santri`} />
               <InfoRow label="Luar Daerah" value={`${santriByKategori('LUAR DAERAH')} santri`} />
               <InfoRow label="Reguler" value={`${santriByKategori('REGULER')} santri`} />
