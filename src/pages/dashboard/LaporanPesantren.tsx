@@ -52,10 +52,10 @@ export default function LaporanPesantren() {
   const totalPengeluaran = pengeluaranKonsumsi + pengeluaranOperasional + pengeluaranPembangunan;
 
   // Tunggakan pesantren
-  const getTunggakanPerKelas = (jenjang: 'SMP' | 'SMA') => {
-    const allKelas = [...new Set(students.filter(s => s.jenjang === jenjang).map(s => s.kelas))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+  const getTunggakanPerKelas = (jenjang: string) => {
+    const allKelas = [...new Set(students.filter(s => (s.jenjang as string) === jenjang).map(s => s.kelas))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
     return allKelas.map(kelas => {
-      const siswa = students.filter(s => s.jenjang === jenjang && s.kelas === kelas && s.tunggakan_pesantren.length > 0);
+      const siswa = students.filter(s => (s.jenjang as string) === jenjang && s.kelas === kelas && s.tunggakan_pesantren.length > 0);
       const nominal = siswa.reduce((a, s) => a + s.tunggakan_pesantren.length * s.biaya_per_bulan, 0);
       return { kelas, jumlah: siswa.length, nominal };
     });
@@ -63,9 +63,11 @@ export default function LaporanPesantren() {
 
   const totalTunggakanSMP = students.filter(s => s.jenjang === 'SMP' && s.tunggakan_pesantren.length > 0).reduce((a, s) => a + s.tunggakan_pesantren.length * s.biaya_per_bulan, 0);
   const totalTunggakanSMA = students.filter(s => s.jenjang === 'SMA' && s.tunggakan_pesantren.length > 0).reduce((a, s) => a + s.tunggakan_pesantren.length * s.biaya_per_bulan, 0);
+  const totalTunggakanReguler = students.filter(s => (s.jenjang as string) === 'Reguler' && s.tunggakan_pesantren.length > 0).reduce((a, s) => a + s.tunggakan_pesantren.length * s.biaya_per_bulan, 0);
   const jumlahMenunggakSMP = students.filter(s => s.jenjang === 'SMP' && s.tunggakan_pesantren.length > 0).length;
   const jumlahMenunggakSMA = students.filter(s => s.jenjang === 'SMA' && s.tunggakan_pesantren.length > 0).length;
-  const totalTunggakan = totalTunggakanSMP + totalTunggakanSMA;
+  const jumlahMenunggakReguler = students.filter(s => (s.jenjang as string) === 'Reguler' && s.tunggakan_pesantren.length > 0).length;
+  const totalTunggakan = totalTunggakanSMP + totalTunggakanSMA + totalTunggakanReguler;
 
   const getDanaData = (dana: 'Konsumsi' | 'Operasional' | 'Pembangunan') => {
     const pendapatan = dana === 'Konsumsi' ? pendapatanKonsumsi : dana === 'Operasional' ? pendapatanOperasional : pendapatanPembangunan;
