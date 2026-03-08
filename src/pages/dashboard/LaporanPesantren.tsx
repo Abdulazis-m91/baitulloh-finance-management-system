@@ -336,6 +336,20 @@ export default function LaporanPesantren() {
                   ))}
                 </div>
               </div>
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
+                    <p className="font-extrabold text-foreground text-lg">TUNGGAKAN REGULER</p>
+                  </div>
+                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(totalTunggakanReguler)}</p>
+                </div>
+                <div className="mt-3 ml-[52px] space-y-1">
+                  {getTunggakanPerKelas('Reguler').map(k => (
+                    <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} santri</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
+                  ))}
+                </div>
+              </div>
               <div className="p-6" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
