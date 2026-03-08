@@ -85,7 +85,7 @@ export type Database = {
             foreignKeyName: "cicilan_pesantren_siswa_id_fkey"
             columns: ["siswa_id"]
             isOneToOne: false
-            referencedRelation: "students"
+            referencedRelation: "santri"
             referencedColumns: ["id"]
           },
         ]
@@ -139,7 +139,7 @@ export type Database = {
             foreignKeyName: "konsumsi_pesantren_siswa_id_fkey"
             columns: ["siswa_id"]
             isOneToOne: false
-            referencedRelation: "students"
+            referencedRelation: "santri"
             referencedColumns: ["id"]
           },
         ]
@@ -193,7 +193,7 @@ export type Database = {
             foreignKeyName: "operasional_pesantren_siswa_id_fkey"
             columns: ["siswa_id"]
             isOneToOne: false
-            referencedRelation: "students"
+            referencedRelation: "santri"
             referencedColumns: ["id"]
           },
         ]
@@ -247,7 +247,7 @@ export type Database = {
             foreignKeyName: "pembangunan_pesantren_siswa_id_fkey"
             columns: ["siswa_id"]
             isOneToOne: false
-            referencedRelation: "students"
+            referencedRelation: "santri"
             referencedColumns: ["id"]
           },
         ]
@@ -356,7 +356,7 @@ export type Database = {
             foreignKeyName: "pembayaran_pesantren_siswa_id_fkey"
             columns: ["siswa_id"]
             isOneToOne: false
-            referencedRelation: "students"
+            referencedRelation: "santri"
             referencedColumns: ["id"]
           },
         ]
@@ -472,6 +472,60 @@ export type Database = {
           id?: string
           phone?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      santri: {
+        Row: {
+          barcode: string
+          biaya_per_bulan: number
+          created_at: string
+          deposit: number
+          foto: string | null
+          id: string
+          jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kategori: string | null
+          kelas: string
+          nama_lengkap: string
+          nama_orang_tua: string
+          nisn: string
+          nomor_whatsapp: string
+          tunggakan_pesantren: string[]
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string
+          biaya_per_bulan?: number
+          created_at?: string
+          deposit?: number
+          foto?: string | null
+          id?: string
+          jenjang: Database["public"]["Enums"]["jenjang_type"]
+          kategori?: string | null
+          kelas: string
+          nama_lengkap: string
+          nama_orang_tua: string
+          nisn: string
+          nomor_whatsapp: string
+          tunggakan_pesantren?: string[]
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string
+          biaya_per_bulan?: number
+          created_at?: string
+          deposit?: number
+          foto?: string | null
+          id?: string
+          jenjang?: Database["public"]["Enums"]["jenjang_type"]
+          kategori?: string | null
+          kelas?: string
+          nama_lengkap?: string
+          nama_orang_tua?: string
+          nisn?: string
+          nomor_whatsapp?: string
+          tunggakan_pesantren?: string[]
+          updated_at?: string
         }
         Relationships: []
       }
