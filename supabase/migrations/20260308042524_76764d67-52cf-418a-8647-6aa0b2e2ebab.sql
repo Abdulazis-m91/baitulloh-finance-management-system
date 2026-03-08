@@ -1,0 +1,1 @@
+ALTER TYPE public.jenjang_type ADD VALUE IF NOT EXISTS 'Reguler';
