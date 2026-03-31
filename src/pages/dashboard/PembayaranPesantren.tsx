@@ -454,13 +454,19 @@ export default function PembayaranPesantren() {
                 <div className="flex justify-between text-sm"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{strukData.petugas}</span></div>
                 <div className="text-center pt-3 border-t border-dashed border-gray-300"><p className="text-[9px] text-gray-400">Terima kasih atas pembayarannya</p></div>
               </div>
-              <div className="flex gap-3 mt-5">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveStruk}
+              <div className="flex gap-2 mt-5">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSimpanCetak}
+                  className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
+                  <Printer className="w-4 h-4" /> Simpan & Cetak
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSimpanKirim}
                   className="flex-1 py-3 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
-                  <Download className="w-4 h-4" /> Simpan Struk
+                  <Send className="w-4 h-4" /> Simpan & Kirim
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowStruk(false)}
-                  className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors">Batal</motion.button>
+                  className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors flex items-center justify-center gap-2">
+                  <LogOut className="w-4 h-4" /> Keluar
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
