@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, CreditCard, Scan, Loader2, X, Download } from 'lucide-react';
+import { Search, User, CreditCard, Scan, Loader2, X, Printer, Send, LogOut } from 'lucide-react';
 import { useSantri, useUpdateSantri, type SantriDB } from '@/hooks/useSupabaseSantri';
 import {
   useInsertPembayaranPesantren, useInsertKonsumsi, useInsertOperasional, useInsertPembangunan,
