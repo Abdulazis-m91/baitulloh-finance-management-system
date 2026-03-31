@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, CreditCard, Scan, Loader2, X, Download } from 'lucide-react';
+import { Search, User, CreditCard, Scan, Loader2, X, Printer, Send, LogOut } from 'lucide-react';
 import { useSantri, useUpdateSantri, type SantriDB } from '@/hooks/useSupabaseSantri';
 import {
   useInsertPembayaranPesantren, useInsertKonsumsi, useInsertOperasional, useInsertPembangunan,
@@ -147,11 +147,8 @@ export default function PembayaranPesantren() {
     } catch (err) { console.error(err); toast.error('Gagal mendownload struk'); return false; }
   };
 
-  const saveStruk = async () => {
+  const saveData = () => {
     if (!strukData) return;
-    const downloaded = await downloadStrukAsPDF();
-    if (!downloaded) return;
-
     const { student, hasCicilanAktif, totalCicilanSebelumnya, totalBayarUtuh, biayaKomponen, ...record } = strukData;
     const kat = record.kategori;
     const bk = biayaKomponen;
@@ -159,23 +156,45 @@ export default function PembayaranPesantren() {
     if (metode === 'Cicil') {
       insertCicilan.mutate({ siswa_id: student.id, bulan: record.bulan, nominal: record.nominal, tanggal: record.tanggal, petugas: record.petugas });
     } else if (metode === 'Lunas') {
-      // Insert pembayaran_pesantren with full amount
       insertPembayaran.mutate({ ...record, nominal: totalBayarUtuh, metode: 'Lunas' as const });
-      // Split into 3 component tables
       const baseComp = { siswa_id: student.id, pembayaran_id: null, nama_siswa: student.nama_lengkap, kategori: kat, bulan: record.bulan, tanggal: record.tanggal, petugas: record.petugas };
       if (bk.konsumsi > 0) insertKonsumsi.mutate({ ...baseComp, nominal: bk.konsumsi });
       if (bk.operasional > 0) insertOperasional.mutate({ ...baseComp, nominal: bk.operasional });
       if (bk.pembangunan > 0) insertPembangunan.mutate({ ...baseComp, nominal: bk.pembangunan });
-      // Remove tunggakan
       updateStudent.mutate({ id: student.id, tunggakan_pesantren: student.tunggakan_pesantren.filter((b: string) => b !== record.bulan) });
       if (hasCicilanAktif) deleteCicilan.mutate({ siswa_id: student.id, bulan: record.bulan });
     } else if (metode === 'Deposit') {
       insertPembayaran.mutate(record);
       updateStudent.mutate({ id: student.id, deposit: (student.deposit || 0) + record.nominal });
     }
+  };
 
+  const resetForm = () => {
     setShowStruk(false); setSelectedStudent(null); setSelectedBulan(''); setNominalCicilInput('');
-    toast.success('Struk berhasil didownload & data tersimpan');
+  };
+
+  const handleSimpanCetak = async () => {
+    if (!strukData) return;
+    const downloaded = await downloadStrukAsPDF();
+    if (!downloaded) return;
+    saveData();
+    window.print();
+    resetForm();
+    toast.success('Data tersimpan & struk dicetak');
+  };
+
+  const handleSimpanKirim = async () => {
+    if (!strukData) return;
+    const downloaded = await downloadStrukAsPDF();
+    if (!downloaded) return;
+    saveData();
+    const nominalText = formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal);
+    const msg = `Assalamu'alaikum,\n\nBerikut struk pembayaran Pesantren:\n\nNama: ${strukData.nama_siswa}\nNISN: ${strukData.nisn}\nJenjang/Kelas: ${strukData.jenjang} - ${strukData.kelas}\nKategori: ${strukData.kategori}\nBulan: ${strukData.bulan}\nMetode: ${strukData.metode}\nNominal: ${nominalText}\nTanggal: ${formatDate(strukData.tanggal)}\nPetugas: ${strukData.petugas}\n\nTerima kasih atas pembayarannya.\n\n- Yayasan Baitulloh`;
+    const phone = strukData.student?.nomor_whatsapp?.replace(/^0/, '62')?.replace(/[^0-9]/g, '') || '';
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+    resetForm();
+    toast.success('Data tersimpan & struk dikirim via WhatsApp');
   };
 
   const effectiveMetode = (() => {
@@ -435,13 +454,19 @@ export default function PembayaranPesantren() {
                 <div className="flex justify-between text-sm"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{strukData.petugas}</span></div>
                 <div className="text-center pt-3 border-t border-dashed border-gray-300"><p className="text-[9px] text-gray-400">Terima kasih atas pembayarannya</p></div>
               </div>
-              <div className="flex gap-3 mt-5">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveStruk}
+              <div className="flex gap-2 mt-5">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSimpanCetak}
+                  className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
+                  <Printer className="w-4 h-4" /> Simpan & Cetak
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSimpanKirim}
                   className="flex-1 py-3 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
-                  <Download className="w-4 h-4" /> Simpan Struk
+                  <Send className="w-4 h-4" /> Simpan & Kirim
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowStruk(false)}
-                  className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors">Batal</motion.button>
+                  className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors flex items-center justify-center gap-2">
+                  <LogOut className="w-4 h-4" /> Keluar
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>

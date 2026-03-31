@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, CreditCard, Scan, Loader2, X, Download } from 'lucide-react';
+import { Search, User, CreditCard, Scan, Loader2, X, Printer, Send, LogOut } from 'lucide-react';
 import { useStudents, useInsertPembayaran, useUpdateStudent, useCicilanBySiswa, useInsertCicilan, useDeleteCicilanBySiswaAndBulan, type StudentDB, type CicilanDB } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
@@ -207,51 +207,51 @@ export default function PembayaranSekolah() {
     }
   };
 
-  const saveStruk = async () => {
+  const saveData = () => {
     if (!strukData) return;
-    const downloaded = await downloadStrukAsPDF();
-    if (!downloaded) return;
-
     const { student, hasCicilanAktif, totalCicilanSebelumnya, totalBayarUtuh, ...record } = strukData;
 
     if (metode === 'Cicil') {
-      // Save to cicilan table only
-      insertCicilan.mutate({
-        siswa_id: student.id,
-        bulan: record.bulan,
-        nominal: record.nominal,
-        tanggal: record.tanggal,
-        petugas: record.petugas,
-      });
+      insertCicilan.mutate({ siswa_id: student.id, bulan: record.bulan, nominal: record.nominal, tanggal: record.tanggal, petugas: record.petugas });
     } else if (metode === 'Lunas') {
-      // Save to pembayaran with full amount (biaya_per_bulan)
-      insertPembayaran.mutate({
-        ...record,
-        nominal: totalBayarUtuh, // full biaya per bulan
-        metode: 'Lunas' as const,
-      });
-      // Remove tunggakan for this month
-      updateStudent.mutate({
-        id: student.id,
-        tunggakan_sekolah: student.tunggakan_sekolah.filter((b: string) => b !== record.bulan),
-      });
-      // If there were cicilan records, delete them
-      if (hasCicilanAktif) {
-        deleteCicilan.mutate({ siswa_id: student.id, bulan: record.bulan });
-      }
+      insertPembayaran.mutate({ ...record, nominal: totalBayarUtuh, metode: 'Lunas' as const });
+      updateStudent.mutate({ id: student.id, tunggakan_sekolah: student.tunggakan_sekolah.filter((b: string) => b !== record.bulan) });
+      if (hasCicilanAktif) deleteCicilan.mutate({ siswa_id: student.id, bulan: record.bulan });
     } else if (metode === 'Deposit') {
       insertPembayaran.mutate(record);
-      updateStudent.mutate({
-        id: student.id,
-        deposit: (student.deposit || 0) + record.nominal,
-      });
+      updateStudent.mutate({ id: student.id, deposit: (student.deposit || 0) + record.nominal });
     }
+  };
 
+  const resetForm = () => {
     setShowStruk(false);
     setSelectedStudent(null);
     setSelectedBulan('');
     setNominalCicilInput('');
-    toast.success('Struk berhasil didownload & data tersimpan');
+  };
+
+  const handleSimpanCetak = async () => {
+    if (!strukData) return;
+    const downloaded = await downloadStrukAsPDF();
+    if (!downloaded) return;
+    saveData();
+    window.print();
+    resetForm();
+    toast.success('Data tersimpan & struk dicetak');
+  };
+
+  const handleSimpanKirim = async () => {
+    if (!strukData) return;
+    const downloaded = await downloadStrukAsPDF();
+    if (!downloaded) return;
+    saveData();
+    const nominalText = formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal);
+    const msg = `Assalamu'alaikum,\n\nBerikut struk pembayaran SPP:\n\nNama: ${strukData.nama_siswa}\nNISN: ${strukData.nisn}\nJenjang/Kelas: ${strukData.jenjang} - ${strukData.kelas}\nBulan: ${strukData.bulan}\nMetode: ${strukData.metode}\nNominal: ${nominalText}\nTanggal: ${formatDate(strukData.tanggal)}\nPetugas: ${strukData.petugas}\n\nTerima kasih atas pembayarannya.\n\n- Yayasan Baitulloh`;
+    const phone = strukData.student?.nomor_whatsapp?.replace(/^0/, '62')?.replace(/[^0-9]/g, '') || '';
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+    resetForm();
+    toast.success('Data tersimpan & struk dikirim via WhatsApp');
   };
 
   // Auto-correct metode when cicilan data loads
@@ -557,14 +557,18 @@ export default function PembayaranSekolah() {
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-5">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveStruk}
+              <div className="flex gap-2 mt-5">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSimpanCetak}
+                  className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
+                  <Printer className="w-4 h-4" /> Simpan & Cetak
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSimpanKirim}
                   className="flex-1 py-3 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
-                  <Download className="w-4 h-4" /> Simpan Struk
+                  <Send className="w-4 h-4" /> Simpan & Kirim
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowStruk(false)}
-                  className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors">
-                  Batal
+                  className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors flex items-center justify-center gap-2">
+                  <LogOut className="w-4 h-4" /> Keluar
                 </motion.button>
               </div>
             </motion.div>
