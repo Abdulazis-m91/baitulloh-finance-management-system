@@ -147,11 +147,8 @@ export default function PembayaranPesantren() {
     } catch (err) { console.error(err); toast.error('Gagal mendownload struk'); return false; }
   };
 
-  const saveStruk = async () => {
+  const saveData = () => {
     if (!strukData) return;
-    const downloaded = await downloadStrukAsPDF();
-    if (!downloaded) return;
-
     const { student, hasCicilanAktif, totalCicilanSebelumnya, totalBayarUtuh, biayaKomponen, ...record } = strukData;
     const kat = record.kategori;
     const bk = biayaKomponen;
@@ -159,23 +156,45 @@ export default function PembayaranPesantren() {
     if (metode === 'Cicil') {
       insertCicilan.mutate({ siswa_id: student.id, bulan: record.bulan, nominal: record.nominal, tanggal: record.tanggal, petugas: record.petugas });
     } else if (metode === 'Lunas') {
-      // Insert pembayaran_pesantren with full amount
       insertPembayaran.mutate({ ...record, nominal: totalBayarUtuh, metode: 'Lunas' as const });
-      // Split into 3 component tables
       const baseComp = { siswa_id: student.id, pembayaran_id: null, nama_siswa: student.nama_lengkap, kategori: kat, bulan: record.bulan, tanggal: record.tanggal, petugas: record.petugas };
       if (bk.konsumsi > 0) insertKonsumsi.mutate({ ...baseComp, nominal: bk.konsumsi });
       if (bk.operasional > 0) insertOperasional.mutate({ ...baseComp, nominal: bk.operasional });
       if (bk.pembangunan > 0) insertPembangunan.mutate({ ...baseComp, nominal: bk.pembangunan });
-      // Remove tunggakan
       updateStudent.mutate({ id: student.id, tunggakan_pesantren: student.tunggakan_pesantren.filter((b: string) => b !== record.bulan) });
       if (hasCicilanAktif) deleteCicilan.mutate({ siswa_id: student.id, bulan: record.bulan });
     } else if (metode === 'Deposit') {
       insertPembayaran.mutate(record);
       updateStudent.mutate({ id: student.id, deposit: (student.deposit || 0) + record.nominal });
     }
+  };
 
+  const resetForm = () => {
     setShowStruk(false); setSelectedStudent(null); setSelectedBulan(''); setNominalCicilInput('');
-    toast.success('Struk berhasil didownload & data tersimpan');
+  };
+
+  const handleSimpanCetak = async () => {
+    if (!strukData) return;
+    const downloaded = await downloadStrukAsPDF();
+    if (!downloaded) return;
+    saveData();
+    window.print();
+    resetForm();
+    toast.success('Data tersimpan & struk dicetak');
+  };
+
+  const handleSimpanKirim = async () => {
+    if (!strukData) return;
+    const downloaded = await downloadStrukAsPDF();
+    if (!downloaded) return;
+    saveData();
+    const nominalText = formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal);
+    const msg = `Assalamu'alaikum,\n\nBerikut struk pembayaran Pesantren:\n\nNama: ${strukData.nama_siswa}\nNISN: ${strukData.nisn}\nJenjang/Kelas: ${strukData.jenjang} - ${strukData.kelas}\nKategori: ${strukData.kategori}\nBulan: ${strukData.bulan}\nMetode: ${strukData.metode}\nNominal: ${nominalText}\nTanggal: ${formatDate(strukData.tanggal)}\nPetugas: ${strukData.petugas}\n\nTerima kasih atas pembayarannya.\n\n- Yayasan Baitulloh`;
+    const phone = strukData.student?.nomor_whatsapp?.replace(/^0/, '62')?.replace(/[^0-9]/g, '') || '';
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+    resetForm();
+    toast.success('Data tersimpan & struk dikirim via WhatsApp');
   };
 
   const effectiveMetode = (() => {
