@@ -557,18 +557,21 @@ export default function PembayaranSekolah() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-5">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSimpanCetak}
-                  className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
-                  <Printer className="w-4 h-4" /> Simpan & Cetak
+              <div className="grid grid-cols-3 gap-3 mt-5">
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={handleSimpanCetak}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-xs shadow-md hover:shadow-lg transition-shadow">
+                  <Printer className="w-5 h-5" />
+                  <span>Simpan &<br />Cetak</span>
                 </motion.button>
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSimpanKirim}
-                  className="flex-1 py-3 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
-                  <Send className="w-4 h-4" /> Simpan & Kirim
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={handleSimpanKirim}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 rounded-2xl bg-success text-success-foreground font-semibold text-xs shadow-md hover:shadow-lg transition-shadow">
+                  <Send className="w-5 h-5" />
+                  <span>Simpan &<br />Kirim</span>
                 </motion.button>
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowStruk(false)}
-                  className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors flex items-center justify-center gap-2">
-                  <LogOut className="w-4 h-4" /> Keluar
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setShowStruk(false)}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 rounded-2xl border-2 border-border text-muted-foreground font-semibold text-xs hover:bg-muted transition-colors">
+                  <LogOut className="w-5 h-5" />
+                  <span>Keluar</span>
                 </motion.button>
               </div>
             </motion.div>
