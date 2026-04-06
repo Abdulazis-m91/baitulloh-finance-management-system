@@ -194,7 +194,7 @@ export default function PembayaranSekolah() {
       const imgData = canvas.toDataURL('image/png');
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-      const pdfWidth = 80; // mm
+      const pdfWidth = 57; // 57mm thermal paper
       const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
       const doc = new jsPDF({ unit: 'mm', format: [pdfWidth, pdfHeight + 10] });
       doc.addImage(imgData, 'PNG', 0, 5, pdfWidth, pdfHeight);
@@ -519,41 +519,39 @@ export default function PembayaranSekolah() {
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowStruk(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
 
-              <div ref={strukRef} className="border-2 border-dashed border-gray-300 rounded-2xl p-6 space-y-3 bg-white">
-                <div className="text-center mb-5 pb-4 border-b border-dashed border-gray-300">
-                  <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl mx-auto mb-2 object-contain" />
-                  <h4 className="font-extrabold text-gray-900">YAYASAN BAITULLOH</h4>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">
+              <div ref={strukRef} className="border border-dashed border-gray-300 rounded-xl p-3 space-y-1.5 bg-white max-w-[220px] mx-auto text-[11px]">
+                <div className="text-center mb-2 pb-2 border-b border-dashed border-gray-300">
+                  <img src={logoYB} alt="Logo YB" className="w-8 h-8 rounded-lg mx-auto mb-1 object-contain" />
+                  <h4 className="font-extrabold text-gray-900 text-[11px] leading-tight">YAYASAN BAITULLOH</h4>
+                  <p className="text-[8px] text-gray-500 uppercase tracking-widest">
                     Struk {metode === 'Cicil' ? 'Cicilan' : 'Pembayaran'} SPP
                   </p>
                 </div>
                 {[
                   ['Tanggal', formatDate(strukData.tanggal)],
-                  ['Nama Siswa', strukData.nama_siswa],
+                  ['Nama', strukData.nama_siswa],
                   ['NISN', strukData.nisn],
-                  ['Jenjang/Kelas', `${strukData.jenjang} - ${strukData.kelas}`],
+                  ['Kelas', `${strukData.jenjang} - ${strukData.kelas}`],
                   ['Bulan', strukData.bulan],
-                  ['Metode', metode === 'Lunas' && strukData.hasCicilanAktif ? 'Pelunasan (Cicil → Lunas)' : strukData.metode],
+                  ['Metode', metode === 'Lunas' && strukData.hasCicilanAktif ? 'Pelunasan' : strukData.metode],
                 ].map(([l, v]) => (
-                  <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium">{v}</span></div>
+                  <div key={l} className="flex justify-between leading-tight"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium text-right max-w-[55%] truncate">{v}</span></div>
                 ))}
                 {metode === 'Lunas' && strukData.hasCicilanAktif && strukData.totalCicilanSebelumnya > 0 && (
-                  <>
-                    <div className="border-t border-dashed border-gray-200 pt-2">
-                      <div className="flex justify-between text-xs text-gray-400"><span>Total Cicilan Sebelumnya</span><span>{formatRupiah(strukData.totalCicilanSebelumnya)}</span></div>
-                      <div className="flex justify-between text-xs text-gray-400"><span>Pelunasan Sekarang</span><span>{formatRupiah(strukData.nominal)}</span></div>
-                    </div>
-                  </>
+                  <div className="border-t border-dashed border-gray-200 pt-1 space-y-0.5">
+                    <div className="flex justify-between text-[10px] text-gray-400"><span>Cicilan Sblm</span><span>{formatRupiah(strukData.totalCicilanSebelumnya)}</span></div>
+                    <div className="flex justify-between text-[10px] text-gray-400"><span>Pelunasan</span><span>{formatRupiah(strukData.nominal)}</span></div>
+                  </div>
                 )}
-                <div className="border-t border-dashed border-gray-300 pt-3 flex justify-between text-sm font-extrabold">
-                  <span className="text-gray-900">Nominal {metode === 'Lunas' && strukData.hasCicilanAktif ? '(Total)' : ''}</span>
-                  <span className="text-green-600 text-lg">
+                <div className="border-t border-dashed border-gray-300 pt-1.5 flex justify-between font-extrabold">
+                  <span className="text-gray-900">Nominal</span>
+                  <span className="text-green-600 text-sm">
                     {formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal)}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{strukData.petugas}</span></div>
-                <div className="text-center pt-3 border-t border-dashed border-gray-300">
-                  <p className="text-[9px] text-gray-400">Terima kasih atas pembayarannya</p>
+                <div className="flex justify-between leading-tight"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{strukData.petugas}</span></div>
+                <div className="text-center pt-1.5 border-t border-dashed border-gray-300">
+                  <p className="text-[8px] text-gray-400">Terima kasih atas pembayarannya</p>
                 </div>
               </div>
 

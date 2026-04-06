@@ -139,7 +139,7 @@ export default function PembayaranPesantren() {
       await Promise.all(Array.from(images).map(img => { if (img.complete) return Promise.resolve(); return new Promise(r => { img.onload = r; img.onerror = r; }); }));
       const canvas = await html2canvas(strukRef.current, { backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true, logging: false });
       const imgData = canvas.toDataURL('image/png');
-      const pdfW = 80; const pdfH = (canvas.height * pdfW) / canvas.width;
+      const pdfW = 57; const pdfH = (canvas.height * pdfW) / canvas.width;
       const doc = new jsPDF({ unit: 'mm', format: [pdfW, pdfH + 10] });
       doc.addImage(imgData, 'PNG', 0, 5, pdfW, pdfH);
       doc.save(`struk-pesantren-${strukData?.nama_siswa?.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
@@ -416,43 +416,43 @@ export default function PembayaranPesantren() {
                 <h3 className="font-bold text-foreground text-lg">Struk {metode === 'Cicil' ? 'Cicilan' : 'Pembayaran'} Pesantren</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowStruk(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
-              <div ref={strukRef} className="border-2 border-dashed border-gray-300 rounded-2xl p-6 space-y-3 bg-white">
-                <div className="text-center mb-5 pb-4 border-b border-dashed border-gray-300">
-                  <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl mx-auto mb-2 object-contain" />
-                  <h4 className="font-extrabold text-gray-900">YAYASAN BAITULLOH</h4>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Struk {metode === 'Cicil' ? 'Cicilan' : 'Pembayaran'} Pesantren</p>
+              <div ref={strukRef} className="border border-dashed border-gray-300 rounded-xl p-3 space-y-1.5 bg-white max-w-[220px] mx-auto text-[11px]">
+                <div className="text-center mb-2 pb-2 border-b border-dashed border-gray-300">
+                  <img src={logoYB} alt="Logo YB" className="w-8 h-8 rounded-lg mx-auto mb-1 object-contain" />
+                  <h4 className="font-extrabold text-gray-900 text-[11px] leading-tight">YAYASAN BAITULLOH</h4>
+                  <p className="text-[8px] text-gray-500 uppercase tracking-widest">Struk {metode === 'Cicil' ? 'Cicilan' : 'Pembayaran'} Pesantren</p>
                 </div>
                 {[
                   ['Tanggal', formatDate(strukData.tanggal)],
-                  ['Nama Santri', strukData.nama_siswa],
+                  ['Nama', strukData.nama_siswa],
                   ['NISN', strukData.nisn],
-                  ['Jenjang/Kelas', `${strukData.jenjang} - ${strukData.kelas}`],
+                  ['Kelas', `${strukData.jenjang} - ${strukData.kelas}`],
                   ['Kategori', strukData.kategori],
                   ['Bulan', strukData.bulan],
-                  ['Metode', metode === 'Lunas' && strukData.hasCicilanAktif ? 'Pelunasan (Cicil → Lunas)' : strukData.metode],
+                  ['Metode', metode === 'Lunas' && strukData.hasCicilanAktif ? 'Pelunasan' : strukData.metode],
                 ].map(([l, v]) => (
-                  <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium">{v}</span></div>
+                  <div key={l} className="flex justify-between leading-tight"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium text-right max-w-[55%] truncate">{v}</span></div>
                 ))}
                 {metode === 'Lunas' && !strukData.hasCicilanAktif && (
-                  <div className="border-t border-dashed border-gray-200 pt-2 space-y-0.5">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1">Rincian Pembagian</p>
-                    <div className="flex justify-between text-xs text-gray-500"><span>Konsumsi</span><span>{formatRupiah(strukData.biayaKomponen.konsumsi)}</span></div>
-                    <div className="flex justify-between text-xs text-gray-500"><span>Operasional</span><span>{formatRupiah(strukData.biayaKomponen.operasional)}</span></div>
-                    <div className="flex justify-between text-xs text-gray-500"><span>Pembangunan</span><span>{formatRupiah(strukData.biayaKomponen.pembangunan)}</span></div>
+                  <div className="border-t border-dashed border-gray-200 pt-1 space-y-0.5">
+                    <p className="text-[8px] text-gray-400 uppercase tracking-wider font-semibold">Rincian</p>
+                    <div className="flex justify-between text-[10px] text-gray-500"><span>Konsumsi</span><span>{formatRupiah(strukData.biayaKomponen.konsumsi)}</span></div>
+                    <div className="flex justify-between text-[10px] text-gray-500"><span>Operasional</span><span>{formatRupiah(strukData.biayaKomponen.operasional)}</span></div>
+                    <div className="flex justify-between text-[10px] text-gray-500"><span>Pembangunan</span><span>{formatRupiah(strukData.biayaKomponen.pembangunan)}</span></div>
                   </div>
                 )}
                 {metode === 'Lunas' && strukData.hasCicilanAktif && strukData.totalCicilanSebelumnya > 0 && (
-                  <div className="border-t border-dashed border-gray-200 pt-2">
-                    <div className="flex justify-between text-xs text-gray-400"><span>Total Cicilan Sebelumnya</span><span>{formatRupiah(strukData.totalCicilanSebelumnya)}</span></div>
-                    <div className="flex justify-between text-xs text-gray-400"><span>Pelunasan Sekarang</span><span>{formatRupiah(strukData.nominal)}</span></div>
+                  <div className="border-t border-dashed border-gray-200 pt-1 space-y-0.5">
+                    <div className="flex justify-between text-[10px] text-gray-400"><span>Cicilan Sblm</span><span>{formatRupiah(strukData.totalCicilanSebelumnya)}</span></div>
+                    <div className="flex justify-between text-[10px] text-gray-400"><span>Pelunasan</span><span>{formatRupiah(strukData.nominal)}</span></div>
                   </div>
                 )}
-                <div className="border-t border-dashed border-gray-300 pt-3 flex justify-between text-sm font-extrabold">
-                  <span className="text-gray-900">Nominal {metode === 'Lunas' && strukData.hasCicilanAktif ? '(Total)' : ''}</span>
-                  <span className="text-green-600 text-lg">{formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal)}</span>
+                <div className="border-t border-dashed border-gray-300 pt-1.5 flex justify-between font-extrabold">
+                  <span className="text-gray-900">Nominal</span>
+                  <span className="text-green-600 text-sm">{formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal)}</span>
                 </div>
-                <div className="flex justify-between text-sm"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{strukData.petugas}</span></div>
-                <div className="text-center pt-3 border-t border-dashed border-gray-300"><p className="text-[9px] text-gray-400">Terima kasih atas pembayarannya</p></div>
+                <div className="flex justify-between leading-tight"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{strukData.petugas}</span></div>
+                <div className="text-center pt-1.5 border-t border-dashed border-gray-300"><p className="text-[8px] text-gray-400">Terima kasih atas pembayarannya</p></div>
               </div>
               <div className="grid grid-cols-3 gap-3 mt-5">
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={handleSimpanCetak}
