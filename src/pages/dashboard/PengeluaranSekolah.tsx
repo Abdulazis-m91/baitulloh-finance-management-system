@@ -256,22 +256,22 @@ export default function PengeluaranSekolah() {
               </div>
               
               {/* Nota content for capture */}
-              <div ref={notaRef} className="border border-dashed border-gray-300 rounded-xl p-3 space-y-1.5 bg-white max-w-[220px] mx-auto text-[11px]">
-                <div className="text-center mb-2 pb-2 border-b border-dashed border-gray-300">
-                  <img src={logoYB} alt="Logo YB" className="w-8 h-8 rounded-lg mx-auto mb-1 object-contain" />
-                  <h4 className="font-extrabold text-gray-900 text-[11px] leading-tight">YAYASAN BAITULLOH</h4>
-                  <p className="text-[8px] text-gray-500 uppercase tracking-widest">Nota Pengeluaran</p>
+              <div ref={notaRef} className="border-2 border-dashed border-gray-300 rounded-2xl p-6 space-y-3 bg-white">
+                <div className="text-center mb-5 pb-4 border-b border-dashed border-gray-300">
+                  <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl mx-auto mb-2 object-contain" />
+                  <h4 className="font-extrabold text-gray-900">YAYASAN BAITULLOH</h4>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Nota Pengeluaran</p>
                 </div>
                 {[
                   ['Tanggal', formatDate(notaData.tanggal)],
-                  ['Ket.', notaData.keterangan],
-                  ['Sumber', notaData.sumber_dana],
+                  ['Keterangan', notaData.keterangan],
+                  ['Sumber Dana', notaData.sumber_dana],
                   ['Jenis', notaData.jenis_keperluan],
                 ].map(([l, v]) => (
-                  <div key={l} className="flex justify-between leading-tight"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium text-right max-w-[55%] truncate">{v}</span></div>
+                  <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="text-gray-900 font-medium">{v}</span></div>
                 ))}
-                <div className="border-t border-dashed border-gray-300 pt-1.5 flex justify-between font-extrabold"><span className="text-gray-900">Nominal</span><span className="text-red-600 text-sm">{formatRupiah(notaData.nominal)}</span></div>
-                <div className="flex justify-between leading-tight"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{notaData.petugas}</span></div>
+                <div className="border-t border-dashed border-gray-300 pt-3 flex justify-between text-sm font-extrabold"><span className="text-gray-900">Nominal</span><span className="text-red-600 text-lg">{formatRupiah(notaData.nominal)}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-gray-500">Petugas</span><span className="text-gray-900">{notaData.petugas}</span></div>
               </div>
 
               <div className="flex gap-3 mt-5">
