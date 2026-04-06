@@ -59,7 +59,7 @@ export default function PengeluaranPesantren() {
       }));
       const canvas = await html2canvas(notaRef.current, { backgroundColor: '#ffffff', scale: 2, useCORS: true, allowTaint: true, logging: false });
       const imgData = canvas.toDataURL('image/png');
-      const pdfWidth = 80;
+      const pdfWidth = 57;
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       const doc = new jsPDF({ unit: 'mm', format: [pdfWidth, pdfHeight + 10] });
       doc.addImage(imgData, 'PNG', 0, 5, pdfWidth, pdfHeight);
