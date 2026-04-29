@@ -8,7 +8,7 @@ import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
-type Tab = 'SMP' | 'SMA' | 'Total';
+type Tab = 'SMP' | 'SMA' | 'Khusus' | 'Total';
 
 const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
@@ -49,8 +49,32 @@ export default function LaporanSekolah() {
     return { totalPemasukan, totalPengeluaran, totalTunggakan, jumlahMembayar: new Set(pembayaran.map(p => p.siswa_id)).size, jumlahMenunggak: siswaMenunggak.length };
   };
 
+  // Data khusus — jenjang=Reguler + kategori=Khusus
+  const getDataKhusus = () => {
+    const siswaKhusus = students.filter(s => s.kategori === 'Khusus');
+    const idKhusus = new Set(siswaKhusus.map(s => s.id));
+    const pembayaran = pembayaranAll.filter(p => p.siswa_id && idKhusus.has(p.siswa_id) && p.metode === 'Lunas');
+    const pengeluaran = pengeluaranAll.filter(e => e.sumber_dana === 'Reguler');
+    const siswaMenunggak = siswaKhusus.filter(s => s.tunggakan_sekolah.length > 0);
+    const totalPemasukan = pembayaran.reduce((a, p) => a + p.nominal, 0);
+    const totalPengeluaran = pengeluaran.reduce((a, e) => a + e.nominal, 0);
+    const totalTunggakan = siswaMenunggak.reduce((a, s) => a + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0);
+    return { totalPemasukan, totalPengeluaran, totalTunggakan, jumlahMembayar: new Set(pembayaran.map(p => p.siswa_id)).size, jumlahMenunggak: siswaMenunggak.length };
+  };
+
+  const getTunggakanPerKelasKhusus = () => {
+    const siswaKhusus = students.filter(s => s.kategori === 'Khusus');
+    const allKelas = [...new Set(siswaKhusus.map(s => s.kelas))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+    return allKelas.map(kelas => {
+      const siswa = siswaKhusus.filter(s => s.kelas === kelas && s.tunggakan_sekolah.length > 0);
+      const nominal = siswa.reduce((a, s) => a + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0);
+      return { kelas, jumlah: siswa.length, nominal };
+    }).filter(k => k.jumlah > 0);
+  };
+
   const smp = getData('SMP');
   const sma = getData('SMA');
+  const khusus = getDataKhusus();
 
   const exportExcel = () => {
     if (activeTab === 'Total') {
@@ -373,12 +397,94 @@ export default function LaporanSekolah() {
     );
   };
 
+  // ── Render tab Khusus ────────────────────────────────────────────────────
+  const renderKhususTab = () => {
+    const d = khusus;
+    const tunggakanKelas = getTunggakanPerKelasKhusus();
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+          <div className="p-6 border-b border-border bg-muted/20">
+            <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg gradient-warning flex items-center justify-center"><Wallet className="w-4 h-4 text-warning-foreground" /></div>
+              Laporan Keuangan Khusus
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">Periode: 1 sd akhir {bulanIni} {tahunIni} · Siswa Kurang Mampu</p>
+          </div>
+          <div className="divide-y divide-border">
+            <div className="p-6 flex items-center justify-between bg-success/[0.03]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl gradient-success flex items-center justify-center"><TrendingUp className="w-5 h-5 text-success-foreground" /></div>
+                <div><p className="font-bold text-foreground">Pemasukan</p><p className="text-xs text-muted-foreground">{d.jumlahMembayar} siswa membayar</p></div>
+              </div>
+              <p className="text-xl font-extrabold text-success">{formatRupiah(d.totalPemasukan)}</p>
+            </div>
+            <div className="p-6 flex items-center justify-between bg-destructive/[0.03]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><TrendingDown className="w-5 h-5 text-destructive-foreground" /></div>
+                <div><p className="font-bold text-foreground">Pengeluaran</p><p className="text-xs text-muted-foreground">Sumber dana Khusus</p></div>
+              </div>
+              <p className="text-xl font-extrabold text-destructive">{formatRupiah(d.totalPengeluaran)}</p>
+            </div>
+            <div className="p-6 flex items-center justify-between gradient-card">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"><Wallet className="w-5 h-5 text-foreground" /></div>
+                <p className="font-extrabold text-foreground">Sisa Keuangan</p>
+              </div>
+              <p className="text-2xl font-extrabold text-primary">{formatRupiah(d.totalPemasukan - d.totalPengeluaran)}</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+          <div className="p-6 border-b border-border bg-muted/20">
+            <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg gradient-warning flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-warning-foreground" /></div>
+              Tunggakan Siswa Khusus
+            </h3>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-5 rounded-2xl bg-destructive/5 border border-destructive/10">
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Siswa Menunggak</p>
+                <p className="text-4xl font-extrabold text-destructive">{d.jumlahMenunggak}</p>
+                <p className="text-xs text-muted-foreground mt-1">siswa</p>
+              </div>
+              <div className="text-center p-5 rounded-2xl bg-destructive/5 border border-destructive/10">
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Total Tunggakan</p>
+                <p className="text-xl font-extrabold text-destructive">{formatRupiah(d.totalTunggakan)}</p>
+              </div>
+            </div>
+            {tunggakanKelas.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-foreground uppercase tracking-wider">Detail Per Kelas</p>
+                {tunggakanKelas.map(k => (
+                  <div key={k.kelas} className="flex justify-between items-center p-3 rounded-xl bg-muted/30 border border-border text-sm">
+                    <span className="text-foreground font-medium">Kelas {k.kelas}</span>
+                    <div className="text-right">
+                      <span className="text-xs text-muted-foreground block">{k.jumlah} siswa</span>
+                      <span className="text-destructive font-bold">{formatRupiah(k.nominal)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 text-center">✓ Tidak ada tunggakan siswa khusus</p>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
   // ── Render tab Total ──────────────────────────────────────────────────────
   const renderTotalTab = () => {
-    const totalPendapatan    = smp.totalPemasukan  + sma.totalPemasukan;
-    const totalPengeluaranAll = smp.totalPengeluaran + sma.totalPengeluaran;
+    const totalPendapatan    = smp.totalPemasukan  + sma.totalPemasukan  + khusus.totalPemasukan;
+    const totalPengeluaranAll = smp.totalPengeluaran + sma.totalPengeluaran + khusus.totalPengeluaran;
     const sisaKeuangan       = totalPendapatan - totalPengeluaranAll;
-    const totalTunggakanAll  = smp.totalTunggakan  + sma.totalTunggakan;
+    const totalTunggakanAll  = smp.totalTunggakan  + sma.totalTunggakan  + khusus.totalTunggakan;
 
     return (
       <div className="space-y-6">
@@ -404,6 +510,7 @@ export default function LaporanSekolah() {
                 <div className="mt-3 ml-[52px] space-y-1">
                   <p className="text-xs text-muted-foreground">Total Pendapatan SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPemasukan)}</span></p>
                   <p className="text-xs text-muted-foreground">Total Pendapatan SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPemasukan)}</span></p>
+                  <p className="text-xs text-muted-foreground">Total Pendapatan Khusus : <span className="font-semibold text-foreground">{formatRupiah(khusus.totalPemasukan)}</span></p>
                 </div>
               </div>
               <div className="p-6 bg-destructive/[0.03]">
@@ -417,6 +524,7 @@ export default function LaporanSekolah() {
                 <div className="mt-3 ml-[52px] space-y-1">
                   <p className="text-xs text-muted-foreground">Total Pengeluaran SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPengeluaran)}</span></p>
                   <p className="text-xs text-muted-foreground">Total Pengeluaran SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPengeluaran)}</span></p>
+                  <p className="text-xs text-muted-foreground">Total Pengeluaran Khusus : <span className="font-semibold text-foreground">{formatRupiah(khusus.totalPengeluaran)}</span></p>
                 </div>
               </div>
               <div className="p-6 gradient-card">
@@ -470,6 +578,23 @@ export default function LaporanSekolah() {
                   ))}
                 </div>
               </div>
+              {/* Tunggakan Khusus — hanya tampil jika ada */}
+              {khusus.totalTunggakan > 0 && (
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center"><Users className="w-5 h-5 text-warning" /></div>
+                      <p className="font-extrabold text-foreground text-lg">TOTAL TUNGGAKAN KHUSUS</p>
+                    </div>
+                    <p className="text-2xl font-extrabold text-destructive">{formatRupiah(khusus.totalTunggakan)}</p>
+                  </div>
+                  <div className="mt-3 ml-[52px] space-y-1">
+                    {getTunggakanPerKelasKhusus().map(k => (
+                      <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} siswa</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="p-6" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -523,16 +648,16 @@ export default function LaporanSekolah() {
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit flex-wrap">
-        {(['SMP', 'SMA', 'Total'] as Tab[]).map(tab => (
+        {(['SMP', 'SMA', 'Khusus', 'Total'] as Tab[]).map(tab => (
           <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             onClick={() => setActiveTab(tab)}
             className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-            {tab === 'Total' ? 'Laporan Total' : `Laporan ${tab}`}
+            {tab === 'Total' ? 'Laporan Total' : tab === 'Khusus' ? 'Laporan Khusus' : `Laporan ${tab}`}
           </motion.button>
         ))}
       </motion.div>
 
-      {activeTab === 'Total' ? renderTotalTab() : renderJenjangTab(activeTab)}
+      {activeTab === 'Total' ? renderTotalTab() : activeTab === 'Khusus' ? renderKhususTab() : renderJenjangTab(activeTab)}
     </div>
   );
 }
