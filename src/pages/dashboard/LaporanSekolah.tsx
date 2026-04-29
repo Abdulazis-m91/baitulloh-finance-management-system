@@ -276,44 +276,35 @@ export default function LaporanSekolah() {
     y += 3;
     highlightRow(`TOTAL TUNGGAKAN SISWA  (${bulanTahun})`, formatRupiah(totalTunggakan), C.danger, [255,200,200] as any);
 
-    // ── FOOTER ──────────────────────────────────────────────────────────────
-    const footerY = H - 30;
+    // ── TANDA TANGAN (di atas garis emas, pojok kanan) ──────────────────
+    const footerY    = H - 28;
+    const sigCenterX = W - margin - 28;
+    const sigTopY    = footerY - 34;
 
-    // Garis emas
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+    setColor(C.dark);
+    doc.text(`Lampung, ${bulanIni} ${tahunIni}`, sigCenterX, sigTopY, { align: 'center' });
+    doc.text('Bendahara,', sigCenterX, sigTopY + 6, { align: 'center' });
+    setDraw(C.dark); doc.setLineWidth(0.3);
+    doc.line(sigCenterX - 22, sigTopY + 20, sigCenterX + 22, sigTopY + 20);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+    setColor(C.dark);
+    doc.text(userName || 'Petugas', sigCenterX, sigTopY + 26, { align: 'center' });
+
+    // ── FOOTER ──────────────────────────────────────────────────────────────
     setFill(C.gold); fillRect(0, footerY, W, 1.5);
-    // Background footer
     setFill([248,250,252] as any); fillRect(0, footerY + 1.5, W, H - footerY);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
     setColor(C.gray);
     doc.text(
       'Dokumen ini digenerate secara otomatis oleh Sistem Informasi Keuangan Yayasan Baitulloh.',
-      W / 2, footerY + 8, { align: 'center' }
+      W / 2, footerY + 9, { align: 'center' }
     );
     doc.text(
       `Halaman 1 dari 1  |  ${printTime}`,
-      W / 2, footerY + 13, { align: 'center' }
+      W / 2, footerY + 15, { align: 'center' }
     );
-
-    // ── TANDA TANGAN (pojok kanan bawah, di atas footer) ─────────────────
-    const sigCenterX = W - margin - 25;  // posisi tengah tanda tangan
-    const sigTopY    = footerY + 3;
-
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-    setColor(C.dark);
-    // Tempat & tanggal
-    doc.text(`Lampung, ${bulanIni} ${tahunIni}`, sigCenterX, sigTopY + 3, { align: 'center' });
-    // Label
-    doc.text('Bendahara,', sigCenterX, sigTopY + 8, { align: 'center' });
-    // Ruang tanda tangan
-    y = sigTopY + 18;
-    // Garis tanda tangan
-    setDraw(C.dark); doc.setLineWidth(0.3);
-    doc.line(sigCenterX - 20, sigTopY + 20, sigCenterX + 20, sigTopY + 20);
-    // Nama petugas yang login
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
-    setColor(C.dark);
-    doc.text(userName || 'Petugas', sigCenterX, sigTopY + 25, { align: 'center' });
 
     doc.save(`Laporan-Keuangan-Sekolah-${bulanIni}-${tahunIni}.pdf`);
     toast.success('Laporan PDF berhasil didownload');
