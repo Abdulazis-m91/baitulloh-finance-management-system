@@ -283,10 +283,11 @@ export default function PendapatanSekolah() {
 
               {/* Peringatan rollback */}
               <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 mb-5">
-                <p className="text-xs text-warning font-semibold flex items-center gap-1.5 mb-1">
-                  <AlertTriangle className="w-3.5 h-3.5" /> Perhatian
-                </p>
-                <p className="text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-warning flex-shrink-0" />
+                  <p className="text-xs text-warning font-semibold">Perhatian</p>
+                </div>
+                <p className="text-xs text-muted-foreground text-left">
                   Status siswa akan berubah kembali menjadi <span className="font-bold text-destructive">menunggak</span> untuk bulan {showDeleteConfirm.bulan}.
                 </p>
               </div>
