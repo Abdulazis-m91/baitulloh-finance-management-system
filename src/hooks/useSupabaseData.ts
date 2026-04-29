@@ -7,7 +7,7 @@ export interface StudentDB {
   id: string;
   nisn: string;
   nama_lengkap: string;
-  jenjang: 'SMP' | 'SMA' | 'Reguler'; // ← tambah 'Reguler' untuk siswa Khusus
+  jenjang: 'SMP' | 'SMA' | 'Reguler';
   kelas: string;
   nama_orang_tua: string;
   nomor_whatsapp: string;
@@ -17,7 +17,7 @@ export interface StudentDB {
   tunggakan_pesantren: string[];
   biaya_per_bulan: number;
   deposit: number;
-  kategori: string | null; // 'Khusus' untuk siswa tidak mampu, null untuk reguler
+  kategori: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -130,6 +130,53 @@ export function useInsertPembayaran() {
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['pembayaran'] }); toast.success('Pembayaran berhasil dicatat'); },
     onError: (e) => toast.error(`Gagal mencatat pembayaran: ${e.message}`),
+  });
+}
+
+// ── Hapus pembayaran + rollback tunggakan siswa ────────────────────────────
+// Saat record pembayaran dihapus:
+// 1. Ambil data pembayaran (siswa_id + bulan)
+// 2. Hapus record pembayaran dari DB
+// 3. Tambahkan bulan tersebut kembali ke tunggakan_sekolah siswa
+export function useDeletePembayaran() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (pembayaran: PembayaranDB) => {
+      // Step 1: Hapus record pembayaran
+      const { error: deleteError } = await supabase
+        .from('pembayaran')
+        .delete()
+        .eq('id', pembayaran.id);
+      if (deleteError) throw deleteError;
+
+      // Step 2: Rollback tunggakan siswa (hanya jika ada siswa_id dan bukan Deposit)
+      if (pembayaran.siswa_id && pembayaran.metode !== 'Deposit') {
+        // Ambil data siswa terkini
+        const { data: siswa, error: fetchError } = await supabase
+          .from('students')
+          .select('tunggakan_sekolah')
+          .eq('id', pembayaran.siswa_id)
+          .single();
+        if (fetchError) throw fetchError;
+
+        // Tambahkan bulan yang dihapus kembali ke tunggakan (hindari duplikat)
+        const tunggakanLama: string[] = siswa?.tunggakan_sekolah || [];
+        if (!tunggakanLama.includes(pembayaran.bulan)) {
+          const tunggakanBaru = [...tunggakanLama, pembayaran.bulan];
+          const { error: updateError } = await supabase
+            .from('students')
+            .update({ tunggakan_sekolah: tunggakanBaru })
+            .eq('id', pembayaran.siswa_id);
+          if (updateError) throw updateError;
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pembayaran'] });
+      qc.invalidateQueries({ queryKey: ['students'] });
+      toast.success('Pembayaran dihapus & tunggakan siswa diperbarui');
+    },
+    onError: (e) => toast.error(`Gagal menghapus pembayaran: ${e.message}`),
   });
 }
 
