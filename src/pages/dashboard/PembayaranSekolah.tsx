@@ -495,7 +495,6 @@ export default function PembayaranSekolah() {
                   </div>
                   <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#888', fontWeight: 300, lineHeight: 1.4 }}>
                     Jl. Yukum Jaya, Terbanggi Besar, Lampung Tengah<br />
-                    Telp: (0725) XXXXXX
                   </div>
                 </div>
 
