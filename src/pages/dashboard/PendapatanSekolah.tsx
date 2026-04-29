@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Loader2, ChevronLeft, ChevronRight, Trash2, AlertTriangle, X, Plus } from 'lucide-react';
+import { Download, Loader2, ChevronLeft, ChevronRight, Trash2, AlertTriangle, X, Plus, Search } from 'lucide-react';
 import { usePembayaran, useStudents, useCicilan, useInsertPembayaran, useDeletePembayaran, type PembayaranDB } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
-type Tab = 'SMP' | 'SMA' | 'Cicil' | 'Deposit';
+// Tab sekarang termasuk Khusus
+type Tab = 'SMP' | 'SMA' | 'Khusus' | 'Cicil' | 'Deposit';
 const PAGE_SIZE = 15;
 
 const modalOverlay = "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4";
 const modalSpring = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
-// Form state untuk tambah pendapatan lainnya
 type TambahForm = {
   keterangan: string;
   nominal: string;
@@ -21,22 +21,29 @@ type TambahForm = {
 
 const emptyTambahForm: TambahForm = { keterangan: '', nominal: '' };
 
+// Helper: cek apakah pembayaran dari siswa "Khusus"
+const isKhususPembayaran = (p: any, studentMap: Record<string, any>) => {
+  const siswa = studentMap[p.siswa_id];
+  return siswa?.kategori === 'Khusus';
+};
+
 export default function PendapatanSekolah() {
   const [activeTab, setActiveTab] = useState<Tab>('SMP');
   const [filterKelas, setFilterKelas] = useState('');
+  const [searchNama, setSearchNama] = useState('');
   const [page, setPage] = useState(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<PembayaranDB | null>(null);
   const [showTambahForm, setShowTambahForm] = useState(false);
   const [tambahForm, setTambahForm] = useState<TambahForm>(emptyTambahForm);
 
-  const tabs: Tab[] = ['SMP', 'SMA', 'Cicil', 'Deposit'];
+  const tabs: Tab[] = ['SMP', 'SMA', 'Khusus', 'Cicil', 'Deposit'];
 
   const { data: pembayaran = [], isLoading: l1 } = usePembayaran();
   const { data: students = [], isLoading: l2 } = useStudents();
   const { data: cicilan = [], isLoading: l3 } = useCicilan();
   const deletePembayaran = useDeletePembayaran();
   const insertPembayaran = useInsertPembayaran();
-  const { userName } = useAuth(); // nama petugas yang sedang login
+  const { userName } = useAuth();
 
   if (l1 || l2 || l3) return (
     <div className="flex items-center justify-center min-h-[40vh]">
@@ -51,6 +58,14 @@ export default function PendapatanSekolah() {
       return pembayaran.filter(p =>
         p.jenjang === activeTab &&
         (!filterKelas || p.kelas === filterKelas) &&
+        p.metode !== 'Deposit' &&
+        !isKhususPembayaran(p, studentMap) // exclude Khusus dari SMP/SMA
+      );
+    }
+    if (activeTab === 'Khusus') {
+      // Tampilkan pembayaran dari siswa berkategori Khusus
+      return pembayaran.filter(p =>
+        isKhususPembayaran(p, studentMap) &&
         p.metode !== 'Deposit'
       );
     }
@@ -68,7 +83,13 @@ export default function PendapatanSekolah() {
     return [];
   };
 
-  const data = allData();
+  // Apply search filter
+  const data = allData().filter(p => {
+    if (!searchNama) return true;
+    const nama = p.nama_siswa || p.namaSiswa || '';
+    return nama.toLowerCase().includes(searchNama.toLowerCase());
+  });
+
   const totalNominal = data.reduce((sum, d) => sum + (d.nominal || 0), 0);
   const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
   const pagedData = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -98,21 +119,19 @@ export default function PendapatanSekolah() {
     });
   };
 
-  // ── Simpan Tambah Pendapatan Lainnya ──────────────────────────────────────
   const handleTambahPendapatan = () => {
     const nominal = parseInt(tambahForm.nominal);
     if (!tambahForm.keterangan.trim()) { toast.error('Keterangan wajib diisi'); return; }
     if (!nominal || nominal <= 0) { toast.error('Nominal harus lebih dari 0'); return; }
 
     const tanggal = new Date().toISOString().split('T')[0];
-
     insertPembayaran.mutate({
       siswa_id: null,
-      nama_siswa: tambahForm.keterangan.trim(),  // keterangan diisi sebagai nama
+      nama_siswa: tambahForm.keterangan.trim(),
       nisn: '-',
-      jenjang: activeTab === 'SMA' ? 'SMA' : 'SMP', // ikut tab aktif
+      jenjang: activeTab === 'SMA' ? 'SMA' : 'SMP',
       kelas: '-',
-      bulan: 'Pendapatan Lainnya',               // label tetap
+      bulan: 'Pendapatan Lainnya',
       nominal,
       metode: 'Lunas',
       tanggal,
@@ -126,12 +145,12 @@ export default function PendapatanSekolah() {
     });
   };
 
-  // Header kolom — SMP/SMA tambah kolom Aksi
   const headers: Record<Tab, string[]> = {
-    'SMP': ['No', 'Tanggal Bayar', 'Nama / Keterangan', 'Jenjang', 'Kelas', 'Pembayaran Bulan', 'Nominal', 'Petugas', 'Aksi'],
-    'SMA': ['No', 'Tanggal Bayar', 'Nama / Keterangan', 'Jenjang', 'Kelas', 'Pembayaran Bulan', 'Nominal', 'Petugas', 'Aksi'],
-    'Cicil': ['No', 'Tanggal Bayar', 'Nama', 'Jenjang', 'Kelas', 'Cicilan Untuk Bulan', 'Nominal Cicilan'],
-    'Deposit': ['No', 'Tanggal Bayar', 'Nama', 'Jenjang', 'Kelas', 'Deposit Untuk Bulan', 'Nominal Deposit'],
+    'SMP':    ['No', 'Tanggal Bayar', 'Nama / Keterangan', 'Jenjang', 'Kelas', 'Pembayaran Bulan', 'Nominal', 'Petugas', 'Aksi'],
+    'SMA':    ['No', 'Tanggal Bayar', 'Nama / Keterangan', 'Jenjang', 'Kelas', 'Pembayaran Bulan', 'Nominal', 'Petugas', 'Aksi'],
+    'Khusus': ['No', 'Tanggal Bayar', 'Nama Siswa', 'Kelas', 'Pembayaran Bulan', 'Nominal', 'Petugas', 'Aksi'],
+    'Cicil':  ['No', 'Tanggal Bayar', 'Nama', 'Jenjang', 'Kelas', 'Cicilan Untuk Bulan', 'Nominal Cicilan'],
+    'Deposit':['No', 'Tanggal Bayar', 'Nama', 'Jenjang', 'Kelas', 'Deposit Untuk Bulan', 'Nominal Deposit'],
   };
 
   const colCount = headers[activeTab].length;
@@ -144,7 +163,6 @@ export default function PendapatanSekolah() {
           <p className="text-muted-foreground text-sm mt-1">Riwayat pendapatan dari pembayaran siswa</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-2 flex-wrap">
-          {/* ── Tombol Tambah Pendapatan ── */}
           {(activeTab === 'SMP' || activeTab === 'SMA') && (
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={() => { setShowTambahForm(true); setTambahForm(emptyTambahForm); }}
@@ -161,24 +179,39 @@ export default function PendapatanSekolah() {
 
       {/* Tabs */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit">
+        className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit flex-wrap">
         {tabs.map(tab => (
           <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-            onClick={() => { setActiveTab(tab); setFilterKelas(''); setPage(1); }}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+            onClick={() => { setActiveTab(tab); setFilterKelas(''); setSearchNama(''); setPage(1); }}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
             {tab === 'Cicil' ? 'Cicilan' : tab}
           </motion.button>
         ))}
       </motion.div>
 
-      {/* Filter Kelas */}
-      {(activeTab === 'SMP' || activeTab === 'SMA') && (
-        <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }}
-          className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-          <option value="">Semua Kelas</option>
-          {kelasOpts.map(k => <option key={k} value={k}>{k}</option>)}
-        </select>
-      )}
+      {/* ── Filter Bar ── */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+        className="flex flex-wrap gap-3 items-center">
+        {/* Search nama siswa — panjang */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchNama}
+            onChange={e => { setSearchNama(e.target.value); setPage(1); }}
+            placeholder="Cari nama siswa..."
+            className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm"
+          />
+        </div>
+        {/* Filter kelas — hanya SMP/SMA */}
+        {(activeTab === 'SMP' || activeTab === 'SMA') && (
+          <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }}
+            className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus min-w-[150px]">
+            <option value="">Semua Kelas</option>
+            {kelasOpts.map(k => <option key={k} value={k}>{k}</option>)}
+          </select>
+        )}
+      </motion.div>
 
       {/* Table */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
@@ -210,7 +243,7 @@ export default function PendapatanSekolah() {
                 <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                   className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors group">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{formatDate(p.tanggal)}</td>
+                  <td className="py-4 px-4 text-muted-foreground whitespace-nowrap">{formatDate(p.tanggal)}</td>
                   <td className="py-4 px-4 text-foreground font-semibold">{p.nama_siswa}</td>
                   <td className="py-4 px-4">
                     <span className="px-2.5 py-1 rounded-lg bg-primary/5 text-primary text-xs font-bold">{p.jenjang}</span>
@@ -218,18 +251,40 @@ export default function PendapatanSekolah() {
                   <td className="py-4 px-4 text-foreground">{p.kelas}</td>
                   <td className="py-4 px-4">
                     <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                      p.bulan === 'Pendapatan Lainnya'
-                        ? 'bg-info/10 text-info'
-                        : 'bg-accent/50 text-accent-foreground'
+                      p.bulan === 'Pendapatan Lainnya' ? 'bg-info/10 text-info' : 'bg-accent/50 text-accent-foreground'
                     }`}>{p.bulan}</span>
                   </td>
                   <td className="py-4 px-4 text-right text-foreground font-bold">{formatRupiah(p.nominal)}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{p.petugas}</td>
+                  <td className="py-4 px-4 text-muted-foreground text-xs">{p.petugas}</td>
                   <td className="py-4 px-4 text-center">
                     <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
                       onClick={() => setShowDeleteConfirm(p)}
-                      className="p-2 rounded-xl text-destructive hover:bg-destructive/10 transition-colors"
-                      title="Hapus pembayaran">
+                      className="p-2 rounded-xl text-destructive hover:bg-destructive/10 transition-colors" title="Hapus">
+                      <Trash2 className="w-4 h-4" />
+                    </motion.button>
+                  </td>
+                </motion.tr>
+              ))}
+
+              {/* ── Khusus rows ── */}
+              {activeTab === 'Khusus' && pagedData.map((p: any, i: number) => (
+                <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+                  className="border-b border-border/30 hover:bg-warning/[0.02] transition-colors group">
+                  <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
+                  <td className="py-4 px-4 text-muted-foreground whitespace-nowrap">{formatDate(p.tanggal)}</td>
+                  <td className="py-4 px-4 text-foreground font-semibold">{p.nama_siswa}</td>
+                  <td className="py-4 px-4 text-foreground">{p.kelas}</td>
+                  <td className="py-4 px-4">
+                    <span className="px-2.5 py-1 rounded-lg bg-accent/50 text-accent-foreground text-xs font-bold">{p.bulan}</span>
+                  </td>
+                  <td className="py-4 px-4 text-right font-bold">
+                    <span className="text-warning">{formatRupiah(p.nominal)}</span>
+                  </td>
+                  <td className="py-4 px-4 text-muted-foreground text-xs">{p.petugas}</td>
+                  <td className="py-4 px-4 text-center">
+                    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                      onClick={() => setShowDeleteConfirm(p)}
+                      className="p-2 rounded-xl text-destructive hover:bg-destructive/10 transition-colors" title="Hapus">
                       <Trash2 className="w-4 h-4" />
                     </motion.button>
                   </td>
@@ -241,7 +296,7 @@ export default function PendapatanSekolah() {
                 <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                   className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{formatDate(c.tanggal)}</td>
+                  <td className="py-4 px-4 text-muted-foreground whitespace-nowrap">{formatDate(c.tanggal)}</td>
                   <td className="py-4 px-4 text-foreground font-semibold">{c.namaSiswa}</td>
                   <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-primary/5 text-primary text-xs font-bold">{c.jenjang}</span></td>
                   <td className="py-4 px-4 text-foreground">{c.kelas}</td>
@@ -255,7 +310,7 @@ export default function PendapatanSekolah() {
                 <motion.tr key={d.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                   className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors">
                   <td className="py-4 px-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td className="py-4 px-4 text-muted-foreground">{formatDate(d.tanggal)}</td>
+                  <td className="py-4 px-4 text-muted-foreground whitespace-nowrap">{formatDate(d.tanggal)}</td>
                   <td className="py-4 px-4 text-foreground font-semibold">{d.nama_siswa}</td>
                   <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-primary/5 text-primary text-xs font-bold">{d.jenjang}</span></td>
                   <td className="py-4 px-4 text-foreground">{d.kelas}</td>
@@ -264,23 +319,33 @@ export default function PendapatanSekolah() {
                 </motion.tr>
               ))}
             </tbody>
-
-            {/* Footer total */}
-            <tfoot>
-              <tr className="bg-muted/50 border-t-2 border-border">
-                <td colSpan={2} className="py-4 px-4 font-bold text-foreground text-sm">TOTAL</td>
-                <td className="py-4 px-4 text-muted-foreground text-xs">{todayStr}</td>
-                <td className="py-4 px-4 text-muted-foreground text-xs">{monthStr}</td>
-                <td colSpan={colCount - 5} className="py-4 px-4"></td>
-                <td className="py-4 px-4 text-right font-extrabold text-primary text-base">{formatRupiah(totalNominal)}</td>
-              </tr>
-              <tr className="bg-muted/30">
-                <td colSpan={colCount} className="py-2 px-4 text-xs text-muted-foreground text-center">
-                  Total dari {data.length} transaksi
-                </td>
-              </tr>
-            </tfoot>
           </table>
+        </div>
+
+        {/* ── Footer Total — profesional ── */}
+        <div className="border-t-2 border-border bg-muted/20">
+          <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center gap-6">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Total Transaksi</p>
+                <p className="text-sm font-bold text-foreground">{data.length} transaksi</p>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Periode</p>
+                <p className="text-sm font-bold text-foreground">{monthStr}</p>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Tanggal Cetak</p>
+                <p className="text-sm font-bold text-foreground">{todayStr}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Total Nominal</p>
+              <p className="text-2xl font-extrabold text-primary">{formatRupiah(totalNominal)}</p>
+            </div>
+          </div>
         </div>
 
         {/* Pagination */}
@@ -301,7 +366,7 @@ export default function PendapatanSekolah() {
         )}
       </motion.div>
 
-      {/* ── POPUP TAMBAH PENDAPATAN LAINNYA ── */}
+      {/* ── POPUP TAMBAH PENDAPATAN — hanya Keterangan & Nominal ── */}
       <AnimatePresence>
         {showTambahForm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -311,7 +376,10 @@ export default function PendapatanSekolah() {
               onClick={e => e.stopPropagation()}>
 
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-foreground text-xl">Tambah Pendapatan Lainnya</h3>
+                <div>
+                  <h3 className="font-bold text-foreground text-xl">Tambah Pendapatan Lainnya</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Tab aktif: <span className="font-bold text-primary">{activeTab}</span></p>
+                </div>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
                   onClick={() => setShowTambahForm(false)} className="p-2 rounded-full hover:bg-muted">
                   <X className="w-5 h-5" />
@@ -319,65 +387,26 @@ export default function PendapatanSekolah() {
               </div>
 
               <div className="space-y-4">
-                {/* Tanggal - disabled, otomatis hari ini */}
-                <div>
-                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Tanggal</label>
-                  <input
-                    type="text"
-                    value={today.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted text-muted-foreground text-sm cursor-not-allowed"
-                  />
-                </div>
-
                 {/* Keterangan */}
                 <div>
-                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Keterangan</label>
+                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">
+                    Keterangan <span className="text-destructive">*</span>
+                  </label>
                   <input
                     type="text"
                     value={tambahForm.keterangan}
                     onChange={e => setTambahForm(prev => ({ ...prev, keterangan: e.target.value }))}
                     placeholder="Contoh: Dana Infaq, Sumbangan, dll"
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus"
+                    autoFocus
                   />
                 </div>
 
-                {/* Jenjang - disabled, mengikuti tab aktif */}
+                {/* Nominal */}
                 <div>
-                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Jenjang</label>
-                  <input
-                    type="text"
-                    value={activeTab}
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted text-muted-foreground text-sm cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Kelas - disabled, kosong */}
-                <div>
-                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Kelas</label>
-                  <input
-                    type="text"
-                    value="-"
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted text-muted-foreground text-sm cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Pembayaran Bulan - disabled, "Pendapatan Lainnya" */}
-                <div>
-                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Pembayaran Bulan</label>
-                  <input
-                    type="text"
-                    value="Pendapatan Lainnya"
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted text-muted-foreground text-sm cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Nominal - input manual */}
-                <div>
-                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Nominal (Rp)</label>
+                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">
+                    Nominal (Rp) <span className="text-destructive">*</span>
+                  </label>
                   <input
                     type="number"
                     min="0"
@@ -385,29 +414,20 @@ export default function PendapatanSekolah() {
                     value={tambahForm.nominal}
                     onChange={e => setTambahForm(prev => ({ ...prev, nominal: e.target.value }))}
                     placeholder="Contoh: 500000"
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus"
                   />
                   {tambahForm.nominal && Number(tambahForm.nominal) > 0 && (
-                    <p className="text-xs text-primary font-semibold mt-1">= {formatRupiah(Number(tambahForm.nominal))}</p>
+                    <p className="text-xs text-primary font-semibold mt-1.5">
+                      = {formatRupiah(Number(tambahForm.nominal))}
+                    </p>
                   )}
-                </div>
-
-                {/* Petugas - disabled, nama petugas login */}
-                <div>
-                  <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Petugas</label>
-                  <input
-                    type="text"
-                    value={userName || 'Petugas'}
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted text-muted-foreground text-sm cursor-not-allowed"
-                  />
                 </div>
 
                 <motion.button
                   whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
                   onClick={handleTambahPendapatan}
                   disabled={insertPembayaran.isPending}
-                  className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine shadow-glow-primary text-sm disabled:opacity-50">
+                  className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine shadow-glow-primary text-sm disabled:opacity-50 mt-2">
                   {insertPembayaran.isPending ? 'Menyimpan...' : 'Simpan Pendapatan'}
                 </motion.button>
               </div>
@@ -429,20 +449,19 @@ export default function PendapatanSekolah() {
                 <AlertTriangle className="w-8 h-8 text-destructive" />
               </div>
               <h3 className="font-bold text-foreground text-lg mb-2">Hapus Pembayaran?</h3>
-              <p className="text-sm text-muted-foreground mb-2">
-                Pembayaran <span className="font-bold text-foreground">{showDeleteConfirm.nama_siswa}</span> untuk bulan{' '}
+              <p className="text-sm text-muted-foreground mb-3">
+                Pembayaran <span className="font-bold text-foreground">{showDeleteConfirm.nama_siswa}</span> bulan{' '}
                 <span className="font-bold text-destructive">{showDeleteConfirm.bulan}</span> akan dihapus.
               </p>
 
-              {/* Peringatan rollback — hanya untuk pembayaran siswa bukan pendapatan lainnya */}
               {showDeleteConfirm.bulan !== 'Pendapatan Lainnya' && showDeleteConfirm.siswa_id && (
-                <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 mb-5">
+                <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 mb-5 text-left">
                   <div className="flex items-center gap-1.5 mb-1">
                     <AlertTriangle className="w-3.5 h-3.5 text-warning flex-shrink-0" />
                     <p className="text-xs text-warning font-semibold">Perhatian</p>
                   </div>
-                  <p className="text-xs text-muted-foreground text-left">
-                    Status siswa akan berubah kembali menjadi <span className="font-bold text-destructive">menunggak</span> untuk bulan {showDeleteConfirm.bulan}.
+                  <p className="text-xs text-muted-foreground">
+                    Status siswa akan kembali menjadi <span className="font-bold text-destructive">menunggak</span> untuk bulan {showDeleteConfirm.bulan}.
                   </p>
                 </div>
               )}
