@@ -500,12 +500,12 @@ export default function LaporanSekolah() {
             </div>
             <div className="divide-y divide-border">
               <div className="p-6 bg-success/[0.03]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl gradient-success flex items-center justify-center"><TrendingUp className="w-5 h-5 text-success-foreground" /></div>
-                    <p className="font-extrabold text-foreground text-lg">TOTAL PENDAPATAN</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl gradient-success flex-shrink-0 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-success-foreground" /></div>
+                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL PENDAPATAN</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-success">{formatRupiah(totalPendapatan)}</p>
+                  <p className="text-xl font-extrabold text-success whitespace-nowrap">{formatRupiah(totalPendapatan)}</p>
                 </div>
                 <div className="mt-3 ml-[52px] space-y-1">
                   <p className="text-xs text-muted-foreground">Total Pendapatan SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPemasukan)}</span></p>
@@ -517,9 +517,9 @@ export default function LaporanSekolah() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><TrendingDown className="w-5 h-5 text-destructive-foreground" /></div>
-                    <p className="font-extrabold text-foreground text-lg">TOTAL PENGELUARAN</p>
+                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL PENGELUARAN</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(totalPengeluaranAll)}</p>
+                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(totalPengeluaranAll)}</p>
                 </div>
                 <div className="mt-3 ml-[52px] space-y-1">
                   <p className="text-xs text-muted-foreground">Total Pengeluaran SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPengeluaran)}</span></p>
@@ -528,12 +528,12 @@ export default function LaporanSekolah() {
                 </div>
               </div>
               <div className="p-6 gradient-card">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"><Wallet className="w-5 h-5 text-foreground" /></div>
-                    <p className="font-extrabold text-foreground text-lg">SISA KEUANGAN ({bulanTahun})</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold flex-shrink-0"><Wallet className="w-5 h-5 text-foreground" /></div>
+                    <p className="font-extrabold text-foreground text-base leading-tight">SISA KEUANGAN<br/>({bulanTahun})</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-primary">{formatRupiah(sisaKeuangan)}</p>
+                  <p className="text-xl font-extrabold text-primary whitespace-nowrap">{formatRupiah(sisaKeuangan)}</p>
                 </div>
               </div>
             </div>
@@ -551,30 +551,36 @@ export default function LaporanSekolah() {
             </div>
             <div className="divide-y divide-destructive/10">
               <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
-                    <p className="font-extrabold text-foreground text-lg">TOTAL TUNGGAKAN SMP</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex-shrink-0 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
+                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN SMP</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(smp.totalTunggakan)}</p>
+                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(smp.totalTunggakan)}</p>
                 </div>
-                <div className="mt-3 ml-[52px] space-y-1">
+                <div className="mt-3 ml-[52px] space-y-1 overflow-hidden">
                   {getTunggakanPerKelas('SMP').map(k => (
-                    <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} siswa</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
+                    <div key={k.kelas} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">Kelas {k.kelas} · <span className="font-semibold text-foreground">{k.jumlah} siswa</span></span>
+                      <span className="font-semibold text-destructive whitespace-nowrap">{formatRupiah(k.nominal)}</span>
+                    </div>
                   ))}
                 </div>
               </div>
               <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
-                    <p className="font-extrabold text-foreground text-lg">TOTAL TUNGGAKAN SMA</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex-shrink-0 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
+                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN SMA</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(sma.totalTunggakan)}</p>
+                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(sma.totalTunggakan)}</p>
                 </div>
-                <div className="mt-3 ml-[52px] space-y-1">
+                <div className="mt-3 ml-[52px] space-y-1 overflow-hidden">
                   {getTunggakanPerKelas('SMA').map(k => (
-                    <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} siswa</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
+                    <div key={k.kelas} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">Kelas {k.kelas} · <span className="font-semibold text-foreground">{k.jumlah} siswa</span></span>
+                      <span className="font-semibold text-destructive whitespace-nowrap">{formatRupiah(k.nominal)}</span>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -584,24 +590,27 @@ export default function LaporanSekolah() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center"><Users className="w-5 h-5 text-warning" /></div>
-                      <p className="font-extrabold text-foreground text-lg">TOTAL TUNGGAKAN KHUSUS</p>
+                      <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN KHUSUS</p>
                     </div>
-                    <p className="text-2xl font-extrabold text-destructive">{formatRupiah(khusus.totalTunggakan)}</p>
+                    <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(khusus.totalTunggakan)}</p>
                   </div>
                   <div className="mt-3 ml-[52px] space-y-1">
                     {getTunggakanPerKelasKhusus().map(k => (
-                      <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} siswa</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
+                      <div key={k.kelas} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">Kelas {k.kelas} · <span className="font-semibold text-foreground">{k.jumlah} siswa</span></span>
+                      <span className="font-semibold text-destructive whitespace-nowrap">{formatRupiah(k.nominal)}</span>
+                    </div>
                     ))}
                   </div>
                 </div>
               )}
               <div className="p-6" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive-foreground" /></div>
-                    <p className="font-extrabold text-foreground text-lg">TOTAL TUNGGAKAN ({bulanTahun})</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center flex-shrink-0"><AlertTriangle className="w-5 h-5 text-destructive-foreground" /></div>
+                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN<br/>({bulanTahun})</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-destructive">{formatRupiah(totalTunggakanAll)}</p>
+                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(totalTunggakanAll)}</p>
                 </div>
               </div>
             </div>
