@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import jsPDF from 'jspdf';
 import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Info, Users, Printer } from 'lucide-react';
@@ -13,7 +13,6 @@ const bulanNama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli
 
 export default function LaporanSekolah() {
   const [activeTab, setActiveTab] = useState<Tab>('SMP');
-  const printRef = useRef<HTMLDivElement>(null);
   const { data: students = [], isLoading: l1 } = useStudents();
   const { data: pembayaranAll = [], isLoading: l2 } = usePembayaran();
   const { data: pengeluaranAll = [], isLoading: l3 } = usePengeluaran();
@@ -26,7 +25,6 @@ export default function LaporanSekolah() {
   const bulanTahun = `${bulanIni.toUpperCase()} - ${tahunIni}`;
 
   const getTunggakanPerKelas = (jenjang: 'SMP' | 'SMA') => {
-    // Get unique kelas values from actual student data for this jenjang, sorted
     const allKelas = [...new Set(students.filter(s => s.jenjang === jenjang).map(s => s.kelas))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
     return allKelas.map(kelas => {
       const siswa = students.filter(s => s.jenjang === jenjang && s.kelas === kelas && s.tunggakan_sekolah.length > 0);
@@ -48,20 +46,19 @@ export default function LaporanSekolah() {
   const smp = getData('SMP');
   const sma = getData('SMA');
 
+  // ── Export Excel ──────────────────────────────────────────────────────────
   const exportExcel = () => {
     if (activeTab === 'Total') {
-      const totalPendapatan = smp.totalPemasukan + sma.totalPemasukan;
-      const totalPengeluaran = smp.totalPengeluaran + sma.totalPengeluaran;
       const rows = [
         { Kategori: 'Total Pendapatan SMP', Nominal: smp.totalPemasukan },
         { Kategori: 'Total Pendapatan SMA', Nominal: sma.totalPemasukan },
-        { Kategori: 'TOTAL PENDAPATAN', Nominal: totalPendapatan },
+        { Kategori: 'TOTAL PENDAPATAN', Nominal: smp.totalPemasukan + sma.totalPemasukan },
         { Kategori: '', Nominal: '' },
         { Kategori: 'Total Pengeluaran SMP', Nominal: smp.totalPengeluaran },
         { Kategori: 'Total Pengeluaran SMA', Nominal: sma.totalPengeluaran },
-        { Kategori: 'TOTAL PENGELUARAN', Nominal: totalPengeluaran },
+        { Kategori: 'TOTAL PENGELUARAN', Nominal: smp.totalPengeluaran + sma.totalPengeluaran },
         { Kategori: '', Nominal: '' },
-        { Kategori: `SISA KEUANGAN (${bulanTahun})`, Nominal: totalPendapatan - totalPengeluaran },
+        { Kategori: `SISA KEUANGAN (${bulanTahun})`, Nominal: (smp.totalPemasukan + sma.totalPemasukan) - (smp.totalPengeluaran + sma.totalPengeluaran) },
       ];
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
@@ -84,6 +81,307 @@ export default function LaporanSekolah() {
     toast.success('Laporan berhasil diekspor');
   };
 
+  // ── Generate PDF Profesional ───────────────────────────────────────────────
+  const handlePrint = () => {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const W = doc.internal.pageSize.getWidth();   // 210
+    const H = doc.internal.pageSize.getHeight();  // 297
+    const margin = 14;
+    const cw = W - margin * 2;
+    let y = 0;
+
+    const totalPendapatan  = smp.totalPemasukan  + sma.totalPemasukan;
+    const totalPengeluaran = smp.totalPengeluaran + sma.totalPengeluaran;
+    const sisaKeuangan     = totalPendapatan - totalPengeluaran;
+    const totalTunggakan   = smp.totalTunggakan  + sma.totalTunggakan;
+
+    // ── Warna ──
+    const C = {
+      primary:   [30,  64,  175] as [number,number,number],  // biru
+      success:   [22, 163,  74]  as [number,number,number],  // hijau
+      danger:    [185, 28,  28]  as [number,number,number],  // merah
+      gold:      [161,118,  21]  as [number,number,number],  // emas
+      headerBg:  [30,  64,  175] as [number,number,number],
+      rowAlt:    [239,246,255]   as [number,number,number],  // biru muda
+      rowDanger: [254,242,242]   as [number,number,number],  // merah muda
+      gray:      [107,114,128]   as [number,number,number],
+      dark:      [17,  24,  39]  as [number,number,number],
+      white:     [255,255,255]   as [number,number,number],
+      border:    [209,213,219]   as [number,number,number],
+    };
+
+    // ── Helper functions ──
+    const setColor = (rgb: [number,number,number]) => doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+    const setFill  = (rgb: [number,number,number]) => doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+    const setDraw  = (rgb: [number,number,number]) => doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
+
+    const rect = (x: number, yy: number, w: number, h: number, filled = true) => {
+      filled ? doc.rect(x, yy, w, h, 'F') : doc.rect(x, yy, w, h, 'S');
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // HEADER BANNER
+    // ─────────────────────────────────────────────────────────────────────────
+    setFill(C.primary);
+    rect(0, 0, W, 42);
+
+    // Aksen garis emas di bawah banner
+    setFill(C.gold);
+    rect(0, 42, W, 2);
+
+    // Judul
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    setColor(C.white);
+    doc.text('LAPORAN KEUANGAN SEKOLAH', W / 2, 16, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('YAYASAN BAITULLOH', W / 2, 24, { align: 'center' });
+
+    doc.setFontSize(9);
+    setColor([180, 210, 255] as any);
+    doc.text(`Periode: ${bulanIni} ${tahunIni}`, W / 2, 32, { align: 'center' });
+
+    // Tanggal cetak di pojok kanan
+    doc.setFontSize(7);
+    setColor([180, 210, 255] as any);
+    const printTime = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    doc.text(`Dicetak: ${printTime}`, W - margin, 38, { align: 'right' });
+
+    y = 52;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SECTION TITLE helper
+    // ─────────────────────────────────────────────────────────────────────────
+    const sectionTitle = (title: string, icon: string = '●') => {
+      setFill(C.primary);
+      rect(margin, y, cw, 9);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      setColor(C.white);
+      doc.text(`${icon}  ${title}`, margin + 4, y + 6.2);
+      y += 12;
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TABLE ROW helper
+    // ─────────────────────────────────────────────────────────────────────────
+    const tableRow = (
+      label: string,
+      value: string,
+      opts: {
+        bg?: [number,number,number];
+        labelColor?: [number,number,number];
+        valueColor?: [number,number,number];
+        bold?: boolean;
+        indent?: number;
+        rowH?: number;
+        fontSize?: number;
+      } = {}
+    ) => {
+      const { bg, labelColor = C.dark, valueColor = C.dark, bold = false, indent = 0, rowH = 8, fontSize = 9 } = opts;
+
+      if (bg) { setFill(bg); rect(margin, y, cw, rowH); }
+
+      // border bawah
+      setDraw(C.border);
+      doc.setLineWidth(0.1);
+      doc.line(margin, y + rowH, margin + cw, y + rowH);
+
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(fontSize);
+      setColor(labelColor);
+      doc.text(label, margin + 4 + indent, y + rowH - 2.2);
+
+      setColor(valueColor);
+      doc.text(value, W - margin - 4, y + rowH - 2.2, { align: 'right' });
+
+      y += rowH;
+    };
+
+    const subRow = (label: string, value: string, color: [number,number,number] = C.gray) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      setColor(color);
+      doc.text(`↳  ${label}`, margin + 10, y + 4.5);
+      doc.text(value, W - margin - 4, y + 4.5, { align: 'right' });
+      y += 5.5;
+    };
+
+    const spacer = (h = 4) => { y += h; };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BAGIAN 1: LAPORAN KEUANGAN
+    // ─────────────────────────────────────────────────────────────────────────
+    sectionTitle('LAPORAN KEUANGAN', '💰');
+
+    // Header tabel
+    setFill([219, 234, 254] as any);
+    rect(margin, y, cw, 7);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    setColor(C.primary);
+    doc.text('KETERANGAN', margin + 4, y + 5);
+    doc.text('NOMINAL', W - margin - 4, y + 5, { align: 'right' });
+    y += 7;
+
+    // Pendapatan
+    tableRow('TOTAL PENDAPATAN', formatRupiah(totalPendapatan), {
+      bg: [240, 253, 244] as any,
+      labelColor: [15, 118, 59] as any,
+      valueColor: C.success,
+      bold: true,
+      rowH: 9,
+      fontSize: 10,
+    });
+    subRow(`Pendapatan SMP`, formatRupiah(smp.totalPemasukan));
+    subRow(`Pendapatan SMA`, formatRupiah(sma.totalPemasukan));
+    spacer(2);
+
+    // Pengeluaran
+    tableRow('TOTAL PENGELUARAN', formatRupiah(totalPengeluaran), {
+      bg: [254, 242, 242] as any,
+      labelColor: C.danger,
+      valueColor: C.danger,
+      bold: true,
+      rowH: 9,
+      fontSize: 10,
+    });
+    subRow(`Pengeluaran SMP`, formatRupiah(smp.totalPengeluaran));
+    subRow(`Pengeluaran SMA`, formatRupiah(sma.totalPengeluaran));
+    spacer(2);
+
+    // Sisa keuangan
+    setFill(C.primary);
+    rect(margin, y, cw, 11);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    setColor(C.white);
+    doc.text(`SISA KEUANGAN SEKOLAH  (${bulanTahun})`, margin + 4, y + 7.5);
+    setColor([255, 223, 100] as any);
+    doc.text(formatRupiah(sisaKeuangan), W - margin - 4, y + 7.5, { align: 'right' });
+    y += 14;
+
+    spacer(6);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BAGIAN 2: LAPORAN TUNGGAKAN
+    // ─────────────────────────────────────────────────────────────────────────
+    sectionTitle('LAPORAN TUNGGAKAN SISWA', '⚠');
+
+    // Header tabel tunggakan
+    setFill([254, 226, 226] as any);
+    rect(margin, y, cw, 7);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    setColor(C.danger);
+    doc.text('KELAS / JENJANG', margin + 4, y + 5);
+    doc.text('JML SISWA', W - margin - 50, y + 5, { align: 'right' });
+    doc.text('NOMINAL', W - margin - 4, y + 5, { align: 'right' });
+    y += 7;
+
+    // SMP rows
+    setFill([239, 246, 255] as any);
+    rect(margin, y, cw, 8);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    setColor(C.primary);
+    doc.text('SMP', margin + 4, y + 5.5);
+    setColor(C.danger);
+    doc.text(formatRupiah(smp.totalTunggakan), W - margin - 4, y + 5.5, { align: 'right' });
+    y += 8;
+
+    getTunggakanPerKelas('SMP').forEach((k, i) => {
+      if (i % 2 === 0) { setFill([249, 250, 251] as any); rect(margin, y, cw, 6.5); }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      setColor(C.gray);
+      doc.text(`     Kelas ${k.kelas}`, margin + 4, y + 4.5);
+      doc.text(`${k.jumlah} siswa`, W - margin - 50, y + 4.5, { align: 'right' });
+      setColor(C.danger);
+      doc.text(formatRupiah(k.nominal), W - margin - 4, y + 4.5, { align: 'right' });
+      setDraw(C.border);
+      doc.setLineWidth(0.1);
+      doc.line(margin, y + 6.5, margin + cw, y + 6.5);
+      y += 6.5;
+    });
+
+    spacer(3);
+
+    // SMA rows
+    setFill([239, 246, 255] as any);
+    rect(margin, y, cw, 8);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    setColor(C.primary);
+    doc.text('SMA', margin + 4, y + 5.5);
+    setColor(C.danger);
+    doc.text(formatRupiah(sma.totalTunggakan), W - margin - 4, y + 5.5, { align: 'right' });
+    y += 8;
+
+    getTunggakanPerKelas('SMA').forEach((k, i) => {
+      if (i % 2 === 0) { setFill([249, 250, 251] as any); rect(margin, y, cw, 6.5); }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      setColor(C.gray);
+      doc.text(`     Kelas ${k.kelas}`, margin + 4, y + 4.5);
+      doc.text(`${k.jumlah} siswa`, W - margin - 50, y + 4.5, { align: 'right' });
+      setColor(C.danger);
+      doc.text(formatRupiah(k.nominal), W - margin - 4, y + 4.5, { align: 'right' });
+      setDraw(C.border);
+      doc.setLineWidth(0.1);
+      doc.line(margin, y + 6.5, margin + cw, y + 6.5);
+      y += 6.5;
+    });
+
+    spacer(3);
+
+    // Total tunggakan
+    setFill(C.danger);
+    rect(margin, y, cw, 11);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    setColor(C.white);
+    doc.text(`TOTAL TUNGGAKAN SISWA  (${bulanTahun})`, margin + 4, y + 7.5);
+    setColor([255, 200, 200] as any);
+    doc.text(formatRupiah(totalTunggakan), W - margin - 4, y + 7.5, { align: 'right' });
+    y += 14;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FOOTER
+    // ─────────────────────────────────────────────────────────────────────────
+    const footerY = H - 18;
+
+    // Garis emas atas footer
+    setFill(C.gold);
+    rect(0, footerY - 2, W, 1);
+
+    // Background footer
+    setFill([248, 250, 252] as any);
+    rect(0, footerY - 1, W, 20);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    setColor(C.gray);
+    doc.text('Dokumen ini digenerate secara otomatis oleh Sistem Informasi Keuangan Yayasan Baitulloh.', W / 2, footerY + 5, { align: 'center' });
+    doc.text(`Halaman 1 dari 1  |  ${printTime}`, W / 2, footerY + 10, { align: 'center' });
+
+    // Tanda tangan placeholder
+    const sigX = W - margin - 45;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    setColor(C.dark);
+    doc.text(`${bulanIni} ${tahunIni}`, sigX, footerY + 4, { align: 'center' });
+    doc.text('Bendahara,', sigX, footerY + 8.5, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.text('(________________________)', sigX, footerY + 15, { align: 'center' });
+
+    doc.save(`Laporan-Keuangan-Sekolah-${bulanIni}-${tahunIni}.pdf`);
+    toast.success('Laporan PDF berhasil didownload');
+  };
+
+  // ── Render tab SMP/SMA ────────────────────────────────────────────────────
   const renderJenjangTab = (jenjang: 'SMP' | 'SMA') => {
     const d = getData(jenjang);
     return (
@@ -97,27 +395,27 @@ export default function LaporanSekolah() {
             <p className="text-xs text-muted-foreground mt-1">Periode: 1 sd akhir {bulanIni} {tahunIni}</p>
           </div>
           <div className="divide-y divide-border">
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="p-6 flex items-center justify-between bg-success/[0.03]">
+            <div className="p-6 flex items-center justify-between bg-success/[0.03]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl gradient-success flex items-center justify-center"><TrendingUp className="w-5 h-5 text-success-foreground" /></div>
                 <div><p className="font-bold text-foreground">Pemasukan</p><p className="text-xs text-muted-foreground">{d.jumlahMembayar} siswa membayar</p></div>
               </div>
               <p className="text-xl font-extrabold text-success">{formatRupiah(d.totalPemasukan)}</p>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} className="p-6 flex items-center justify-between bg-destructive/[0.03]">
+            </div>
+            <div className="p-6 flex items-center justify-between bg-destructive/[0.03]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><TrendingDown className="w-5 h-5 text-destructive-foreground" /></div>
                 <div><p className="font-bold text-foreground">Pengeluaran</p><p className="text-xs text-muted-foreground">Periode bulan ini</p></div>
               </div>
               <p className="text-xl font-extrabold text-destructive">{formatRupiah(d.totalPengeluaran)}</p>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="p-6 flex items-center justify-between gradient-card">
+            </div>
+            <div className="p-6 flex items-center justify-between gradient-card">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"><Wallet className="w-5 h-5 text-foreground" /></div>
-                <div><p className="font-extrabold text-foreground">Sisa Keuangan</p></div>
+                <p className="font-extrabold text-foreground">Sisa Keuangan</p>
               </div>
               <p className="text-2xl font-extrabold text-primary">{formatRupiah(d.totalPemasukan - d.totalPengeluaran)}</p>
-            </motion.div>
+            </div>
           </div>
         </motion.div>
 
@@ -129,126 +427,31 @@ export default function LaporanSekolah() {
             </h3>
           </div>
           <div className="p-6 space-y-6">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="text-center p-8 rounded-2xl bg-destructive/5 border border-destructive/10">
+            <div className="text-center p-8 rounded-2xl bg-destructive/5 border border-destructive/10">
               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Jumlah Siswa Menunggak</p>
               <p className="text-5xl font-extrabold text-destructive mb-1">{d.jumlahMenunggak}</p>
               <p className="text-sm text-muted-foreground">siswa</p>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }} className="text-center p-8 rounded-2xl gradient-card border border-destructive/10">
+            </div>
+            <div className="text-center p-8 rounded-2xl gradient-card border border-destructive/10">
               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Total Nominal Tunggakan</p>
               <p className="text-3xl font-extrabold text-destructive">{formatRupiah(d.totalTunggakan)}</p>
-            </motion.div>
+            </div>
           </div>
         </motion.div>
       </div>
     );
   };
 
-
-
-  const handlePrint = () => {
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const w = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    const cw = w - margin * 2;
-    let y = 15;
-
-    // Title
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('LAPORAN TOTAL KEUANGAN SEKOLAH', w / 2, y, { align: 'center' });
-    y += 7;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100);
-    doc.text(`Periode: ${bulanIni} ${tahunIni}`, w / 2, y, { align: 'center' });
-    y += 10;
-    doc.setTextColor(0);
-
-    // Helper
-    const drawRow = (label: string, value: string, bold = false, color: [number, number, number] = [0, 0, 0]) => {
-      doc.setFont('helvetica', bold ? 'bold' : 'normal');
-      doc.setFontSize(bold ? 11 : 9);
-      doc.setTextColor(0);
-      doc.text(label, margin + 2, y);
-      doc.setTextColor(...color);
-      doc.text(value, w - margin - 2, y, { align: 'right' });
-      doc.setTextColor(0);
-      y += bold ? 6 : 5;
-    };
-
-    const drawSectionTitle = (title: string) => {
-      doc.setFillColor(240, 240, 240);
-      doc.roundedRect(margin, y - 4, cw, 8, 2, 2, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text(title, margin + 3, y + 1);
-      y += 10;
-    };
-
-    const drawLine = () => {
-      doc.setDrawColor(200);
-      doc.line(margin, y, w - margin, y);
-      y += 4;
-    };
-
-    // KEUANGAN SECTION
-    drawSectionTitle('LAPORAN KEUANGAN');
-    drawRow('TOTAL PENDAPATAN', formatRupiah(smp.totalPemasukan + sma.totalPemasukan), true, [22, 163, 74]);
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
-    doc.text(`   Pendapatan SMP: ${formatRupiah(smp.totalPemasukan)}`, margin + 2, y); y += 4;
-    doc.text(`   Pendapatan SMA: ${formatRupiah(sma.totalPemasukan)}`, margin + 2, y); y += 6;
-    doc.setTextColor(0);
-
-    drawRow('TOTAL PENGELUARAN', formatRupiah(smp.totalPengeluaran + sma.totalPengeluaran), true, [220, 38, 38]);
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
-    doc.text(`   Pengeluaran SMP: ${formatRupiah(smp.totalPengeluaran)}`, margin + 2, y); y += 4;
-    doc.text(`   Pengeluaran SMA: ${formatRupiah(sma.totalPengeluaran)}`, margin + 2, y); y += 6;
-    doc.setTextColor(0);
-
-    drawLine();
-    drawRow(`SISA KEUANGAN (${bulanTahun})`, formatRupiah((smp.totalPemasukan + sma.totalPemasukan) - (smp.totalPengeluaran + sma.totalPengeluaran)), true, [37, 99, 235]);
-    y += 6;
-
-    // TUNGGAKAN SECTION
-    drawSectionTitle('TOTAL TUNGGAKAN');
-    drawRow('TUNGGAKAN SMP', formatRupiah(smp.totalTunggakan), true, [220, 38, 38]);
-    getTunggakanPerKelas('SMP').forEach(k => {
-      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
-      doc.text(`   Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}`, margin + 2, y); y += 4;
-    });
-    y += 2; doc.setTextColor(0);
-
-    drawRow('TUNGGAKAN SMA', formatRupiah(sma.totalTunggakan), true, [220, 38, 38]);
-    getTunggakanPerKelas('SMA').forEach(k => {
-      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(120);
-      doc.text(`   Kelas ${k.kelas}: ${k.jumlah} siswa - ${formatRupiah(k.nominal)}`, margin + 2, y); y += 4;
-    });
-    y += 2; doc.setTextColor(0);
-
-    drawLine();
-    drawRow(`TOTAL TUNGGAKAN (${bulanTahun})`, formatRupiah(smp.totalTunggakan + sma.totalTunggakan), true, [220, 38, 38]);
-    y += 8;
-
-    // Footer
-    doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(150);
-    doc.text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, margin, y);
-
-    doc.save(`Laporan-Total-Keuangan-${bulanIni}-${tahunIni}.pdf`);
-    toast.success('Laporan PDF berhasil didownload');
-  };
-
+  // ── Render tab Total ──────────────────────────────────────────────────────
   const renderTotalTab = () => {
-    const totalPendapatan = smp.totalPemasukan + sma.totalPemasukan;
+    const totalPendapatan    = smp.totalPemasukan  + sma.totalPemasukan;
     const totalPengeluaranAll = smp.totalPengeluaran + sma.totalPengeluaran;
-    const sisaKeuangan = totalPendapatan - totalPengeluaranAll;
-
-    const totalTunggakanAll = smp.totalTunggakan + sma.totalTunggakan;
+    const sisaKeuangan       = totalPendapatan - totalPengeluaranAll;
+    const totalTunggakanAll  = smp.totalTunggakan  + sma.totalTunggakan;
 
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Jendela Laporan Total Keuangan */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
             <div className="p-6 border-b border-border bg-muted/20">
               <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
@@ -258,7 +461,7 @@ export default function LaporanSekolah() {
               <p className="text-xs text-muted-foreground mt-1">Periode: {bulanIni} {tahunIni}</p>
             </div>
             <div className="divide-y divide-border">
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="p-6 bg-success/[0.03]">
+              <div className="p-6 bg-success/[0.03]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl gradient-success flex items-center justify-center"><TrendingUp className="w-5 h-5 text-success-foreground" /></div>
@@ -270,8 +473,8 @@ export default function LaporanSekolah() {
                   <p className="text-xs text-muted-foreground">Total Pendapatan SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPemasukan)}</span></p>
                   <p className="text-xs text-muted-foreground">Total Pendapatan SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPemasukan)}</span></p>
                 </div>
-              </motion.div>
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} className="p-6 bg-destructive/[0.03]">
+              </div>
+              <div className="p-6 bg-destructive/[0.03]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><TrendingDown className="w-5 h-5 text-destructive-foreground" /></div>
@@ -283,8 +486,8 @@ export default function LaporanSekolah() {
                   <p className="text-xs text-muted-foreground">Total Pengeluaran SMP : <span className="font-semibold text-foreground">{formatRupiah(smp.totalPengeluaran)}</span></p>
                   <p className="text-xs text-muted-foreground">Total Pengeluaran SMA : <span className="font-semibold text-foreground">{formatRupiah(sma.totalPengeluaran)}</span></p>
                 </div>
-              </motion.div>
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="p-6 gradient-card">
+              </div>
+              <div className="p-6 gradient-card">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shadow-glow-gold"><Wallet className="w-5 h-5 text-foreground" /></div>
@@ -292,12 +495,13 @@ export default function LaporanSekolah() {
                   </div>
                   <p className="text-2xl font-extrabold text-primary">{formatRupiah(sisaKeuangan)}</p>
                 </div>
-              </motion.div>
+              </div>
             </div>
           </motion.div>
 
-          {/* Jendela Total Tunggakan */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-3xl border border-destructive/20 shadow-elegant overflow-hidden" style={{ backgroundColor: 'hsl(0 84% 60% / 0.08)' }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className="rounded-3xl border border-destructive/20 shadow-elegant overflow-hidden"
+            style={{ backgroundColor: 'hsl(0 84% 60% / 0.08)' }}>
             <div className="p-6 border-b border-destructive/15" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
               <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg gradient-danger flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-destructive-foreground" /></div>
@@ -306,8 +510,7 @@ export default function LaporanSekolah() {
               <p className="text-xs text-muted-foreground mt-1">Periode : {bulanIni} - {tahunIni}</p>
             </div>
             <div className="divide-y divide-destructive/10">
-              {/* Tunggakan SMP */}
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} className="p-6">
+              <div className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
@@ -320,10 +523,8 @@ export default function LaporanSekolah() {
                     <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} siswa</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
                   ))}
                 </div>
-              </motion.div>
-
-              {/* Tunggakan SMA */}
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="p-6">
+              </div>
+              <div className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
@@ -336,10 +537,8 @@ export default function LaporanSekolah() {
                     <p key={k.kelas} className="text-xs text-muted-foreground">Kelas {k.kelas} : <span className="font-semibold text-foreground">{k.jumlah} siswa</span> - <span className="font-semibold text-destructive">{formatRupiah(k.nominal)}</span></p>
                   ))}
                 </div>
-              </motion.div>
-
-              {/* Total Keseluruhan */}
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }} className="p-6" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
+              </div>
+              <div className="p-6" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive-foreground" /></div>
@@ -347,12 +546,11 @@ export default function LaporanSekolah() {
                   </div>
                   <p className="text-2xl font-extrabold text-destructive">{formatRupiah(totalTunggakanAll)}</p>
                 </div>
-              </motion.div>
+              </div>
             </div>
           </motion.div>
         </div>
 
-        {/* Info Box */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
           <div className="p-6 flex gap-4 items-start">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -360,7 +558,7 @@ export default function LaporanSekolah() {
             </div>
             <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
               <p>Ini adalah sisa keuangan sekolah <span className="font-bold text-foreground">{bulanIni} {tahunIni}</span> saat ini.</p>
-              <p>Silahkan dicetak dan diarsipkan.</p>
+              <p>Silahkan dicetak dan diarsipkan. Klik <span className="font-bold text-foreground">Cetak Laporan</span> untuk mengunduh PDF profesional.</p>
               <p>Sisa keuangan sekolah bisa dimasukan secara manual di halaman <span className="font-bold text-foreground">Pendapatan SMP/SMA</span>.</p>
             </div>
           </div>
@@ -378,19 +576,24 @@ export default function LaporanSekolah() {
         </motion.div>
         <div className="flex gap-2 flex-wrap">
           {activeTab === 'Total' && (
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine">
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handlePrint}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine">
               <Printer className="w-4 h-4" /> Cetak Laporan
             </motion.button>
           )}
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
             <Download className="w-4 h-4" /> Export Excel
           </motion.button>
         </div>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit flex-wrap">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit flex-wrap">
         {(['SMP', 'SMA', 'Total'] as Tab[]).map(tab => (
-          <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(tab)} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+          <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={() => setActiveTab(tab)}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
             {tab === 'Total' ? 'Laporan Total' : `Laporan ${tab}`}
           </motion.button>
         ))}

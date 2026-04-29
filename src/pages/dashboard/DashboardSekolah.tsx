@@ -3,6 +3,14 @@ import { TrendingUp, AlertTriangle, Users, UserX, ArrowUpRight, Loader2 } from '
 import { useStudents, usePembayaran, usePengeluaran } from '@/hooks/useSupabaseData';
 import { formatRupiah, formatDate } from '@/lib/format';
 
+// Helper: pilih ukuran font berdasarkan panjang teks
+function getValueFontSize(value: string): string {
+  if (value.length > 14) return 'text-lg';
+  if (value.length > 11) return 'text-xl';
+  if (value.length > 8)  return 'text-2xl';
+  return 'text-3xl';
+}
+
 export default function DashboardSekolah() {
   const { data: students = [], isLoading: loadingStudents } = useStudents();
   const { data: pembayaran = [], isLoading: loadingPembayaran } = usePembayaran();
@@ -56,10 +64,18 @@ export default function DashboardSekolah() {
                 {stat.change}
               </span>
             </div>
-            <motion.p className="text-3xl font-extrabold text-foreground tracking-tight relative z-10" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.1 }}>
+
+            {/* ── Nilai: ukuran font otomatis mengikuti panjang teks ── */}
+            <motion.p
+              className={`${getValueFontSize(stat.value)} font-extrabold text-foreground tracking-tight relative z-10 leading-tight`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.1 }}
+            >
               {stat.value}
             </motion.p>
-            <p className="text-xs text-muted-foreground mt-1 relative z-10">
+
+            <p className="text-xs text-muted-foreground mt-1.5 relative z-10">
               <span className="font-semibold text-foreground/70">{stat.label}</span> · {stat.sublabel}
             </p>
           </motion.div>
@@ -68,7 +84,8 @@ export default function DashboardSekolah() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent payments */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="lg:col-span-2 bg-card rounded-3xl border border-border p-6 shadow-elegant">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+          className="lg:col-span-2 bg-card rounded-3xl border border-border p-6 shadow-elegant">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-bold text-foreground text-lg">Pembayaran Terbaru</h3>
             <motion.button whileHover={{ x: 4 }} className="text-xs font-semibold text-primary flex items-center gap-1 hover:underline">
@@ -87,7 +104,8 @@ export default function DashboardSekolah() {
               </thead>
               <tbody>
                 {pembayaran.slice(0, 5).map((p, i) => (
-                  <motion.tr key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.05 }} className="border-b border-border/50 hover:bg-muted/50 transition-colors group">
+                  <motion.tr key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.05 }}
+                    className="border-b border-border/50 hover:bg-muted/50 transition-colors group">
                     <td className="py-3.5 text-muted-foreground">{formatDate(p.tanggal)}</td>
                     <td className="py-3.5 text-foreground font-semibold group-hover:text-primary transition-colors">{p.nama_siswa}</td>
                     <td className="py-3.5"><span className="px-2.5 py-1 rounded-full bg-primary/5 text-primary text-xs font-semibold">{p.bulan}</span></td>
@@ -109,21 +127,27 @@ export default function DashboardSekolah() {
                   <div className="w-2 h-2 rounded-full bg-success" />
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Pemasukan</p>
                 </div>
-                <p className="text-2xl font-extrabold text-success tracking-tight">{formatRupiah(totalPemasukan)}</p>
+                <p className={`${getValueFontSize(formatRupiah(totalPemasukan))} font-extrabold text-success tracking-tight`}>
+                  {formatRupiah(totalPemasukan)}
+                </p>
               </div>
               <div className="p-5 rounded-2xl bg-destructive/5 border border-destructive/10 hover-lift cursor-default">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2 h-2 rounded-full bg-destructive" />
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Pengeluaran</p>
                 </div>
-                <p className="text-2xl font-extrabold text-destructive tracking-tight">{formatRupiah(totalPengeluaran)}</p>
+                <p className={`${getValueFontSize(formatRupiah(totalPengeluaran))} font-extrabold text-destructive tracking-tight`}>
+                  {formatRupiah(totalPengeluaran)}
+                </p>
               </div>
               <div className="p-5 rounded-2xl gradient-card border border-primary/15 shadow-elegant hover-lift cursor-default">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2 h-2 rounded-full bg-primary" />
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Sisa Keuangan</p>
                 </div>
-                <p className="text-2xl font-extrabold text-primary tracking-tight">{formatRupiah(totalPemasukan - totalPengeluaran)}</p>
+                <p className={`${getValueFontSize(formatRupiah(totalPemasukan - totalPengeluaran))} font-extrabold text-primary tracking-tight`}>
+                  {formatRupiah(totalPemasukan - totalPengeluaran)}
+                </p>
               </div>
             </div>
           </div>
