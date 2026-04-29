@@ -8,35 +8,50 @@ import * as XLSX from 'xlsx';
 
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-// Kelas per jenjang normal
 const kelasOptions: Record<string, string[]> = {
   SMP: ['7A', '7B', '8A', '8B', '9A', '9B'],
   SMA: ['10A', '10B', '11A', '11B', '12A', '12B'],
 };
 
-// Semua kelas kelas 7–12 untuk jenjang Khusus
+// Semua kelas 7–12 untuk jenjang Khusus
 const kelasKhusus = ['7A', '7B', '8A', '8B', '9A', '9B', '10A', '10B', '11A', '11B', '12A', '12B'];
 
-// SPP default per jenjang
 const SPP_DEFAULT: Record<string, number> = {
   SMP: 125000,
   SMA: 150000,
 };
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+// Siswa "Khusus" disimpan di DB sebagai jenjang="Reguler" + kategori="Khusus"
+const isKhususSiswa = (s: StudentDB) => s.kategori === 'Khusus';
+const getJenjangLabel = (s: StudentDB) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
+const getJenjangUI = (s: StudentDB) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
+
+// "Khusus" di UI → "Reguler" di DB (enum DB: SMP | SMA | Reguler)
+function getJenjangDB(jenjangUI: string): 'SMP' | 'SMA' | 'Reguler' {
+  if (jenjangUI === 'Khusus') return 'Reguler';
+  return jenjangUI as 'SMP' | 'SMA' | 'Reguler';
+}
+
+function getBiayaPerBulan(jenjangUI: string, sppKhusus: string): number {
+  if (jenjangUI === 'Khusus') return Number(sppKhusus) || 0;
+  return SPP_DEFAULT[jenjangUI] ?? 125000;
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 type FilterStatus = '' | 'lunas' | 'menunggak';
-type JenjangType = 'SMP' | 'SMA' | 'Khusus';
 
 type StudentForm = {
   nisn: string;
   barcode: string;
   namaLengkap: string;
-  jenjang: string;
+  jenjang: string;        // UI: "SMP" | "SMA" | "Khusus"
   kelas: string;
   namaOrangTua: string;
   nomorWhatsApp: string;
   tunggakanTahun: string;
   tunggakanBulan: string[];
-  sppKhusus: string; // nominal SPP untuk jenjang Khusus (string agar bisa dikontrol input)
+  sppKhusus: string;      // nominal SPP untuk jenjang Khusus
 };
 
 const emptyForm: StudentForm = {
@@ -65,13 +80,7 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
   const [rfidFlash, setRfidFlash] = useState(false);
 
   const isKhusus = form.jenjang === 'Khusus';
-
-  // Tentukan pilihan kelas berdasarkan jenjang
-  const availableKelas = isKhusus
-    ? kelasKhusus
-    : form.jenjang
-    ? kelasOptions[form.jenjang] ?? []
-    : [];
+  const availableKelas = isKhusus ? kelasKhusus : form.jenjang ? kelasOptions[form.jenjang] ?? [] : [];
 
   useEffect(() => {
     const timer = setTimeout(() => { rfidRef.current?.focus(); }, 400);
@@ -165,12 +174,9 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Jenjang</label>
-                <select
-                  value={form.jenjang}
+                <select value={form.jenjang}
                   onChange={e => setForm(prev => ({ ...prev, jenjang: e.target.value, kelas: '', sppKhusus: '' }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus"
-                  required
-                >
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required>
                   <option value="">Pilih</option>
                   <option value="SMP">SMP</option>
                   <option value="SMA">SMA</option>
@@ -179,51 +185,35 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
               </div>
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Kelas</label>
-                <select
-                  value={form.kelas}
+                <select value={form.kelas}
                   onChange={e => setForm(prev => ({ ...prev, kelas: e.target.value }))}
                   disabled={!form.jenjang}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50"
-                  required
-                >
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50" required>
                   <option value="">{form.jenjang ? 'Pilih Kelas' : 'Pilih jenjang dulu'}</option>
                   {availableKelas.map(k => <option key={k} value={k}>{k}</option>)}
                 </select>
               </div>
             </div>
 
-            {/* ── SPP KHUSUS (muncul hanya saat jenjang = Khusus) ── */}
+            {/* ── SPP KHUSUS — muncul saat jenjang = Khusus ── */}
             <AnimatePresence>
               {isKhusus && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                  animate={{ opacity: 1, height: 'auto', marginTop: 4 }}
-                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="overflow-hidden"
-                >
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
                   <div className="p-4 rounded-2xl border-2 border-warning/40 bg-warning/5">
                     <label className="text-xs font-semibold text-warning mb-1.5 block uppercase tracking-wider flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      Nominal SPP Khusus (Rp)
+                      <AlertTriangle className="w-3.5 h-3.5" /> Nominal SPP Khusus (Rp / bulan)
                     </label>
                     <p className="text-[10px] text-muted-foreground mb-2">
-                      Siswa ini adalah siswa kurang mampu dengan SPP berbeda. Isi nominal SPP per bulan.
+                      Siswa kurang mampu dengan SPP berbeda dari standar SMP/SMA. Masukkan nominal SPP per bulan.
                     </p>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      value={form.sppKhusus}
+                    <input type="number" min="0" step="1000" value={form.sppKhusus}
                       onChange={e => setForm(prev => ({ ...prev, sppKhusus: e.target.value }))}
                       placeholder="Contoh: 75000"
                       className="w-full px-4 py-2.5 rounded-xl border border-warning/30 bg-background text-foreground text-sm input-focus"
-                      required={isKhusus}
-                    />
+                      required={isKhusus} />
                     {form.sppKhusus && Number(form.sppKhusus) > 0 && (
-                      <p className="text-xs text-warning font-semibold mt-1.5">
-                        = {formatRupiah(Number(form.sppKhusus))} / bulan
-                      </p>
+                      <p className="text-xs text-warning font-semibold mt-1.5">= {formatRupiah(Number(form.sppKhusus))} / bulan</p>
                     )}
                   </div>
                 </motion.div>
@@ -243,6 +233,8 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
             </div>
           </div>
         </div>
+
+        {/* ── TUNGGAKAN AWAL ── */}
         <div className="border-t border-border pt-5">
           <label className="text-xs font-semibold text-foreground mb-1 block uppercase tracking-wider flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5 text-primary" /> Tunggakan Awal (opsional)
@@ -252,7 +244,8 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
             <div className="flex-shrink-0 w-32">
               <select value={form.tunggakanTahun} onChange={e => setForm(prev => ({ ...prev, tunggakanTahun: e.target.value, tunggakanBulan: [] }))}
                 className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-                <option value="">Tahun</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
+                <option value="">Tahun</option>
+                <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
               </select>
             </div>
             {form.tunggakanTahun && (
@@ -271,6 +264,7 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
             )}
           </div>
         </div>
+
         <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} type="submit"
           className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine shadow-glow-primary text-sm">
           {title === 'Tambah Data Siswa' ? 'Simpan Data' : 'Perbarui Data'}
@@ -280,12 +274,6 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
   </motion.div>
   );
 };
-
-// ─── Helper: hitung biaya_per_bulan ───────────────────────────────────────────
-function getBiayaPerBulan(jenjang: string, sppKhusus: string): number {
-  if (jenjang === 'Khusus') return Number(sppKhusus) || 0;
-  return SPP_DEFAULT[jenjang] ?? 125000;
-}
 
 export default function DataSiswaSekolah() {
   const [search, setSearch] = useState('');
@@ -306,11 +294,16 @@ export default function DataSiswaSekolah() {
   const updateStudentMut = useUpdateStudent();
   const deleteStudentMut = useDeleteStudent();
 
-  if (isLoading) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (isLoading) return (
+    <div className="flex items-center justify-center min-h-[40vh]">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
 
   const filtered = students.filter(s => {
+    const jenjangLabel = getJenjangLabel(s);
     const matchSearch = !search || s.nama_lengkap.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search);
-    const matchJenjang = !filterJenjang || s.jenjang === filterJenjang;
+    const matchJenjang = !filterJenjang || jenjangLabel === filterJenjang;
     const matchKelas = !filterKelas || s.kelas === filterKelas;
     const matchStatus = !filterStatus ||
       (filterStatus === 'lunas' && s.tunggakan_sekolah.length === 0) ||
@@ -323,9 +316,11 @@ export default function DataSiswaSekolah() {
 
   const exportExcel = () => {
     const data = filtered.map((s, i) => ({
-      No: i + 1, NISN: s.nisn, 'Nama Lengkap': s.nama_lengkap, Jenjang: s.jenjang, Kelas: s.kelas,
+      No: i + 1, NISN: s.nisn, 'Nama Lengkap': s.nama_lengkap,
+      Jenjang: getJenjangLabel(s), Kelas: s.kelas,
       'SPP/Bulan': formatRupiah(s.biaya_per_bulan),
-      'Status Pembiayaan': s.tunggakan_sekolah.length > 0 ? `Menunggak (${s.tunggakan_sekolah.length} bulan)` : 'Lunas',
+      Kategori: s.kategori ?? '-',
+      'Status': s.tunggakan_sekolah.length > 0 ? `Menunggak (${s.tunggakan_sekolah.length} bulan)` : 'Lunas',
       'Nama Orang Tua': s.nama_orang_tua, 'No. WhatsApp': s.nomor_whatsapp,
     }));
     const ws = XLSX.utils.json_to_sheet(data);
@@ -336,32 +331,23 @@ export default function DataSiswaSekolah() {
   };
 
   const handleDelete = () => {
-    if (showDeleteConfirm) {
-      deleteStudentMut.mutate(showDeleteConfirm.id);
-      setShowDeleteConfirm(null);
-    }
+    if (showDeleteConfirm) { deleteStudentMut.mutate(showDeleteConfirm.id); setShowDeleteConfirm(null); }
   };
 
   const openEdit = (s: StudentDB) => {
-    const tahunSet = new Set<string>();
-    const bulanSet = new Set<string>();
+    const tahunSet = new Set<string>(); const bulanSet = new Set<string>();
     s.tunggakan_sekolah.forEach(t => {
       const parts = t.split('-');
-      if (parts.length === 2) {
-        tahunSet.add(parts[0]);
-        bulanSet.add(parts[1]);
-      } else if (parts.length === 1 && bulanList.includes(parts[0])) {
-        bulanSet.add(parts[0]);
-      }
+      if (parts.length === 2) { tahunSet.add(parts[0]); bulanSet.add(parts[1]); }
+      else if (parts.length === 1 && bulanList.includes(parts[0])) { bulanSet.add(parts[0]); }
     });
     const tahun = tahunSet.size === 1 ? [...tahunSet][0] : (bulanSet.size > 0 ? new Date().getFullYear().toString() : '');
     setForm({
       nisn: s.nisn, barcode: s.barcode, namaLengkap: s.nama_lengkap,
-      jenjang: s.jenjang, kelas: s.kelas,
+      jenjang: getJenjangUI(s), kelas: s.kelas,
       namaOrangTua: s.nama_orang_tua, nomorWhatsApp: s.nomor_whatsapp,
       tunggakanTahun: tahun, tunggakanBulan: [...bulanSet],
-      // Jika jenjang Khusus, tampilkan biaya yang sudah tersimpan
-      sppKhusus: s.jenjang === 'Khusus' ? String(s.biaya_per_bulan) : '',
+      sppKhusus: isKhususSiswa(s) ? String(s.biaya_per_bulan) : '',
     });
     setShowEdit(s);
   };
@@ -369,49 +355,37 @@ export default function DataSiswaSekolah() {
   const openAdd = () => { setForm(emptyForm); setShowAdd(true); };
 
   const handleAdd = () => {
-    const biaya = getBiayaPerBulan(form.jenjang, form.sppKhusus);
+    const isKhusus = form.jenjang === 'Khusus';
     insertStudent.mutate({
-      nisn: form.nisn,
-      barcode: form.barcode,
-      nama_lengkap: form.namaLengkap,
-      jenjang: form.jenjang as JenjangType,
-      kelas: form.kelas,
-      nama_orang_tua: form.namaOrangTua,
-      nomor_whatsapp: form.nomorWhatsApp,
-      foto: null,
-      tunggakan_sekolah: form.tunggakanBulan,
-      tunggakan_pesantren: [],
-      biaya_per_bulan: biaya,
+      nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
+      jenjang: getJenjangDB(form.jenjang),  // "Khusus" → "Reguler" di DB
+      kelas: form.kelas, nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
+      foto: null, tunggakan_sekolah: form.tunggakanBulan, tunggakan_pesantren: [],
+      biaya_per_bulan: getBiayaPerBulan(form.jenjang, form.sppKhusus),
       deposit: 0,
-      kategori: form.jenjang === 'Khusus' ? 'Khusus' : null,
+      kategori: isKhusus ? 'Khusus' : null,  // penanda di DB
     });
     setShowAdd(false);
   };
 
   const handleEdit = () => {
     if (!showEdit) return;
-    const tunggakan = form.tunggakanTahun
-      ? [...form.tunggakanBulan]
-      : showEdit.tunggakan_sekolah;
-    const biaya = getBiayaPerBulan(form.jenjang, form.sppKhusus);
+    const isKhusus = form.jenjang === 'Khusus';
+    const tunggakan = form.tunggakanTahun ? [...form.tunggakanBulan] : showEdit.tunggakan_sekolah;
     updateStudentMut.mutate({
       id: showEdit.id,
-      nisn: form.nisn,
-      barcode: form.barcode,
-      nama_lengkap: form.namaLengkap,
-      jenjang: form.jenjang as JenjangType,
-      kelas: form.kelas,
-      nama_orang_tua: form.namaOrangTua,
-      nomor_whatsapp: form.nomorWhatsApp,
+      nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
+      jenjang: getJenjangDB(form.jenjang),  // "Khusus" → "Reguler" di DB
+      kelas: form.kelas, nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
       tunggakan_sekolah: tunggakan,
-      biaya_per_bulan: biaya,
-      kategori: form.jenjang === 'Khusus' ? 'Khusus' : null,
+      biaya_per_bulan: getBiayaPerBulan(form.jenjang, form.sppKhusus),
+      kategori: isKhusus ? 'Khusus' : null,
     });
     setShowEdit(null);
   };
 
   const sendWhatsApp = (s: StudentDB) => {
-    const msg = encodeURIComponent(`Assalamu'alaikum. Yth. ${s.nama_orang_tua}, kami informasikan bahwa ${s.nama_lengkap} (${s.jenjang} ${s.kelas}) memiliki tunggakan SPP sebanyak ${s.tunggakan_sekolah.length} bulan (${s.tunggakan_sekolah.join(', ')}). Total: ${formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan)}. Mohon segera melakukan pembayaran. Terima kasih.`);
+    const msg = encodeURIComponent(`Assalamu'alaikum. Yth. ${s.nama_orang_tua}, kami informasikan bahwa ${s.nama_lengkap} (${getJenjangLabel(s)} ${s.kelas}) memiliki tunggakan SPP sebanyak ${s.tunggakan_sekolah.length} bulan (${s.tunggakan_sekolah.join(', ')}). Total: ${formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan)}. Mohon segera melakukan pembayaran. Terima kasih.`);
     window.open(`https://wa.me/${s.nomor_whatsapp}?text=${msg}`, '_blank');
   };
 
@@ -424,12 +398,7 @@ export default function DataSiswaSekolah() {
     setForm(prev => ({ ...prev, nomorWhatsApp: value }));
   };
 
-  // Kelas untuk filter (gabungan jika Khusus atau tidak ada filter jenjang)
-  const filterKelasOptions = filterJenjang === 'Khusus'
-    ? kelasKhusus
-    : filterJenjang
-    ? kelasOptions[filterJenjang] ?? []
-    : [];
+  const filterKelasOptions = filterJenjang === 'Khusus' ? kelasKhusus : filterJenjang ? kelasOptions[filterJenjang] ?? [] : [];
 
   return (
     <div className="space-y-6">
@@ -488,66 +457,66 @@ export default function DataSiswaSekolah() {
               </tr>
             </thead>
             <tbody>
-              {paginated.map((s, i) => (
-                <motion.tr key={s.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                  className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors group">
-                  <td className="py-4 px-4 text-muted-foreground">{(page - 1) * perPage + i + 1}</td>
-                  <td className="py-4 px-4 text-foreground font-mono text-xs">{s.nisn}</td>
-                  <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.nama_lengkap}</td>
-                  <td className="py-4 px-4">
-                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                      s.jenjang === 'SMP' ? 'bg-info/10 text-info' :
-                      s.jenjang === 'SMA' ? 'bg-primary/10 text-primary' :
-                      'bg-warning/10 text-warning'
-                    }`}>
-                      {s.jenjang}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-foreground font-medium">{s.kelas}</td>
-                  {/* Kolom SPP/Bulan */}
-                  <td className="py-4 px-4 text-foreground font-medium text-xs">
-                    <span className={s.jenjang === 'Khusus' ? 'text-warning font-bold' : ''}>
-                      {formatRupiah(s.biaya_per_bulan)}
-                    </span>
-                    {s.jenjang === 'Khusus' && (
-                      <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] bg-warning/10 text-warning font-bold">KHUSUS</span>
-                    )}
-                  </td>
-                  <td className="py-4 px-4">
-                    {s.tunggakan_sekolah.length > 0 ? (
-                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTunggakan(s)}
-                        className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
-                        {s.tunggakan_sekolah.length} bulan ↗
-                      </motion.button>
-                    ) : (
-                      <span className="px-3 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">✓ Lunas</span>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 text-muted-foreground text-xs">{s.nama_orang_tua}</td>
-                  <td className="py-4 px-4">
-                    <a href={`https://wa.me/${s.nomor_whatsapp.replace('+', '')}`} target="_blank" rel="noopener noreferrer"
-                      className="text-xs font-bold font-mono text-success hover:underline">{s.nomor_whatsapp}</a>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center justify-start gap-1">
-                      {[
-                        { icon: Eye, color: 'text-info hover:bg-info/10', action: () => setShowDetail(s), title: 'Lihat' },
-                        { icon: Edit, color: 'text-warning hover:bg-warning/10', action: () => openEdit(s), title: 'Edit' },
-                        { icon: Trash2, color: 'text-destructive hover:bg-destructive/10', action: () => setShowDeleteConfirm(s), title: 'Hapus' },
-                      ].map(({ icon: Icon, color, action, title }) => (
-                        <motion.button key={title} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={action} className={`p-2 rounded-xl ${color} transition-colors`} title={title}>
-                          <Icon className="w-4 h-4" />
-                        </motion.button>
-                      ))}
-                      {s.tunggakan_sekolah.length > 0 && (
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => sendWhatsApp(s)} className="p-2 rounded-xl text-success hover:bg-success/10 transition-colors" title="WhatsApp">
-                          <MessageCircle className="w-4 h-4" />
-                        </motion.button>
+              {paginated.map((s, i) => {
+                const jenjangLabel = getJenjangLabel(s);
+                return (
+                  <motion.tr key={s.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
+                    className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors group">
+                    <td className="py-4 px-4 text-muted-foreground">{(page - 1) * perPage + i + 1}</td>
+                    <td className="py-4 px-4 text-foreground font-mono text-xs">{s.nisn}</td>
+                    <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.nama_lengkap}</td>
+                    <td className="py-4 px-4">
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        jenjangLabel === 'SMP' ? 'bg-info/10 text-info' :
+                        jenjangLabel === 'SMA' ? 'bg-primary/10 text-primary' :
+                        'bg-warning/10 text-warning'
+                      }`}>{jenjangLabel}</span>
+                    </td>
+                    <td className="py-4 px-4 text-foreground font-medium">{s.kelas}</td>
+                    <td className="py-4 px-4 text-xs font-medium">
+                      <span className={isKhususSiswa(s) ? 'text-warning font-bold' : 'text-foreground'}>
+                        {formatRupiah(s.biaya_per_bulan)}
+                      </span>
+                      {isKhususSiswa(s) && (
+                        <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] bg-warning/10 text-warning font-bold">KHUSUS</span>
                       )}
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+                    </td>
+                    <td className="py-4 px-4">
+                      {s.tunggakan_sekolah.length > 0 ? (
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTunggakan(s)}
+                          className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
+                          {s.tunggakan_sekolah.length} bulan ↗
+                        </motion.button>
+                      ) : (
+                        <span className="px-3 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">✓ Lunas</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-4 text-muted-foreground text-xs">{s.nama_orang_tua}</td>
+                    <td className="py-4 px-4">
+                      <a href={`https://wa.me/${s.nomor_whatsapp.replace('+', '')}`} target="_blank" rel="noopener noreferrer"
+                        className="text-xs font-bold font-mono text-success hover:underline">{s.nomor_whatsapp}</a>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-start gap-1">
+                        {[
+                          { icon: Eye, color: 'text-info hover:bg-info/10', action: () => setShowDetail(s), title: 'Lihat' },
+                          { icon: Edit, color: 'text-warning hover:bg-warning/10', action: () => openEdit(s), title: 'Edit' },
+                          { icon: Trash2, color: 'text-destructive hover:bg-destructive/10', action: () => setShowDeleteConfirm(s), title: 'Hapus' },
+                        ].map(({ icon: Icon, color, action, title }) => (
+                          <motion.button key={title} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={action} className={`p-2 rounded-xl ${color} transition-colors`} title={title}>
+                            <Icon className="w-4 h-4" />
+                          </motion.button>
+                        ))}
+                        {s.tunggakan_sekolah.length > 0 && (
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => sendWhatsApp(s)} className="p-2 rounded-xl text-success hover:bg-success/10 transition-colors" title="WhatsApp">
+                            <MessageCircle className="w-4 h-4" />
+                          </motion.button>
+                        )}
+                      </div>
+                    </td>
+                  </motion.tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -577,27 +546,27 @@ export default function DataSiswaSekolah() {
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowDetail(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></motion.button>
               </div>
               <div className="flex gap-6 mb-6">
-                <div className="flex-shrink-0 flex flex-col items-center">
-                  <div className="w-28 h-28 rounded-2xl gradient-primary flex items-center justify-center shadow-glow-primary border-4 border-card">
-                    <User className="w-12 h-12 text-primary-foreground" />
-                  </div>
+                <div className="w-28 h-28 rounded-2xl gradient-primary flex items-center justify-center shadow-glow-primary border-4 border-card flex-shrink-0">
+                  <User className="w-12 h-12 text-primary-foreground" />
                 </div>
                 <div className="flex-1 space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-extrabold text-foreground text-xl">{showDetail.nama_lengkap}</h4>
-                    {showDetail.jenjang === 'Khusus' && (
+                    {isKhususSiswa(showDetail) && (
                       <span className="px-2 py-0.5 rounded-lg text-[10px] bg-warning/15 text-warning font-bold border border-warning/20">SISWA KHUSUS</span>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                    {[
+                    {(['NISN', showDetail.nisn], ['Jenjang', getJenjangLabel(showDetail)], ['Kelas', showDetail.kelas],
+                      ['SPP/Bulan', formatRupiah(showDetail.biaya_per_bulan)], ['Nama Orang Tua', showDetail.nama_orang_tua], ['No. WhatsApp', showDetail.nomor_whatsapp]) &&
+                    ([
                       ['NISN', showDetail.nisn],
-                      ['Jenjang', showDetail.jenjang],
+                      ['Jenjang', getJenjangLabel(showDetail)],
                       ['Kelas', showDetail.kelas],
                       ['SPP/Bulan', formatRupiah(showDetail.biaya_per_bulan)],
                       ['Nama Orang Tua', showDetail.nama_orang_tua],
                       ['No. WhatsApp', showDetail.nomor_whatsapp],
-                    ].map(([label, value]) => (
+                    ] as [string, string][]).map(([label, value]) => (
                       <div key={label} className="flex flex-col">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{label}</span>
                         <span className="text-sm text-foreground font-medium">{value}</span>
@@ -648,7 +617,7 @@ export default function DataSiswaSekolah() {
                 <h3 className="font-bold text-foreground text-lg">Detail Tunggakan</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowTunggakan(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">{showTunggakan.nama_lengkap} · <span className="font-bold text-foreground">{showTunggakan.jenjang} {showTunggakan.kelas}</span></p>
+              <p className="text-sm text-muted-foreground mb-4">{showTunggakan.nama_lengkap} · <span className="font-bold text-foreground">{getJenjangLabel(showTunggakan)} {showTunggakan.kelas}</span></p>
               <div className="space-y-2">
                 {showTunggakan.tunggakan_sekolah.map(b => {
                   const parts = b.split('-');
@@ -670,23 +639,17 @@ export default function DataSiswaSekolah() {
         )}
       </AnimatePresence>
 
-      {/* ADD STUDENT POPUP */}
+      {/* ADD POPUP */}
       <AnimatePresence>
-        {showAdd && (
-          <StudentFormPopup title="Tambah Data Siswa" onClose={() => setShowAdd(false)} onSubmit={handleAdd}
-            form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange} />
-        )}
+        {showAdd && (<StudentFormPopup title="Tambah Data Siswa" onClose={() => setShowAdd(false)} onSubmit={handleAdd} form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange} />)}
       </AnimatePresence>
 
-      {/* EDIT STUDENT POPUP */}
+      {/* EDIT POPUP */}
       <AnimatePresence>
-        {showEdit && (
-          <StudentFormPopup title="Edit Data Siswa" onClose={() => setShowEdit(null)} onSubmit={handleEdit}
-            form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange} />
-        )}
+        {showEdit && (<StudentFormPopup title="Edit Data Siswa" onClose={() => setShowEdit(null)} onSubmit={handleEdit} form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange} />)}
       </AnimatePresence>
 
-      {/* DELETE CONFIRMATION POPUP */}
+      {/* DELETE POPUP */}
       <AnimatePresence>
         {showDeleteConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
