@@ -494,7 +494,7 @@ export default function PembayaranSekolah() {
                     YAYASAN BAITULLOH
                   </div>
                   <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#888', fontWeight: 300, lineHeight: 1.4 }}>
-                    Jl. Yukum Jaya, Terbanggi Besar, Lampung Tengah<br />
+                    Jl. Bintara, Lingkungan II, Yukum Jaya. Kec. Terbanggi Besar, Kab. Lampung Tengah<br />
                   </div>
                 </div>
 
@@ -574,20 +574,27 @@ export default function PembayaranSekolah() {
                 </div>
 
                 {/* Tanda Tangan */}
-                <div style={{ padding: '8px 12px 4px', display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ padding: '10px 12px 6px', display: 'flex', justifyContent: 'flex-end' }}>
                   <div style={{ textAlign: 'center' }}>
+                    {/* Tempat & tanggal */}
                     <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#555' }}>
                       Yukum Jaya, {tanggalStruk}
                     </div>
-                    <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#555', marginTop: '2px' }}>
+                    {/* Label petugas */}
+                    <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#555', marginTop: '3px' }}>
                       Petugas,
                     </div>
-                    <div style={{ height: paperSize === 'thermal57' ? '22px' : '30px' }} />
-                    <div style={{ borderTop: '1px solid #333', paddingTop: '3px', minWidth: paperSize === 'thermal57' ? '80px' : '100px' }}>
+                    {/* Ruang tanda tangan — 3 baris kosong */}
+                    <div style={{ height: paperSize === 'thermal57' ? '38px' : '52px' }} />
+                    {/* Garis tanda tangan */}
+                    <div style={{ borderTop: '1px solid #333', paddingTop: '4px', minWidth: paperSize === 'thermal57' ? '90px' : '120px' }}>
+                      {/* Nama petugas */}
                       <div style={{ fontWeight: 700, fontSize: paperSize === 'thermal57' ? '8.5px' : '11px', color: '#111' }}>
                         {strukData.petugas}
                       </div>
                     </div>
+                    {/* Jarak setelah nama */}
+                    <div style={{ height: paperSize === 'thermal57' ? '10px' : '14px' }} />
                   </div>
                 </div>
 
