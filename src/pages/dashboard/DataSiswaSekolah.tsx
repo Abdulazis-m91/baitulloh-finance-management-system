@@ -7,21 +7,42 @@ import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+// Kelas per jenjang normal
 const kelasOptions: Record<string, string[]> = {
   SMP: ['7A', '7B', '8A', '8B', '9A', '9B'],
   SMA: ['10A', '10B', '11A', '11B', '12A', '12B'],
 };
 
+// Semua kelas kelas 7–12 untuk jenjang Khusus
+const kelasKhusus = ['7A', '7B', '8A', '8B', '9A', '9B', '10A', '10B', '11A', '11B', '12A', '12B'];
+
+// SPP default per jenjang
+const SPP_DEFAULT: Record<string, number> = {
+  SMP: 125000,
+  SMA: 150000,
+};
+
 type FilterStatus = '' | 'lunas' | 'menunggak';
+type JenjangType = 'SMP' | 'SMA' | 'Khusus';
+
 type StudentForm = {
-  nisn: string; barcode: string; namaLengkap: string; jenjang: string; kelas: string;
-  namaOrangTua: string; nomorWhatsApp: string;
-  tunggakanTahun: string; tunggakanBulan: string[];
+  nisn: string;
+  barcode: string;
+  namaLengkap: string;
+  jenjang: string;
+  kelas: string;
+  namaOrangTua: string;
+  nomorWhatsApp: string;
+  tunggakanTahun: string;
+  tunggakanBulan: string[];
+  sppKhusus: string; // nominal SPP untuk jenjang Khusus (string agar bisa dikontrol input)
 };
 
 const emptyForm: StudentForm = {
   nisn: '', barcode: '', namaLengkap: '', jenjang: '', kelas: '',
   namaOrangTua: '', nomorWhatsApp: '+62', tunggakanTahun: '', tunggakanBulan: [],
+  sppKhusus: '',
 };
 
 const modalOverlay = "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4";
@@ -42,6 +63,15 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
   const [rfidFocused, setRfidFocused] = useState(false);
   const [rfidLastEvent, setRfidLastEvent] = useState<string>('');
   const [rfidFlash, setRfidFlash] = useState(false);
+
+  const isKhusus = form.jenjang === 'Khusus';
+
+  // Tentukan pilihan kelas berdasarkan jenjang
+  const availableKelas = isKhusus
+    ? kelasKhusus
+    : form.jenjang
+    ? kelasOptions[form.jenjang] ?? []
+    : [];
 
   useEffect(() => {
     const timer = setTimeout(() => { rfidRef.current?.focus(); }, 400);
@@ -130,23 +160,76 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
                 </div>
               </div>
             </div>
+
+            {/* ── JENJANG & KELAS ── */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Jenjang</label>
-                <select value={form.jenjang} onChange={e => setForm(prev => ({ ...prev, jenjang: e.target.value, kelas: '' }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required>
-                  <option value="">Pilih</option><option>SMP</option><option>SMA</option>
+                <select
+                  value={form.jenjang}
+                  onChange={e => setForm(prev => ({ ...prev, jenjang: e.target.value, kelas: '', sppKhusus: '' }))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus"
+                  required
+                >
+                  <option value="">Pilih</option>
+                  <option value="SMP">SMP</option>
+                  <option value="SMA">SMA</option>
+                  <option value="Khusus">Khusus</option>
                 </select>
               </div>
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Kelas</label>
-                <select value={form.kelas} onChange={e => setForm(prev => ({ ...prev, kelas: e.target.value }))}
-                  disabled={!form.jenjang} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50" required>
+                <select
+                  value={form.kelas}
+                  onChange={e => setForm(prev => ({ ...prev, kelas: e.target.value }))}
+                  disabled={!form.jenjang}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50"
+                  required
+                >
                   <option value="">{form.jenjang ? 'Pilih Kelas' : 'Pilih jenjang dulu'}</option>
-                  {form.jenjang && kelasOptions[form.jenjang]?.map(k => <option key={k} value={k}>{k}</option>)}
+                  {availableKelas.map(k => <option key={k} value={k}>{k}</option>)}
                 </select>
               </div>
             </div>
+
+            {/* ── SPP KHUSUS (muncul hanya saat jenjang = Khusus) ── */}
+            <AnimatePresence>
+              {isKhusus && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 4 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-4 rounded-2xl border-2 border-warning/40 bg-warning/5">
+                    <label className="text-xs font-semibold text-warning mb-1.5 block uppercase tracking-wider flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Nominal SPP Khusus (Rp)
+                    </label>
+                    <p className="text-[10px] text-muted-foreground mb-2">
+                      Siswa ini adalah siswa kurang mampu dengan SPP berbeda. Isi nominal SPP per bulan.
+                    </p>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={form.sppKhusus}
+                      onChange={e => setForm(prev => ({ ...prev, sppKhusus: e.target.value }))}
+                      placeholder="Contoh: 75000"
+                      className="w-full px-4 py-2.5 rounded-xl border border-warning/30 bg-background text-foreground text-sm input-focus"
+                      required={isKhusus}
+                    />
+                    {form.sppKhusus && Number(form.sppKhusus) > 0 && (
+                      <p className="text-xs text-warning font-semibold mt-1.5">
+                        = {formatRupiah(Number(form.sppKhusus))} / bulan
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Nama Orang Tua</label>
@@ -198,6 +281,12 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
   );
 };
 
+// ─── Helper: hitung biaya_per_bulan ───────────────────────────────────────────
+function getBiayaPerBulan(jenjang: string, sppKhusus: string): number {
+  if (jenjang === 'Khusus') return Number(sppKhusus) || 0;
+  return SPP_DEFAULT[jenjang] ?? 125000;
+}
+
 export default function DataSiswaSekolah() {
   const [search, setSearch] = useState('');
   const [filterJenjang, setFilterJenjang] = useState('');
@@ -235,6 +324,7 @@ export default function DataSiswaSekolah() {
   const exportExcel = () => {
     const data = filtered.map((s, i) => ({
       No: i + 1, NISN: s.nisn, 'Nama Lengkap': s.nama_lengkap, Jenjang: s.jenjang, Kelas: s.kelas,
+      'SPP/Bulan': formatRupiah(s.biaya_per_bulan),
       'Status Pembiayaan': s.tunggakan_sekolah.length > 0 ? `Menunggak (${s.tunggakan_sekolah.length} bulan)` : 'Lunas',
       'Nama Orang Tua': s.nama_orang_tua, 'No. WhatsApp': s.nomor_whatsapp,
     }));
@@ -253,8 +343,6 @@ export default function DataSiswaSekolah() {
   };
 
   const openEdit = (s: StudentDB) => {
-    // Parse existing tunggakan to pre-fill year and months
-    // Supports both "2026-Januari" and plain "Januari" formats
     const tahunSet = new Set<string>();
     const bulanSet = new Set<string>();
     s.tunggakan_sekolah.forEach(t => {
@@ -263,15 +351,17 @@ export default function DataSiswaSekolah() {
         tahunSet.add(parts[0]);
         bulanSet.add(parts[1]);
       } else if (parts.length === 1 && bulanList.includes(parts[0])) {
-        // Plain month name without year prefix
         bulanSet.add(parts[0]);
       }
     });
     const tahun = tahunSet.size === 1 ? [...tahunSet][0] : (bulanSet.size > 0 ? new Date().getFullYear().toString() : '');
     setForm({
-      nisn: s.nisn, barcode: s.barcode, namaLengkap: s.nama_lengkap, jenjang: s.jenjang, kelas: s.kelas,
+      nisn: s.nisn, barcode: s.barcode, namaLengkap: s.nama_lengkap,
+      jenjang: s.jenjang, kelas: s.kelas,
       namaOrangTua: s.nama_orang_tua, nomorWhatsApp: s.nomor_whatsapp,
       tunggakanTahun: tahun, tunggakanBulan: [...bulanSet],
+      // Jika jenjang Khusus, tampilkan biaya yang sudah tersimpan
+      sppKhusus: s.jenjang === 'Khusus' ? String(s.biaya_per_bulan) : '',
     });
     setShowEdit(s);
   };
@@ -279,28 +369,43 @@ export default function DataSiswaSekolah() {
   const openAdd = () => { setForm(emptyForm); setShowAdd(true); };
 
   const handleAdd = () => {
+    const biaya = getBiayaPerBulan(form.jenjang, form.sppKhusus);
     insertStudent.mutate({
-      nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
-      jenjang: form.jenjang as 'SMP' | 'SMA', kelas: form.kelas,
-      nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
-      foto: null, tunggakan_sekolah: form.tunggakanBulan, tunggakan_pesantren: [],
-      biaya_per_bulan: form.jenjang === 'SMA' ? 150000 : 125000, deposit: 0, kategori: null,
+      nisn: form.nisn,
+      barcode: form.barcode,
+      nama_lengkap: form.namaLengkap,
+      jenjang: form.jenjang as JenjangType,
+      kelas: form.kelas,
+      nama_orang_tua: form.namaOrangTua,
+      nomor_whatsapp: form.nomorWhatsApp,
+      foto: null,
+      tunggakan_sekolah: form.tunggakanBulan,
+      tunggakan_pesantren: [],
+      biaya_per_bulan: biaya,
+      deposit: 0,
+      kategori: form.jenjang === 'Khusus' ? 'Khusus' : null,
     });
     setShowAdd(false);
   };
 
   const handleEdit = () => {
     if (!showEdit) return;
-    // Use the selected months directly (consistent with DB format: plain month names)
     const tunggakan = form.tunggakanTahun
       ? [...form.tunggakanBulan]
-      : showEdit.tunggakan_sekolah; // keep existing if no year selected
+      : showEdit.tunggakan_sekolah;
+    const biaya = getBiayaPerBulan(form.jenjang, form.sppKhusus);
     updateStudentMut.mutate({
       id: showEdit.id,
-      nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
-      jenjang: form.jenjang as 'SMP' | 'SMA', kelas: form.kelas,
-      nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
+      nisn: form.nisn,
+      barcode: form.barcode,
+      nama_lengkap: form.namaLengkap,
+      jenjang: form.jenjang as JenjangType,
+      kelas: form.kelas,
+      nama_orang_tua: form.namaOrangTua,
+      nomor_whatsapp: form.nomorWhatsApp,
       tunggakan_sekolah: tunggakan,
+      biaya_per_bulan: biaya,
+      kategori: form.jenjang === 'Khusus' ? 'Khusus' : null,
     });
     setShowEdit(null);
   };
@@ -318,6 +423,13 @@ export default function DataSiswaSekolah() {
     if (!value.startsWith('+62')) value = '+62';
     setForm(prev => ({ ...prev, nomorWhatsApp: value }));
   };
+
+  // Kelas untuk filter (gabungan jika Khusus atau tidak ada filter jenjang)
+  const filterKelasOptions = filterJenjang === 'Khusus'
+    ? kelasKhusus
+    : filterJenjang
+    ? kelasOptions[filterJenjang] ?? []
+    : [];
 
   return (
     <div className="space-y-6">
@@ -349,11 +461,14 @@ export default function DataSiswaSekolah() {
             <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Cari nama atau NISN..." className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
           </div>
           <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-            <option value="">Semua Jenjang</option><option value="SMP">SMP</option><option value="SMA">SMA</option>
+            <option value="">Semua Jenjang</option>
+            <option value="SMP">SMP</option>
+            <option value="SMA">SMA</option>
+            <option value="Khusus">Khusus</option>
           </select>
           <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }} disabled={!filterJenjang} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50">
             <option value="">{filterJenjang ? 'Semua Kelas' : 'Pilih jenjang'}</option>
-            {filterJenjang && kelasOptions[filterJenjang]?.map(k => <option key={k} value={k}>{k}</option>)}
+            {filterKelasOptions.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
           <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value as FilterStatus); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
             <option value="">Semua Status</option><option value="lunas">Lunas</option><option value="menunggak">Belum Lunas</option>
@@ -367,7 +482,7 @@ export default function DataSiswaSekolah() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/30 border-b border-border">
-                {['No', 'NISN', 'Nama Lengkap', 'Jenjang', 'Kelas', 'Status', 'Orang Tua', 'WhatsApp', 'Aksi'].map(h => (
+                {['No', 'NISN', 'Nama Lengkap', 'Jenjang', 'Kelas', 'SPP/Bulan', 'Status', 'Orang Tua', 'WhatsApp', 'Aksi'].map(h => (
                   <th key={h} className="py-4 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider text-left">{h}</th>
                 ))}
               </tr>
@@ -380,9 +495,24 @@ export default function DataSiswaSekolah() {
                   <td className="py-4 px-4 text-foreground font-mono text-xs">{s.nisn}</td>
                   <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.nama_lengkap}</td>
                   <td className="py-4 px-4">
-                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : 'bg-primary/10 text-primary'}`}>{s.jenjang}</span>
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                      s.jenjang === 'SMP' ? 'bg-info/10 text-info' :
+                      s.jenjang === 'SMA' ? 'bg-primary/10 text-primary' :
+                      'bg-warning/10 text-warning'
+                    }`}>
+                      {s.jenjang}
+                    </span>
                   </td>
                   <td className="py-4 px-4 text-foreground font-medium">{s.kelas}</td>
+                  {/* Kolom SPP/Bulan */}
+                  <td className="py-4 px-4 text-foreground font-medium text-xs">
+                    <span className={s.jenjang === 'Khusus' ? 'text-warning font-bold' : ''}>
+                      {formatRupiah(s.biaya_per_bulan)}
+                    </span>
+                    {s.jenjang === 'Khusus' && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] bg-warning/10 text-warning font-bold">KHUSUS</span>
+                    )}
+                  </td>
                   <td className="py-4 px-4">
                     {s.tunggakan_sekolah.length > 0 ? (
                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTunggakan(s)}
@@ -453,13 +583,18 @@ export default function DataSiswaSekolah() {
                   </div>
                 </div>
                 <div className="flex-1 space-y-3">
-                  <h4 className="font-extrabold text-foreground text-xl">{showDetail.nama_lengkap}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-foreground text-xl">{showDetail.nama_lengkap}</h4>
+                    {showDetail.jenjang === 'Khusus' && (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] bg-warning/15 text-warning font-bold border border-warning/20">SISWA KHUSUS</span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                     {[
                       ['NISN', showDetail.nisn],
                       ['Jenjang', showDetail.jenjang],
                       ['Kelas', showDetail.kelas],
-                      ['Biaya/Bulan', formatRupiah(showDetail.biaya_per_bulan)],
+                      ['SPP/Bulan', formatRupiah(showDetail.biaya_per_bulan)],
                       ['Nama Orang Tua', showDetail.nama_orang_tua],
                       ['No. WhatsApp', showDetail.nomor_whatsapp],
                     ].map(([label, value]) => (
