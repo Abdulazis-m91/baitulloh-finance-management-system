@@ -7,7 +7,7 @@ export interface StudentDB {
   id: string;
   nisn: string;
   nama_lengkap: string;
-  jenjang: 'SMP' | 'SMA';
+  jenjang: 'SMP' | 'SMA' | 'Reguler'; // ← tambah 'Reguler' untuk siswa Khusus
   kelas: string;
   nama_orang_tua: string;
   nomor_whatsapp: string;
@@ -17,7 +17,7 @@ export interface StudentDB {
   tunggakan_pesantren: string[];
   biaya_per_bulan: number;
   deposit: number;
-  kategori: string | null;
+  kategori: string | null; // 'Khusus' untuk siswa tidak mampu, null untuk reguler
   created_at: string;
   updated_at: string;
 }
@@ -27,7 +27,7 @@ export interface PembayaranDB {
   siswa_id: string | null;
   nama_siswa: string;
   nisn: string;
-  jenjang: 'SMP' | 'SMA';
+  jenjang: 'SMP' | 'SMA' | 'Reguler';
   kelas: string;
   bulan: string;
   nominal: number;
@@ -40,7 +40,7 @@ export interface PembayaranDB {
 export interface PengeluaranDB {
   id: string;
   keterangan: string;
-  sumber_dana: 'SMP' | 'SMA';
+  sumber_dana: 'SMP' | 'SMA' | 'Reguler';
   jenis_keperluan: string;
   nominal: number;
   tanggal: string;
