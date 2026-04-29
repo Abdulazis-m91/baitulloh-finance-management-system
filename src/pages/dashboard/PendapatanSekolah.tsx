@@ -282,7 +282,7 @@ export default function PendapatanSekolah() {
               </p>
 
               {/* Peringatan rollback */}
-              <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 mb-5 text-left">
+              <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 mb-5">
                 <p className="text-xs text-warning font-semibold flex items-center gap-1.5 mb-1">
                   <AlertTriangle className="w-3.5 h-3.5" /> Perhatian
                 </p>
