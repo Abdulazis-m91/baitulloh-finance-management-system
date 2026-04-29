@@ -494,7 +494,7 @@ export default function PembayaranSekolah() {
                     YAYASAN BAITULLOH
                   </div>
                   <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#888', fontWeight: 300, lineHeight: 1.4 }}>
-                    Jl. Bintara RT 006 RW 003, Lingkungan II Kel.Yukum Jaya, Kec. Terbanggi Besar, Kab.Lampung Tengah, Lampung<br />
+                    Jl. Yukum Jaya, Terbanggi Besar, Lampung Tengah<br />
                     Telp: (0725) XXXXXX
                   </div>
                 </div>
