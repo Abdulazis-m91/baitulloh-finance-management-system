@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import logoYB from '@/assets/logo-yb.png';
 
-type Tab = 'pengeluaran' | 'rekap_smp' | 'rekap_sma';
+type Tab = 'pengeluaran' | 'rekap_smp' | 'rekap_sma' | 'rekap_khusus';
 
 const PAGE_SIZE_RIWAYAT = 5; // jumlah item per halaman di riwayat
 
@@ -117,7 +117,7 @@ export default function PengeluaranSekolah() {
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Rekap ${jenjang}`);
-    XLSX.writeFile(wb, `rekap_pengeluaran_${jenjang.toLowerCase()}.xlsx`);
+    XLSX.writeFile(wb, `rekap_pengeluaran_${activeTab === 'rekap_khusus' ? 'khusus' : jenjang.toLowerCase()}.xlsx`);
     toast.success('Data berhasil diekspor');
   };
 
@@ -142,6 +142,7 @@ export default function PengeluaranSekolah() {
           { key: 'pengeluaran' as Tab, label: 'Pengeluaran' },
           { key: 'rekap_smp' as Tab, label: 'Rekap SMP' },
           { key: 'rekap_sma' as Tab, label: 'Rekap SMA' },
+          { key: 'rekap_khusus' as Tab, label: 'Rekap Khusus' },
         ]).map(tab => (
           <motion.button key={tab.key} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             onClick={() => setActiveTab(tab.key)}
@@ -177,6 +178,7 @@ export default function PengeluaranSekolah() {
                     className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
                     <option value="SMP">SMP</option>
                     <option value="SMA">SMA</option>
+                    <option value="Reguler">Khusus</option>
                   </select>
                 </div>
                 <div>
@@ -290,18 +292,24 @@ export default function PengeluaranSekolah() {
       )}
 
       {/* ── Rekap SMP / SMA ── */}
-      {(activeTab === 'rekap_smp' || activeTab === 'rekap_sma') && (() => {
-        const jenjang = activeTab === 'rekap_smp' ? 'SMP' : 'SMA';
+      {(activeTab === 'rekap_smp' || activeTab === 'rekap_sma' || activeTab === 'rekap_khusus') && (() => {
+        const jenjang = activeTab === 'rekap_smp' ? 'SMP' : activeTab === 'rekap_sma' ? 'SMA' : 'Reguler';
+        const jenjangLabel = activeTab === 'rekap_khusus' ? 'Khusus' : jenjang;
         const data = rekapData(jenjang);
         const dataBulanIni = rekapBulanIni(jenjang);
         const totalBulanIni = dataBulanIni.reduce((s, e) => s + e.nominal, 0);
         return (
           <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="mb-2">
+              <h3 className="text-lg font-bold text-foreground">
+                Rekap Pengeluaran {activeTab === 'rekap_khusus' ? 'Khusus' : jenjang}
+              </h3>
+            </div>
             <div className="flex justify-end">
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 onClick={() => exportRekap(jenjang)}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
-                <Download className="w-4 h-4" /> Export Excel
+<Download className="w-4 h-4" /> Export Excel
               </motion.button>
             </div>
             <div className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
