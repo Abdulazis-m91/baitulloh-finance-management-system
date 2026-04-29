@@ -378,19 +378,39 @@ export default function LaporanSekolah() {
           <div className="p-6 border-b border-border bg-muted/20">
             <h3 className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg gradient-warning flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-warning-foreground" /></div>
-              Laporan Tunggakan {jenjang}
+              Tunggakan Siswa {jenjang}
             </h3>
           </div>
-          <div className="p-6 space-y-6">
-            <div className="text-center p-8 rounded-2xl bg-destructive/5 border border-destructive/10">
-              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Jumlah Siswa Menunggak</p>
-              <p className="text-5xl font-extrabold text-destructive mb-1">{d.jumlahMenunggak}</p>
-              <p className="text-sm text-muted-foreground">siswa</p>
+          <div className="p-6 space-y-4">
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-5 rounded-2xl bg-destructive/5 border border-destructive/10">
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Siswa Menunggak</p>
+                <p className="text-4xl font-extrabold text-destructive">{d.jumlahMenunggak}</p>
+                <p className="text-xs text-muted-foreground mt-1">siswa</p>
+              </div>
+              <div className="text-center p-5 rounded-2xl bg-destructive/5 border border-destructive/10">
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Total Tunggakan</p>
+                <p className="text-xl font-extrabold text-destructive">{formatRupiah(d.totalTunggakan)}</p>
+              </div>
             </div>
-            <div className="text-center p-8 rounded-2xl gradient-card border border-destructive/10">
-              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2">Total Nominal Tunggakan</p>
-              <p className="text-3xl font-extrabold text-destructive">{formatRupiah(d.totalTunggakan)}</p>
-            </div>
+            {/* Detail per kelas */}
+            {getTunggakanPerKelas(jenjang).length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-foreground uppercase tracking-wider">Detail Per Kelas</p>
+                {getTunggakanPerKelas(jenjang).map(k => (
+                  <div key={k.kelas} className="flex items-center justify-between gap-2 p-3 rounded-xl bg-muted/30 border border-border text-sm">
+                    <span className="text-foreground font-medium">Kelas {k.kelas}</span>
+                    <div className="text-right">
+                      <span className="text-xs text-muted-foreground block">{k.jumlah} siswa</span>
+                      <span className="text-destructive font-bold">{formatRupiah(k.nominal)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 text-center">✓ Tidak ada tunggakan</p>
+            )}
           </div>
         </motion.div>
       </div>
