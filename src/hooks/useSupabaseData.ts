@@ -291,3 +291,105 @@ export function useUpdateStatusSiswa() {
     onError: (e) => toast.error(`Gagal mengubah status: ${e.message}`),
   });
 }
+
+// ========== PROSES DEPOSIT JATUH TEMPO ==========
+// Dipanggil saat halaman Pembayaran dibuka
+// Cek deposit yang bulannya <= bulan sekarang → convert ke Lunas
+export function useProcessDeposit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const now = new Date();
+      const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni',
+        'Juli','Agustus','September','Oktober','November','Desember'];
+
+      // Ambil semua deposit
+      const { data: deposits, error: fetchError } = await supabase
+        .from('pembayaran')
+        .select('*')
+        .eq('metode', 'Deposit');
+      if (fetchError) throw fetchError;
+      if (!deposits || deposits.length === 0) return { processed: 0 };
+
+      // Filter deposit yang sudah jatuh tempo (bulan-tahun <= sekarang)
+      // Format bulan deposit: "Mei-2026"
+      const jatuhTempo = deposits.filter(d => {
+        const parts = d.bulan.split('-');
+        if (parts.length !== 2) return false;
+        const [namaBulan, tahun] = parts;
+        const bulanIdx = bulanNama.indexOf(namaBulan);
+        if (bulanIdx === -1) return false;
+        const depositDate = new Date(parseInt(tahun), bulanIdx, 1);
+        // Jatuh tempo jika bulan deposit <= bulan sekarang
+        return depositDate <= new Date(now.getFullYear(), now.getMonth(), 1);
+      });
+
+      if (jatuhTempo.length === 0) return { processed: 0 };
+
+      let processed = 0;
+
+      for (const deposit of jatuhTempo) {
+        if (!deposit.siswa_id) continue;
+
+        // Ambil data siswa terkini
+        const { data: siswa, error: siswaError } = await supabase
+          .from('students')
+          .select('tunggakan_sekolah, deposit, biaya_per_bulan')
+          .eq('id', deposit.siswa_id)
+          .single();
+        if (siswaError || !siswa) continue;
+
+        // Nama bulan tanpa tahun untuk cocokkan tunggakan
+        const namaBulanSaja = deposit.bulan.split('-')[0]; // "Mei"
+
+        // 1. Insert pembayaran Lunas baru
+        const { error: insertError } = await supabase
+          .from('pembayaran')
+          .insert({
+            siswa_id: deposit.siswa_id,
+            nama_siswa: deposit.nama_siswa,
+            nisn: deposit.nisn,
+            jenjang: deposit.jenjang,
+            kelas: deposit.kelas,
+            bulan: namaBulanSaja,
+            nominal: siswa.biaya_per_bulan,
+            metode: 'Lunas',
+            tanggal: new Date().toISOString().split('T')[0],
+            petugas: deposit.petugas,
+          });
+        if (insertError) continue;
+
+        // 2. Hapus tunggakan bulan tersebut dari siswa
+        const tunggakanBaru = siswa.tunggakan_sekolah.filter(
+          (t: string) => t !== namaBulanSaja && t !== deposit.bulan
+        );
+
+        // 3. Kurangi saldo deposit siswa
+        const depositBaru = Math.max(0, (siswa.deposit || 0) - siswa.biaya_per_bulan);
+
+        await supabase
+          .from('students')
+          .update({ tunggakan_sekolah: tunggakanBaru, deposit: depositBaru })
+          .eq('id', deposit.siswa_id);
+
+        // 4. Hapus record deposit lama
+        await supabase
+          .from('pembayaran')
+          .delete()
+          .eq('id', deposit.id);
+
+        processed++;
+      }
+
+      return { processed };
+    },
+    onSuccess: (result) => {
+      if (result.processed > 0) {
+        qc.invalidateQueries({ queryKey: ['pembayaran'] });
+        qc.invalidateQueries({ queryKey: ['students'] });
+        toast.success(`✅ ${result.processed} deposit telah diproses otomatis menjadi pembayaran Lunas`);
+      }
+    },
+    onError: (e) => toast.error(`Gagal memproses deposit: ${e.message}`),
+  });
+}

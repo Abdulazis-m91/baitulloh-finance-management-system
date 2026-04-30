@@ -1,7 +1,7 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, User, CreditCard, Scan, Loader2, X, Printer, Send, LogOut } from 'lucide-react';
-import { useStudents, useInsertPembayaran, useUpdateStudent, useCicilanBySiswa, useInsertCicilan, useDeleteCicilanBySiswaAndBulan, type StudentDB, type CicilanDB } from '@/hooks/useSupabaseData';
+import { useStudents, useInsertPembayaran, useUpdateStudent, useCicilanBySiswa, useInsertCicilan, useDeleteCicilanBySiswaAndBulan, useProcessDeposit, type StudentDB, type CicilanDB } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
@@ -55,6 +55,12 @@ export default function PembayaranSekolah() {
   const insertCicilan = useInsertCicilan();
   const deleteCicilan = useDeleteCicilanBySiswaAndBulan();
   const { userName } = useAuth();
+  const processDeposit = useProcessDeposit();
+
+  // Auto-proses deposit jatuh tempo saat halaman dibuka
+  useEffect(() => {
+    processDeposit.mutate();
+  }, []);
 
   const hasTunggakan = selectedStudent ? selectedStudent.tunggakan_sekolah.length > 0 : false;
 
@@ -113,8 +119,13 @@ export default function PembayaranSekolah() {
     if (metode === 'Lunas') return selectedStudent.tunggakan_sekolah;
     if (metode === 'Cicil') return selectedStudent.tunggakan_sekolah.filter(b => !bulanWithCicilan.includes(b));
     if (metode === 'Deposit') {
-      const currentMonth = new Date().getMonth();
-      return bulanList.filter((_, i) => i > currentMonth);
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      // Format: "Mei-2026" agar bisa deteksi jatuh tempo
+      return bulanList
+        .filter((_, i) => i > currentMonth)
+        .map(b => `${b}-${currentYear}`);
     }
     return [];
   };
@@ -494,7 +505,8 @@ export default function PembayaranSekolah() {
                     YAYASAN BAITULLOH
                   </div>
                   <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#888', fontWeight: 300, lineHeight: 1.4 }}>
-                    Jl. Bintara, Lingkungan II, Yukum Jaya. Kec. Terbanggi Besar, Kab. Lampung Tengah<br />
+                    Jl. Yukum Jaya, Terbanggi Besar, Lampung Tengah<br />
+                    Telp: (0725) XXXXXX
                   </div>
                 </div>
 
