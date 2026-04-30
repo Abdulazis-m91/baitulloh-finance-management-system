@@ -29,11 +29,18 @@ export default function DashboardSekolah() {
   const tahunIni = now.getFullYear();
   const bulanLabel = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][bulanIni];
 
-  // Pemasukan: HANYA bulan ini
+  // Pemasukan: filter by kolom "bulan" (bukan tanggal transaksi)
+  // supaya deposit yang diproses otomatis (tanggal lama) tetap terhitung
+  const bulanNamaArr2 = ['Januari','Februari','Maret','April','Mei','Juni',
+    'Juli','Agustus','September','Oktober','November','Desember'];
+  const namaBulanIniSekolah = bulanNamaArr2[bulanIni];
+
   const pembayaranLunas = pembayaran.filter(p => {
     if (p.metode !== 'Lunas') return false;
-    const d = new Date(p.tanggal);
-    return d.getMonth() === bulanIni && d.getFullYear() === tahunIni;
+    const parts = p.bulan.split('-');
+    const nm = parts[0];
+    const thn = parts.length > 1 ? parseInt(parts[1]) : tahunIni;
+    return nm === namaBulanIniSekolah && thn === tahunIni;
   });
   const totalPemasukan = pembayaranLunas.reduce((acc, p) => acc + p.nominal, 0);
   const siswaMenunggak = students.filter(s => s.tunggakan_sekolah.length > 0);

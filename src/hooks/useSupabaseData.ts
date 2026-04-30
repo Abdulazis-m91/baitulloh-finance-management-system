@@ -311,17 +311,22 @@ export function useProcessDeposit() {
       if (fetchError) throw fetchError;
       if (!deposits || deposits.length === 0) return { processed: 0 };
 
-      // Filter deposit yang sudah jatuh tempo (bulan-tahun <= sekarang)
-      // Format bulan deposit: "Mei-2026"
+      // Filter deposit yang sudah jatuh tempo
+      // Handle format "Mei" (tanpa tahun) DAN "Mei-2026" (dengan tahun)
       const jatuhTempo = deposits.filter(d => {
         const parts = d.bulan.split('-');
-        if (parts.length !== 2) return false;
-        const [namaBulan, tahun] = parts;
-        const bulanIdx = bulanNama.indexOf(namaBulan);
-        if (bulanIdx === -1) return false;
-        const depositDate = new Date(parseInt(tahun), bulanIdx, 1);
-        // Jatuh tempo jika bulan deposit <= bulan sekarang
-        return depositDate <= new Date(now.getFullYear(), now.getMonth(), 1);
+        if (parts.length === 2) {
+          // Format "Mei-2026"
+          const bulanIdx = bulanNama.indexOf(parts[0]);
+          if (bulanIdx === -1) return false;
+          return new Date(parseInt(parts[1]), bulanIdx, 1) <=
+                 new Date(now.getFullYear(), now.getMonth(), 1);
+        } else {
+          // Format "Mei" tanpa tahun - cek index bulan <= bulan sekarang
+          const bulanIdx = bulanNama.indexOf(d.bulan);
+          if (bulanIdx === -1) return false;
+          return bulanIdx <= now.getMonth();
+        }
       });
 
       if (jatuhTempo.length === 0) return { processed: 0 };
@@ -340,7 +345,8 @@ export function useProcessDeposit() {
         if (siswaError || !siswa) continue;
 
         // Nama bulan tanpa tahun untuk cocokkan tunggakan
-        const namaBulanSaja = deposit.bulan.split('-')[0]; // "Mei"
+        // Ambil nama bulan (handle format 'Mei' dan 'Mei-2026')
+        const namaBulanSaja = deposit.bulan.includes('-') ? deposit.bulan.split('-')[0] : deposit.bulan;
 
         // 1. Insert pembayaran Lunas baru
         const { error: insertError } = await supabase
