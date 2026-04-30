@@ -112,7 +112,7 @@ export default function LaporanPesantren() {
   };
 
   const handlePrint = async () => {
-    const doc = new jsPDF('p', 'mm', 'a4');
+    const doc = new jsPDF('p', 'mm', [210, 340]); // A4 diperpanjang
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     const margin = 18;
@@ -253,20 +253,21 @@ export default function LaporanPesantren() {
     divider(false, true);
     totalRow(`TOTAL TUNGGAKAN  (${bulanTahun})`, formatRupiah(totalTunggakan), C.danger);
 
-    // ── TANDA TANGAN ────────────────────────────────────────────────────────
-    const footerY = H - 30;
+    // ── TANDA TANGAN (di bawah konten, jarak aman 20mm) ────────────────────
+    y += 20; // jarak aman dari konten terakhir
     const sigX = W - margin - 32;
-    const sigTop = footerY - 38;
 
     doc.setFont('helvetica','normal'); doc.setFontSize(9); setTC(C.dark);
-    doc.text(`Yukum Jaya, ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, sigX, sigTop, { align:'center' });
-    doc.text('Bendahara Pesantren,', sigX, sigTop+6, { align:'center' });
+    doc.text(`Yukum Jaya, ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, sigX, y, { align:'center' });
+    doc.text('Bendahara Pesantren,', sigX, y+6, { align:'center' });
     setDC(C.dark); doc.setLineWidth(0.4);
-    doc.line(sigX-26, sigTop+26, sigX+26, sigTop+26);
+    doc.line(sigX-26, y+24, sigX+26, y+24);
     doc.setFont('helvetica','bold'); doc.setFontSize(9); setTC(C.dark);
-    doc.text(userName || 'Petugas', sigX, sigTop+32, { align:'center' });
+    doc.text(userName || 'Petugas', sigX, y+30, { align:'center' });
+    y += 38;
 
     // ── FOOTER ──────────────────────────────────────────────────────────────
+    const footerY = y + 6;
     setFC(C.gold); rect(0, footerY, W, 2);
     setFC(C.lightGray); rect(0, footerY+2, W, H-footerY);
     doc.setFont('helvetica','normal'); doc.setFontSize(7.5); setTC(C.gray);
