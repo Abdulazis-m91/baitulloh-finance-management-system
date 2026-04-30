@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Loader2, ChevronLeft, ChevronRight, Plus, X, Trash2, AlertTriangle } from 'lucide-react';
+import { Download, Loader2, ChevronLeft, ChevronRight, Plus, X, Trash2, AlertTriangle, Search } from 'lucide-react';
 import { useSantri } from '@/hooks/useSupabaseSantri';
 import {
   usePembayaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren,
@@ -32,6 +32,7 @@ export default function PendapatanPesantren() {
   const [addNama, setAddNama] = useState('');
   const [addNominal, setAddNominal] = useState('');
   const [addKeterangan, setAddKeterangan] = useState('');
+  const [searchNama, setSearchNama] = useState('');
   const tabs: Tab[] = ['Pembayaran', 'Konsumsi', 'Operasional', 'Pembangunan', 'Cicilan', 'Deposit'];
 
   const { data: pembayaran = [], isLoading: l1 } = usePembayaranPesantren();
@@ -91,7 +92,11 @@ export default function PendapatanPesantren() {
     return [];
   };
 
-  const data = allData();
+  const data = allData().filter(p => {
+    if (!searchNama) return true;
+    const nama = p.nama_siswa || '';
+    return nama.toLowerCase().includes(searchNama.toLowerCase());
+  });
   const totalNominal = data.reduce((sum, d) => sum + (d.nominal || 0), 0);
   const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
   const pagedData = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -171,7 +176,7 @@ export default function PendapatanPesantren() {
         className="flex gap-1 bg-muted p-1.5 rounded-2xl flex-wrap">
         {tabs.map(tab => (
           <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-            onClick={() => { setActiveTab(tab); setFilterJenjang(''); setFilterKelas(''); setFilterKategori(''); setPage(1); }}
+            onClick={() => { setActiveTab(tab); setFilterJenjang(''); setFilterKelas(''); setFilterKategori(''); setSearchNama(''); setPage(1); }}
             className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'}`}>
             {tabIcons[tab]} {tab}
           </motion.button>
@@ -179,7 +184,19 @@ export default function PendapatanPesantren() {
       </motion.div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
+        {/* Search nama - panjang */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchNama}
+            onChange={e => { setSearchNama(e.target.value); setPage(1); }}
+            placeholder="Cari nama santri..."
+            className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm"
+          />
+        </div>
+
         {showJenjangFilter && (
           <>
             <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }}
