@@ -5,6 +5,7 @@ import { Download, TrendingUp, TrendingDown, Wallet, AlertTriangle, Loader2, Inf
 import { useStudents, usePembayaran, usePengeluaran } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatRupiah } from '@/lib/format';
+import logoYB from '@/assets/logo-yb.png';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
@@ -110,227 +111,183 @@ export default function LaporanSekolah() {
     toast.success('Laporan berhasil diekspor');
   };
 
-  // ── Generate PDF Profesional ───────────────────────────────────────────────
-  const handlePrint = () => {
-    const doc = new jsPDF('p', 'mm', 'a4');
+  // ── Generate PDF Profesional (sama seperti Laporan Pesantren) ──────────────
+  const handlePrint = async () => {
+    const now2 = new Date();
+    const doc = new jsPDF('p', 'mm', [210, 340]);
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
-    const margin = 14;
+    const margin = 18;
     const cw = W - margin * 2;
     let y = 0;
 
-    const totalPendapatan  = smp.totalPemasukan  + sma.totalPemasukan;
-    const totalPengeluaran = smp.totalPengeluaran + sma.totalPengeluaran;
-    const sisaKeuangan     = totalPendapatan - totalPengeluaran;
-    const totalTunggakan   = smp.totalTunggakan  + sma.totalTunggakan;
-
+    // ── WARNA ───────────────────────────────────────────────────────────────
     const C = {
-      primary:  [30,  64, 175] as [number,number,number],
-      success:  [22, 163,  74] as [number,number,number],
-      danger:   [185, 28,  28] as [number,number,number],
-      gold:     [161,118,  21] as [number,number,number],
-      rowAlt:   [239,246,255]  as [number,number,number],
-      rowDanger:[254,242,242]  as [number,number,number],
-      gray:     [107,114,128]  as [number,number,number],
-      dark:     [17,  24,  39] as [number,number,number],
-      white:    [255,255,255]  as [number,number,number],
-      border:   [209,213,219]  as [number,number,number],
-      lightBlue:[219,234,254]  as [number,number,number],
-      lightGreen:[240,253,244] as [number,number,number],
-      lightRed: [254,242,242]  as [number,number,number],
+      primary:   [30, 64, 175]   as [number,number,number],
+      success:   [21, 128, 61]   as [number,number,number],
+      danger:    [185, 28, 28]   as [number,number,number],
+      gold:      [161, 120, 20]  as [number,number,number],
+      gray:      [107, 114, 128] as [number,number,number],
+      lightGray: [243, 244, 246] as [number,number,number],
+      dark:      [17, 24, 39]    as [number,number,number],
+      white:     [255, 255, 255] as [number,number,number],
     };
+    const setTC = (c: [number,number,number]) => doc.setTextColor(...c);
+    const setFC = (c: [number,number,number]) => doc.setFillColor(...c);
+    const setDC = (c: [number,number,number]) => doc.setDrawColor(...c);
+    const fillR = (x:number,y:number,w:number,h:number) => doc.rect(x,y,w,h,'F');
 
-    const setColor = (rgb: [number,number,number]) => doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    const setFill  = (rgb: [number,number,number]) => doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-    const setDraw  = (rgb: [number,number,number]) => doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
-    const fillRect = (x: number, yy: number, w: number, h: number) => doc.rect(x, yy, w, h, 'F');
-    const strokeRect = (x: number, yy: number, w: number, h: number) => doc.rect(x, yy, w, h, 'S');
-    const hLine = (yy: number) => { setDraw(C.border); doc.setLineWidth(0.1); doc.line(margin, yy, margin + cw, yy); };
+    // ── HEADER BIRU ─────────────────────────────────────────────────────────
+    setFC(C.primary); fillR(0, 0, W, 42);
 
-    const printTime = now.toLocaleDateString('id-ID', {
-      day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
+    // Logo
+    try {
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      await new Promise<void>((res,rej) => { img.onload=()=>res(); img.onerror=()=>rej(); img.src=logoYB; });
+      const cv = document.createElement('canvas'); cv.width=img.width; cv.height=img.height;
+      cv.getContext('2d')!.drawImage(img,0,0);
+      doc.addImage(cv.toDataURL('image/png'),'PNG', margin, 7, 20, 20);
+    } catch {}
 
-    // ── HEADER ──────────────────────────────────────────────────────────────
-    setFill(C.primary); fillRect(0, 0, W, 44);
-    setFill(C.gold);    fillRect(0, 44, W, 2);
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); setTC(C.white);
+    doc.text('YAYASAN BAITULLOH', margin+24, 16);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); setTC([180,200,255] as any);
+    doc.text('SISTEM INFORMASI KEUANGAN SEKOLAH', margin+24, 22);
+    doc.text('Jl. Yukum Jaya, Terbanggi Besar, Lampung Tengah', margin+24, 27);
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(17);
-    setColor(C.white);
-    doc.text('LAPORAN KEUANGAN SEKOLAH', W / 2, 14, { align: 'center' });
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); setTC(C.white);
+    doc.text('LAPORAN KEUANGAN', W-margin, 16, { align:'right' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); setTC([180,200,255] as any);
+    doc.text(`Periode: ${bulanIni} ${tahunIni}`, W-margin, 22, { align:'right' });
+    doc.text(`Dicetak: ${now2.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, W-margin, 27, { align:'right' });
 
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('YAYASAN BAITULLOH', W / 2, 22, { align: 'center' });
+    setFC(C.gold); fillR(0, 42, W, 2);
+    y = 52;
 
-    doc.setFontSize(9);
-    setColor([180,210,255] as any);
-    doc.text(`Periode: ${bulanIni} ${tahunIni}`, W / 2, 30, { align: 'center' });
-
-    doc.setFontSize(7);
-    doc.text(`Dicetak: ${printTime}`, W - margin, 39, { align: 'right' });
-
-    y = 54;
-
-    // ── SECTION TITLE (tanpa emoji) ─────────────────────────────────────────
-    const sectionTitle = (title: string) => {
-      setFill(C.primary); fillRect(margin, y, cw, 9);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-      setColor(C.white);
-      doc.text(title, margin + 4, y + 6.3);
-      y += 12;
+    // ── HELPERS ─────────────────────────────────────────────────────────────
+    const sectionHeader = (title: string) => {
+      setFC(C.primary); fillR(margin, y-3, cw, 7);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); setTC(C.white);
+      doc.text(title, margin+3, y+2); y += 10;
     };
-
-    // ── TABLE HEADER ROW ────────────────────────────────────────────────────
-    const tableHeader = (cols: { label: string; x: number; align?: 'left' | 'right' }[], bg: [number,number,number]) => {
-      setFill(bg); fillRect(margin, y, cw, 7);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-      setColor(C.primary);
-      cols.forEach(col => {
-        if (col.align === 'right') doc.text(col.label, col.x, y + 5, { align: 'right' });
-        else doc.text(col.label, col.x, y + 5);
-      });
-      y += 7;
-    };
-
-    // ── DATA ROW ────────────────────────────────────────────────────────────
-    const dataRow = (
-      label: string, value: string,
-      opts: { bg?: [number,number,number]; bold?: boolean; labelColor?: [number,number,number]; valueColor?: [number,number,number]; rowH?: number; fontSize?: number; indent?: number } = {}
-    ) => {
-      const { bg, bold = false, labelColor = C.dark, valueColor = C.dark, rowH = 8, fontSize = 9, indent = 0 } = opts;
-      if (bg) { setFill(bg); fillRect(margin, y, cw, rowH); }
-      hLine(y + rowH);
-      doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(fontSize);
-      setColor(labelColor); doc.text(label, margin + 4 + indent, y + rowH - 2.2);
-      setColor(valueColor); doc.text(value, W - margin - 4, y + rowH - 2.2, { align: 'right' });
-      y += rowH;
-    };
-
-    const subRow = (label: string, value: string) => {
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-      setColor(C.gray);
-      doc.text('  -> ' + label, margin + 8, y + 4.5);
-      doc.text(value, W - margin - 4, y + 4.5, { align: 'right' });
+    const dataRow = (label:string, value:string, bold=false, valColor=C.dark) => {
+      doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(bold?9.5:9);
+      setTC(C.dark); doc.text(label, margin+2, y);
+      setTC(valColor); doc.text(value, W-margin-2, y, { align:'right' });
       y += 5.5;
     };
-
-    const highlightRow = (label: string, value: string, bgColor: [number,number,number], valueColor: [number,number,number]) => {
-      setFill(bgColor); fillRect(margin, y, cw, 11);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-      setColor(C.white); doc.text(label, margin + 4, y + 7.5);
-      setColor(valueColor); doc.text(value, W - margin - 4, y + 7.5, { align: 'right' });
-      y += 14;
+    const subRow = (label:string, value:string) => {
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); setTC(C.gray);
+      doc.text(label, margin+10, y);
+      setTC(C.danger); doc.text(value, W-margin-2, y, { align:'right' });
+      y += 4.5;
+    };
+    const divider = (gold=false, thick=false) => {
+      setDC(gold ? C.gold : [220,220,220] as any);
+      doc.setLineWidth(gold||thick ? 0.6 : 0.2);
+      doc.line(margin, y, W-margin, y); y += gold?5:3;
+    };
+    const totalRow = (label:string, value:string, color:[number,number,number]) => {
+      setFC(C.lightGray); fillR(margin, y-3, cw, 8);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); setTC(C.dark);
+      doc.text(label, margin+3, y+2);
+      setTC(color); doc.text(value, W-margin-3, y+2, { align:'right' });
+      y += 11;
     };
 
-    // ── BAGIAN 1: LAPORAN KEUANGAN ──────────────────────────────────────────
-    sectionTitle('LAPORAN KEUANGAN');
-    tableHeader([
-      { label: 'KETERANGAN', x: margin + 4 },
-      { label: 'NOMINAL', x: W - margin - 4, align: 'right' },
-    ], C.lightBlue);
+    // ── SECTION I: PENDAPATAN ────────────────────────────────────────────────
+    if (activeTab === 'Total') {
+      sectionHeader('I.  LAPORAN PENDAPATAN');
+      dataRow('Pendapatan SMP',    formatRupiah(smp.totalPemasukan));   divider();
+      dataRow('Pendapatan SMA',    formatRupiah(sma.totalPemasukan));   divider();
+      dataRow('Pendapatan Khusus', formatRupiah(khusus.totalPemasukan)); divider(false,true);
+      totalRow('TOTAL PENDAPATAN', formatRupiah(smp.totalPemasukan + sma.totalPemasukan + khusus.totalPemasukan), C.success);
+      y += 3;
 
-    // Kotak border seluruh tabel keuangan
-    setDraw(C.border); doc.setLineWidth(0.2);
-    strokeRect(margin, y, cw, 8 + 5.5 + 5.5 + 2 + 8 + 5.5 + 5.5 + 2);
+      sectionHeader('II. LAPORAN PENGELUARAN');
+      dataRow('Pengeluaran SMP',    formatRupiah(smp.totalPengeluaran));   divider();
+      dataRow('Pengeluaran SMA',    formatRupiah(sma.totalPengeluaran));   divider();
+      dataRow('Pengeluaran Khusus', formatRupiah(khusus.totalPengeluaran)); divider(false,true);
+      totalRow('TOTAL PENGELUARAN', formatRupiah(smp.totalPengeluaran + sma.totalPengeluaran + khusus.totalPengeluaran), C.danger);
+      y += 3;
 
-    dataRow('TOTAL PENDAPATAN', formatRupiah(totalPendapatan), {
-      bg: C.lightGreen, bold: true, labelColor: [15,118,59] as any, valueColor: C.success, rowH: 8, fontSize: 10,
-    });
-    subRow('Pendapatan SMP', formatRupiah(smp.totalPemasukan));
-    subRow('Pendapatan SMA', formatRupiah(sma.totalPemasukan));
-    y += 2;
+      divider(true);
+      setFC([239,246,255] as any); fillR(margin, y-3, cw, 10);
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); setTC(C.primary);
+      const sisaTotal = (smp.totalPemasukan+sma.totalPemasukan+khusus.totalPemasukan) - (smp.totalPengeluaran+sma.totalPengeluaran+khusus.totalPengeluaran);
+      doc.text(`SISA KEUANGAN SEKOLAH  (${bulanTahun})`, margin+3, y+3);
+      doc.text(formatRupiah(sisaTotal), W-margin-3, y+3, { align:'right' });
+      y += 14;
 
-    dataRow('TOTAL PENGELUARAN', formatRupiah(totalPengeluaran), {
-      bg: C.lightRed, bold: true, labelColor: C.danger, valueColor: C.danger, rowH: 8, fontSize: 10,
-    });
-    subRow('Pengeluaran SMP', formatRupiah(smp.totalPengeluaran));
-    subRow('Pengeluaran SMA', formatRupiah(sma.totalPengeluaran));
-    y += 2;
+      // Tunggakan
+      sectionHeader('III. TOTAL TUNGGAKAN SEKOLAH');
+      (['SMP','SMA','Khusus'] as const).forEach(j => {
+        const tData = j === 'SMP' ? smp : j === 'SMA' ? sma : khusus;
+        const label = j === 'Khusus' ? 'Tunggakan Khusus' : `Tunggakan ${j}`;
+        const tunggakanNom = j === 'Khusus'
+          ? students.filter(s => s.kategori === 'Khusus' && s.tunggakan_sekolah.length > 0).reduce((a,s) => a + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0)
+          : students.filter(s => s.jenjang === j && s.tunggakan_sekolah.length > 0).reduce((a,s) => a + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0);
+        dataRow(label, formatRupiah(tunggakanNom), true, C.danger);
+        const kelasData = getTunggakanPerKelas(j === 'Khusus' ? 'Khusus' : j);
+        kelasData.forEach(k => subRow(`Kelas ${k.kelas}  (${k.jumlah} siswa)`, formatRupiah(k.nominal)));
+        divider();
+      });
+      const totalTunggakanAll = students.filter(s => s.tunggakan_sekolah.length > 0).reduce((a,s) => a + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0);
+      divider(false,true);
+      totalRow(`TOTAL TUNGGAKAN  (${bulanTahun})`, formatRupiah(totalTunggakanAll), C.danger);
 
-    highlightRow(`SISA KEUANGAN SEKOLAH  (${bulanTahun})`, formatRupiah(sisaKeuangan), C.primary, [255,223,100] as any);
+    } else {
+      // Tab SMP / SMA / Khusus
+      const d = activeTab === 'SMP' ? smp : activeTab === 'SMA' ? sma : khusus;
+      const jenjangLabel = activeTab;
+      sectionHeader(`I.  LAPORAN PENDAPATAN ${jenjangLabel}`);
+      dataRow(`Pendapatan ${jenjangLabel}`, formatRupiah(d.totalPemasukan), false, C.success); divider(false,true);
+      totalRow('TOTAL PENDAPATAN', formatRupiah(d.totalPemasukan), C.success);
+      y += 3;
 
-    y += 6;
+      sectionHeader(`II. LAPORAN PENGELUARAN ${jenjangLabel}`);
+      dataRow(`Pengeluaran ${jenjangLabel}`, formatRupiah(d.totalPengeluaran), false, C.danger); divider(false,true);
+      totalRow('TOTAL PENGELUARAN', formatRupiah(d.totalPengeluaran), C.danger);
+      y += 3;
 
-    // ── BAGIAN 2: LAPORAN TUNGGAKAN ─────────────────────────────────────────
-    sectionTitle('LAPORAN TUNGGAKAN SISWA');
-    tableHeader([
-      { label: 'KELAS / JENJANG', x: margin + 4 },
-      { label: 'JML SISWA', x: W - margin - 48, align: 'right' },
-      { label: 'NOMINAL', x: W - margin - 4, align: 'right' },
-    ], [254,226,226] as any);
+      divider(true);
+      setFC([239,246,255] as any); fillR(margin, y-3, cw, 10);
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); setTC(C.primary);
+      doc.text(`SISA KEUANGAN ${jenjangLabel}  (${bulanTahun})`, margin+3, y+3);
+      doc.text(formatRupiah(d.totalPemasukan - d.totalPengeluaran), W-margin-3, y+3, { align:'right' });
+      y += 14;
 
-    // SMP header row
-    setFill(C.lightBlue); fillRect(margin, y, cw, 8);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-    setColor(C.primary); doc.text('SMP', margin + 4, y + 5.5);
-    setColor(C.danger); doc.text(formatRupiah(smp.totalTunggakan), W - margin - 4, y + 5.5, { align: 'right' });
-    hLine(y + 8); y += 8;
+      sectionHeader(`III. TUNGGAKAN ${jenjangLabel}`);
+      const kelasRows = getTunggakanPerKelas(activeTab);
+      kelasRows.forEach(k => {
+        dataRow(`Kelas ${k.kelas}`, formatRupiah(k.nominal), true, C.danger);
+        subRow(`${k.jumlah} siswa menunggak`, formatRupiah(k.nominal));
+        divider();
+      });
+      totalRow(`TOTAL TUNGGAKAN  (${bulanTahun})`, formatRupiah(d.totalTunggakan), C.danger);
+    }
 
-    getTunggakanPerKelas('SMP').forEach((k, i) => {
-      if (i % 2 === 0) { setFill([249,250,251] as any); fillRect(margin, y, cw, 6.5); }
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-      setColor(C.gray);
-      doc.text(`     Kelas ${k.kelas}`, margin + 4, y + 4.5);
-      doc.text(`${k.jumlah} siswa`, W - margin - 48, y + 4.5, { align: 'right' });
-      setColor(C.danger); doc.text(formatRupiah(k.nominal), W - margin - 4, y + 4.5, { align: 'right' });
-      hLine(y + 6.5); y += 6.5;
-    });
-
-    y += 3;
-
-    // SMA header row
-    setFill(C.lightBlue); fillRect(margin, y, cw, 8);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-    setColor(C.primary); doc.text('SMA', margin + 4, y + 5.5);
-    setColor(C.danger); doc.text(formatRupiah(sma.totalTunggakan), W - margin - 4, y + 5.5, { align: 'right' });
-    hLine(y + 8); y += 8;
-
-    getTunggakanPerKelas('SMA').forEach((k, i) => {
-      if (i % 2 === 0) { setFill([249,250,251] as any); fillRect(margin, y, cw, 6.5); }
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-      setColor(C.gray);
-      doc.text(`     Kelas ${k.kelas}`, margin + 4, y + 4.5);
-      doc.text(`${k.jumlah} siswa`, W - margin - 48, y + 4.5, { align: 'right' });
-      setColor(C.danger); doc.text(formatRupiah(k.nominal), W - margin - 4, y + 4.5, { align: 'right' });
-      hLine(y + 6.5); y += 6.5;
-    });
-
-    y += 3;
-    highlightRow(`TOTAL TUNGGAKAN SISWA  (${bulanTahun})`, formatRupiah(totalTunggakan), C.danger, [255,200,200] as any);
-
-    // ── TANDA TANGAN (di atas garis emas, pojok kanan) ──────────────────
-    const footerY    = H - 28;
-    const sigCenterX = W - margin - 28;
-    const sigTopY    = footerY - 34;
-
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-    setColor(C.dark);
-    doc.text(`Lampung, ${bulanIni} ${tahunIni}`, sigCenterX, sigTopY, { align: 'center' });
-    doc.text('Bendahara,', sigCenterX, sigTopY + 6, { align: 'center' });
-    setDraw(C.dark); doc.setLineWidth(0.3);
-    doc.line(sigCenterX - 22, sigTopY + 20, sigCenterX + 22, sigTopY + 20);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
-    setColor(C.dark);
-    doc.text(userName || 'Petugas', sigCenterX, sigTopY + 26, { align: 'center' });
+    // ── TANDA TANGAN ────────────────────────────────────────────────────────
+    y += 20;
+    const sigX = W - margin - 32;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); setTC(C.dark);
+    doc.text(`Yukum Jaya, ${now2.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, sigX, y, { align:'center' });
+    doc.text('Bendahara,', sigX, y+6, { align:'center' });
+    setDC(C.dark); doc.setLineWidth(0.4);
+    doc.line(sigX-26, y+24, sigX+26, y+24);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); setTC(C.dark);
+    doc.text(userName || 'Petugas', sigX, y+30, { align:'center' });
+    y += 38;
 
     // ── FOOTER ──────────────────────────────────────────────────────────────
-    setFill(C.gold); fillRect(0, footerY, W, 1.5);
-    setFill([248,250,252] as any); fillRect(0, footerY + 1.5, W, H - footerY);
+    const footerY = y + 6;
+    setFC(C.gold); fillR(0, footerY, W, 2);
+    setFC(C.lightGray); fillR(0, footerY+2, W, H-footerY);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); setTC(C.gray);
+    doc.text('Dokumen ini digenerate secara otomatis oleh Sistem Informasi Keuangan Yayasan Baitulloh.', W/2, footerY+10, { align:'center' });
+    doc.text(`Halaman 1 dari 1   |   ${now2.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} pukul ${now2.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}`, W/2, footerY+16, { align:'center' });
 
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-    setColor(C.gray);
-    doc.text(
-      'Dokumen ini digenerate secara otomatis oleh Sistem Informasi Keuangan Yayasan Baitulloh.',
-      W / 2, footerY + 9, { align: 'center' }
-    );
-    doc.text(
-      `Halaman 1 dari 1  |  ${printTime}`,
-      W / 2, footerY + 15, { align: 'center' }
-    );
-
-    doc.save(`Laporan-Keuangan-Sekolah-${bulanIni}-${tahunIni}.pdf`);
+    doc.save(`Laporan-Sekolah-${activeTab}-${bulanIni}-${tahunIni}.pdf`);
     toast.success('Laporan PDF berhasil didownload');
   };
 
@@ -646,47 +603,3 @@ export default function LaporanSekolah() {
             <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
               <p>Ini adalah sisa keuangan sekolah <span className="font-bold text-foreground">{bulanIni} {tahunIni}</span> saat ini.</p>
               <p>Klik <span className="font-bold text-foreground">Cetak Laporan</span> untuk mengunduh PDF profesional dengan tanda tangan bendahara.</p>
-              <p>Sisa keuangan bisa dimasukan secara manual di halaman <span className="font-bold text-foreground">Pendapatan SMP/SMA</span>.</p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Laporan Sekolah</h1>
-          <p className="text-muted-foreground text-sm mt-1">Laporan keuangan periode {bulanIni} {tahunIni}</p>
-        </motion.div>
-        <div className="flex gap-2 flex-wrap">
-          {activeTab === 'Total' && (
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handlePrint}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine">
-              <Printer className="w-4 h-4" /> Cetak Laporan
-            </motion.button>
-          )}
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
-            <Download className="w-4 h-4" /> Export Excel
-          </motion.button>
-        </div>
-      </div>
-
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit flex-wrap">
-        {(['SMP', 'SMA', 'Khusus', 'Total'] as Tab[]).map(tab => (
-          <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-            {tab === 'Total' ? 'Laporan Total' : tab === 'Khusus' ? 'Laporan Khusus' : `Laporan ${tab}`}
-          </motion.button>
-        ))}
-      </motion.div>
-
-      {activeTab === 'Total' ? renderTotalTab() : activeTab === 'Khusus' ? renderKhususTab() : renderJenjangTab(activeTab)}
-    </div>
-  );
-}
