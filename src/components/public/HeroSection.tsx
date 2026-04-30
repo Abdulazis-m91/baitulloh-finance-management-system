@@ -370,3 +370,88 @@ export default function HeroSection() {
                 className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-bold flex items-center justify-center gap-2 btn-shine shadow-glow-primary text-sm disabled:opacity-70">
                 {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Search className="w-4 h-4" />}
                 {loading ? 'Mencari...' : 'Cari Data'}
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Results Popup */}
+      <AnimatePresence>
+        {showPopup && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+            onClick={handleClosePopup}>
+            <motion.div initial={{ scale: 0.85, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="bg-card rounded-3xl shadow-2xl w-full max-w-lg max-h-[88vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}>
+
+              {/* Popup Header */}
+              <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-4 rounded-t-3xl flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    {selectedResult ? 'Informasi Siswa dan Santri' : 'Hasil Pencarian'}
+                  </h3>
+                  {selectedResult && (
+                    <p className="text-xs text-muted-foreground mt-0.5">Data pembayaran & tunggakan</p>
+                  )}
+                </div>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
+                  onClick={handleClosePopup}
+                  className="p-2 rounded-full hover:bg-muted transition-colors">
+                  <X className="w-5 h-5" />
+                </motion.button>
+              </div>
+
+              {/* Popup Body */}
+              <div className="p-6">
+                {results.length === 0 ? (
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
+                    <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                      <Search className="w-10 h-10 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-foreground font-bold text-lg">Data tidak ditemukan</p>
+                    <p className="text-sm text-muted-foreground mt-1">Pastikan nama sudah benar</p>
+                  </motion.div>
+                ) : selectedResult ? (
+                  <>
+                    {results.length > 1 && (
+                      <button onClick={() => setSelectedResult(null)}
+                        className="text-sm text-primary hover:underline mb-4 flex items-center gap-1">
+                        ← Kembali ke daftar
+                      </button>
+                    )}
+                    {renderResultDetail(selectedResult)}
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground mb-4">Ditemukan {results.length} data</p>
+                    {results.map((r, i) => (
+                      <motion.button key={i} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                        onClick={() => setSelectedResult(r)}
+                        className="w-full flex items-center gap-4 p-4 rounded-2xl gradient-card border border-border text-left hover:border-primary/30 transition-colors">
+                        <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shrink-0">
+                          <User className="w-6 h-6 text-primary-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-foreground truncate">{r.nama_lengkap}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {r.is_siswa && `Siswa: ${r.jenjang_sekolah}-${r.kelas_sekolah}`}
+                            {r.is_siswa && r.is_santri && ' · '}
+                            {r.is_santri && `Santri: ${r.jenjang_pesantren}-${r.kelas_pesantren}`}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
