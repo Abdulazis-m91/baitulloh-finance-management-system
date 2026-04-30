@@ -27,6 +27,8 @@ function fz(val: string) {
 
 export default function LaporanPesantren() {
   const [activeTab, setActiveTab] = useState<Tab>('Total');
+  const [periodeMonth, setPeriodeMonth] = useState(new Date().getMonth());
+  const [periodeYear, setPeriodeYear] = useState(new Date().getFullYear());
 
   const { userName } = useAuth();
   const { data: students = [], isLoading: l1 } = useSantri();
@@ -44,21 +46,25 @@ export default function LaporanPesantren() {
   );
 
   const now = new Date();
-  const bulanIni = bulanNama[now.getMonth()];
-  const tahunIni = now.getFullYear();
+  const bulanIni = bulanNama[periodeMonth];
+  const tahunIni = periodeYear;
   const bulanTahun = `${bulanIni.toUpperCase()} - ${tahunIni}`;
 
-  const totalKonsumsi = konsumsi.reduce((a, c) => a + c.nominal, 0);
-  const totalPendapatanLain = pendapatanLain.reduce((a, p) => a + p.nominal, 0);
-  const totalOperasional = operasional.reduce((a, c) => a + c.nominal, 0);
-  const totalPembangunan = pembangunanData.reduce((a, c) => a + c.nominal, 0);
+  const filterPeriode = (tanggal: string) => {
+    const d = new Date(tanggal);
+    return d.getMonth() === periodeMonth && d.getFullYear() === periodeYear;
+  };
+  const totalKonsumsi = konsumsi.filter(c => filterPeriode(c.tanggal)).reduce((a, c) => a + c.nominal, 0);
+  const totalPendapatanLain = pendapatanLain.filter(p => filterPeriode(p.tanggal)).reduce((a, p) => a + p.nominal, 0);
+  const totalOperasional = operasional.filter(c => filterPeriode(c.tanggal)).reduce((a, c) => a + c.nominal, 0);
+  const totalPembangunan = pembangunanData.filter(c => filterPeriode(c.tanggal)).reduce((a, c) => a + c.nominal, 0);
 
   const pendapatanKonsumsi = totalKonsumsi + totalPendapatanLain;
   const pendapatanOperasional = totalOperasional;
   const pendapatanPembangunan = totalPembangunan;
   const totalPendapatan = pendapatanKonsumsi + pendapatanOperasional + pendapatanPembangunan;
 
-  const pengeluaranByDana = (dana: string) => pengeluaranAll.filter(e => e.jenis_keperluan.startsWith(dana)).reduce((a, e) => a + e.nominal, 0);
+  const pengeluaranByDana = (dana: string) => pengeluaranAll.filter(e => e.jenis_keperluan.startsWith(dana) && filterPeriode(e.tanggal)).reduce((a, e) => a + e.nominal, 0);
   const pengeluaranKonsumsi = pengeluaranByDana('Konsumsi');
   const pengeluaranOperasional = pengeluaranByDana('Operasional');
   const pengeluaranPembangunan = pengeluaranByDana('Pembangunan');
@@ -534,6 +540,39 @@ export default function LaporanPesantren() {
           </motion.button>
         </div>
       </div>
+
+      {/* ── Navigasi Periode ── */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-3 bg-card border border-border rounded-2xl px-5 py-3 shadow-elegant w-fit">
+        <button
+          onClick={() => {
+            if (periodeMonth === 0) { setPeriodeMonth(11); setPeriodeYear(y => y - 1); }
+            else setPeriodeMonth(m => m - 1);
+          }}
+          className="w-8 h-8 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary flex items-center justify-center transition-colors font-bold text-lg">
+          ‹
+        </button>
+        <div className="text-center min-w-[140px]">
+          <p className="font-extrabold text-foreground text-base">{bulanNama[periodeMonth]} {periodeYear}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Periode Laporan</p>
+        </div>
+        <button
+          onClick={() => {
+            if (periodeMonth === 11) { setPeriodeMonth(0); setPeriodeYear(y => y + 1); }
+            else setPeriodeMonth(m => m + 1);
+          }}
+          disabled={periodeMonth === new Date().getMonth() && periodeYear === new Date().getFullYear()}
+          className="w-8 h-8 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary flex items-center justify-center transition-colors font-bold text-lg disabled:opacity-30">
+          ›
+        </button>
+        {(periodeMonth !== new Date().getMonth() || periodeYear !== new Date().getFullYear()) && (
+          <button
+            onClick={() => { setPeriodeMonth(new Date().getMonth()); setPeriodeYear(new Date().getFullYear()); }}
+            className="text-xs text-primary font-semibold hover:underline ml-1">
+            Bulan Ini
+          </button>
+        )}
+      </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
         className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit flex-wrap">

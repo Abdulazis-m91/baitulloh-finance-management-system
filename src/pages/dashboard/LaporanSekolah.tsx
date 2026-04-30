@@ -27,8 +27,8 @@ export default function LaporanSekolah() {
   );
 
   const now = new Date();
-  const bulanIni = bulanNama[now.getMonth()];
-  const tahunIni = now.getFullYear();
+  const bulanIni = bulanNama[periodeMonth];
+  const tahunIni = periodeYear;
   const bulanTahun = `${bulanIni.toUpperCase()} - ${tahunIni}`;
 
   const getTunggakanPerKelas = (jenjang: 'SMP' | 'SMA') => {
@@ -41,8 +41,16 @@ export default function LaporanSekolah() {
   };
 
   const getData = (jenjang: 'SMP' | 'SMA') => {
-    const pembayaran = pembayaranAll.filter(p => p.jenjang === jenjang && p.metode === 'Lunas');
-    const pengeluaran = pengeluaranAll.filter(e => e.sumber_dana === jenjang);
+    const pembayaran = pembayaranAll.filter(p => {
+      const d = new Date(p.tanggal);
+      return p.jenjang === jenjang && p.metode === 'Lunas' &&
+        d.getMonth() === periodeMonth && d.getFullYear() === periodeYear;
+    });
+    const pengeluaran = pengeluaranAll.filter(e => {
+      const d = new Date(e.tanggal);
+      return e.sumber_dana === jenjang &&
+        d.getMonth() === periodeMonth && d.getFullYear() === periodeYear;
+    });
     const siswaMenunggak = students.filter(s => s.jenjang === jenjang && s.tunggakan_sekolah.length > 0);
     const totalPemasukan = pembayaran.reduce((a, p) => a + p.nominal, 0);
     const totalPengeluaran = pengeluaran.reduce((a, e) => a + e.nominal, 0);
@@ -54,8 +62,16 @@ export default function LaporanSekolah() {
   const getDataKhusus = () => {
     const siswaKhusus = students.filter(s => s.kategori === 'Khusus');
     const idKhusus = new Set(siswaKhusus.map(s => s.id));
-    const pembayaran = pembayaranAll.filter(p => p.siswa_id && idKhusus.has(p.siswa_id) && p.metode === 'Lunas');
-    const pengeluaran = pengeluaranAll.filter(e => e.sumber_dana === 'Reguler');
+    const pembayaran = pembayaranAll.filter(p => {
+      const d = new Date(p.tanggal);
+      return p.siswa_id && idKhusus.has(p.siswa_id) && p.metode === 'Lunas' &&
+        d.getMonth() === periodeMonth && d.getFullYear() === periodeYear;
+    });
+    const pengeluaran = pengeluaranAll.filter(e => {
+      const d = new Date(e.tanggal);
+      return e.sumber_dana === 'Reguler' &&
+        d.getMonth() === periodeMonth && d.getFullYear() === periodeYear;
+    });
     const siswaMenunggak = siswaKhusus.filter(s => s.tunggakan_sekolah.length > 0);
     const totalPemasukan = pembayaran.reduce((a, p) => a + p.nominal, 0);
     const totalPengeluaran = pengeluaran.reduce((a, e) => a + e.nominal, 0);
@@ -529,77 +545,3 @@ export default function LaporanSekolah() {
             <div className="divide-y divide-destructive/10">
               <div className="p-6">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex-shrink-0 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
-                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN SMP</p>
-                  </div>
-                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(smp.totalTunggakan)}</p>
-                </div>
-                <div className="mt-3 ml-[52px] space-y-1 overflow-hidden">
-                  {getTunggakanPerKelas('SMP').map(k => (
-                    <div key={k.kelas} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="text-muted-foreground">Kelas {k.kelas} · <span className="font-semibold text-foreground">{k.jumlah} siswa</span></span>
-                      <span className="font-semibold text-destructive whitespace-nowrap">{formatRupiah(k.nominal)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex-shrink-0 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
-                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN SMA</p>
-                  </div>
-                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(sma.totalTunggakan)}</p>
-                </div>
-                <div className="mt-3 ml-[52px] space-y-1 overflow-hidden">
-                  {getTunggakanPerKelas('SMA').map(k => (
-                    <div key={k.kelas} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="text-muted-foreground">Kelas {k.kelas} · <span className="font-semibold text-foreground">{k.jumlah} siswa</span></span>
-                      <span className="font-semibold text-destructive whitespace-nowrap">{formatRupiah(k.nominal)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Tunggakan Khusus — hanya tampil jika ada */}
-              {khusus.totalTunggakan > 0 && (
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center"><Users className="w-5 h-5 text-warning" /></div>
-                      <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN KHUSUS</p>
-                    </div>
-                    <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(khusus.totalTunggakan)}</p>
-                  </div>
-                  <div className="mt-3 ml-[52px] space-y-1">
-                    {getTunggakanPerKelasKhusus().map(k => (
-                      <div key={k.kelas} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="text-muted-foreground">Kelas {k.kelas} · <span className="font-semibold text-foreground">{k.jumlah} siswa</span></span>
-                      <span className="font-semibold text-destructive whitespace-nowrap">{formatRupiah(k.nominal)}</span>
-                    </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="p-6" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center flex-shrink-0"><AlertTriangle className="w-5 h-5 text-destructive-foreground" /></div>
-                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN<br/>({bulanTahun})</p>
-                  </div>
-                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(totalTunggakanAll)}</p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
-          <div className="p-6 flex gap-4 items-start">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-              <Info className="w-5 h-5 text-primary" />
-            </div>
-            <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
-              <p>Ini adalah sisa keuangan sekolah <span className="font-bold text-foreground">{bulanIni} {tahunIni}</span> saat ini.</p>
-              <p>Klik <span className="font-bold text-foreground">Cetak Laporan</span> untuk mengunduh PDF profesional dengan tanda tangan bendahara.</p>
