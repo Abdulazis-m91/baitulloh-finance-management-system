@@ -27,7 +27,16 @@ export default function DashboardPesantren() {
     </div>
   );
 
-  const pembayaranLunas = pembayaran.filter(p => p.metode === 'Lunas');
+  const now = new Date();
+  const bulanIni = now.getMonth();
+  const tahunIni = now.getFullYear();
+
+  // Pemasukan & santri membayar: HANYA bulan ini
+  const pembayaranLunas = pembayaran.filter(p => {
+    if (p.metode !== 'Lunas') return false;
+    const d = new Date(p.tanggal);
+    return d.getMonth() === bulanIni && d.getFullYear() === tahunIni;
+  });
   const totalPemasukan = pembayaranLunas.reduce((acc, p) => acc + p.nominal, 0);
   const santriMenunggak = students.filter(s => s.tunggakan_pesantren.length > 0);
   const totalTunggakan = santriMenunggak.reduce((acc, s) => {
@@ -36,12 +45,16 @@ export default function DashboardPesantren() {
     return acc + s.tunggakan_pesantren.length * biaya;
   }, 0);
   const santriMembayar = new Set(pembayaranLunas.map(p => p.siswa_id)).size;
-  const totalPengeluaran = pengeluaran.reduce((acc, p) => acc + p.nominal, 0);
+  // Pengeluaran: HANYA bulan ini
+  const totalPengeluaran = pengeluaran.filter(p => {
+    const d = new Date(p.tanggal);
+    return d.getMonth() === bulanIni && d.getFullYear() === tahunIni;
+  }).reduce((acc, p) => acc + p.nominal, 0);
 
   const stats = [
-    { label: 'Pemasukan Pesantren', sublabel: 'Bulan Ini', value: formatRupiah(totalPemasukan), icon: TrendingUp, gradient: 'gradient-primary', shadow: 'shadow-glow-primary' },
-    { label: 'Total Tunggakan', sublabel: 'Pesantren', value: formatRupiah(totalTunggakan), icon: AlertTriangle, gradient: 'gradient-danger', shadow: '' },
-    { label: 'Santri Membayar', sublabel: 'Bulan Ini', value: santriMembayar.toString(), icon: Users, gradient: 'gradient-gold', shadow: 'shadow-glow-gold' },
+    { label: 'Pemasukan Pesantren', sublabel: `${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'][bulanIni]} ${tahunIni}`, value: formatRupiah(totalPemasukan), icon: TrendingUp, gradient: 'gradient-primary', shadow: 'shadow-glow-primary' },
+    { label: 'Total Tunggakan', sublabel: 'Semua Periode', value: formatRupiah(totalTunggakan), icon: AlertTriangle, gradient: 'gradient-danger', shadow: '' },
+    { label: 'Santri Membayar', sublabel: `${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'][bulanIni]} ${tahunIni}`, value: santriMembayar.toString(), icon: Users, gradient: 'gradient-gold', shadow: 'shadow-glow-gold' },
     { label: 'Santri Menunggak', sublabel: 'Saat Ini', value: santriMenunggak.length.toString(), icon: UserX, gradient: 'gradient-warning', shadow: '' },
   ];
 
@@ -163,7 +176,7 @@ export default function DashboardPesantren() {
               <div className="p-5 rounded-2xl bg-success/5 border border-success/10 hover-lift cursor-default">
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="w-2 h-2 rounded-full bg-success" />
-                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Pemasukan Pesantren</p>
+                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Pemasukan {bulanIni+1}/{tahunIni}</p>
                 </div>
                 <p className={`${autoFontSize(formatRupiah(totalPemasukan))} font-extrabold text-success tracking-tight leading-tight`}>
                   {formatRupiah(totalPemasukan)}

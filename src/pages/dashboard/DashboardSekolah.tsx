@@ -24,12 +24,26 @@ export default function DashboardSekolah() {
     );
   }
 
-  const pembayaranLunas = pembayaran.filter(p => p.metode === 'Lunas');
+  const now = new Date();
+  const bulanIni = now.getMonth();
+  const tahunIni = now.getFullYear();
+  const bulanLabel = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][bulanIni];
+
+  // Pemasukan: HANYA bulan ini
+  const pembayaranLunas = pembayaran.filter(p => {
+    if (p.metode !== 'Lunas') return false;
+    const d = new Date(p.tanggal);
+    return d.getMonth() === bulanIni && d.getFullYear() === tahunIni;
+  });
   const totalPemasukan = pembayaranLunas.reduce((acc, p) => acc + p.nominal, 0);
   const siswaMenunggak = students.filter(s => s.tunggakan_sekolah.length > 0);
   const totalTunggakan = siswaMenunggak.reduce((acc, s) => acc + s.tunggakan_sekolah.length * s.biaya_per_bulan, 0);
   const siswaMembayar = new Set(pembayaranLunas.map(p => p.siswa_id)).size;
-  const totalPengeluaran = pengeluaran.reduce((acc, p) => acc + p.nominal, 0);
+  // Pengeluaran: HANYA bulan ini
+  const totalPengeluaran = pengeluaran.filter(p => {
+    const d = new Date(p.tanggal);
+    return d.getMonth() === bulanIni && d.getFullYear() === tahunIni;
+  }).reduce((acc, p) => acc + p.nominal, 0);
 
   const stats = [
     { label: 'Total Pemasukan', sublabel: 'Bulan Ini', value: formatRupiah(totalPemasukan), icon: TrendingUp, gradient: 'gradient-primary', shadow: 'shadow-glow-primary', change: '+12%' },
