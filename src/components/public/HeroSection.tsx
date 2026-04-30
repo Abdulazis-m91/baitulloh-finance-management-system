@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, User, MessageCircle, ChevronRight, ChevronDown, ChevronUp, BookOpen, GraduationCap } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
+import logoYB from '@/assets/logo-yb.png';
 
 interface MergedResult {
   nama_lengkap: string;
@@ -314,6 +315,10 @@ export default function HeroSection() {
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 text-center pt-28 pb-24">
         <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
+          <motion.img src={logoYB} alt="Logo Yayasan Baitulloh"
+            initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+            className="w-32 h-32 rounded-2xl object-contain mx-auto mb-6 drop-shadow-lg" />
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
             className="text-white/80 text-sm font-semibold uppercase tracking-[0.3em] mb-4">
             SISTEM INFORMASI YAYASAN
