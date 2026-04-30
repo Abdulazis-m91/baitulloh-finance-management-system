@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CreditCard, Users, TrendingUp, TrendingDown,
-  BookOpen, FileText, LogOut, Menu, X, Bell, Shield, UserCog
+  BookOpen, FileText, LogOut, Menu, X, Bell, Shield, UserCog, GraduationCap
 } from 'lucide-react';
 import { useState } from 'react';
 import logoYB from '@/assets/logo-yb.png';
