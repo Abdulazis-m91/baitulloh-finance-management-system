@@ -340,3 +340,103 @@ export function useInsertPendapatanLainPesantren() {
     onError: (e) => toast.error(`Gagal: ${e.message}`),
   });
 }
+
+// ========== PROSES DEPOSIT PESANTREN JATUH TEMPO ==========
+export function useProcessDepositPesantren() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const now = new Date();
+      const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni',
+        'Juli','Agustus','September','Oktober','November','Desember'];
+
+      const BIAYA_MAP: Record<string, { konsumsi: number; operasional: number; pembangunan: number }> = {
+        'DALAM DAERAH': { konsumsi: 400000, operasional: 50000,  pembangunan: 50000 },
+        'LUAR DAERAH':  { konsumsi: 400000, operasional: 100000, pembangunan: 50000 },
+        'REGULER':      { konsumsi: 400000, operasional: 0,      pembangunan: 50000 },
+        'NON MUKIM':    { konsumsi: 50000,  operasional: 25000,  pembangunan: 50000 },
+      };
+
+      // Ambil semua deposit pesantren
+      const { data: deposits, error } = await supabase
+        .from('pembayaran_pesantren').select('*').eq('metode', 'Deposit');
+      if (error) throw error;
+      if (!deposits || deposits.length === 0) return { processed: 0 };
+
+      // Filter yang jatuh tempo — format bulan: "Mei-2026"
+      const jatuhTempo = deposits.filter(d => {
+        const parts = d.bulan.split('-');
+        if (parts.length !== 2) return false;
+        const bulanIdx = bulanNama.indexOf(parts[0]);
+        if (bulanIdx === -1) return false;
+        return new Date(parseInt(parts[1]), bulanIdx, 1) <=
+               new Date(now.getFullYear(), now.getMonth(), 1);
+      });
+
+      if (jatuhTempo.length === 0) return { processed: 0 };
+
+      let processed = 0;
+
+      for (const dep of jatuhTempo) {
+        if (!dep.siswa_id) continue;
+
+        const { data: santri, error: sErr } = await supabase
+          .from('santri')
+          .select('tunggakan_pesantren, deposit, biaya_per_bulan, kategori')
+          .eq('id', dep.siswa_id).single();
+        if (sErr || !santri) continue;
+
+        const namaBulanSaja = dep.bulan.split('-')[0];
+        const kat = (santri.kategori as string) || 'REGULER';
+        const biaya = BIAYA_MAP[kat] || BIAYA_MAP['REGULER'];
+
+        // 1. Insert pembayaran Lunas
+        const { data: newP, error: insErr } = await supabase
+          .from('pembayaran_pesantren')
+          .insert({
+            siswa_id: dep.siswa_id, nama_siswa: dep.nama_siswa, nisn: dep.nisn,
+            jenjang: dep.jenjang, kelas: dep.kelas, kategori: dep.kategori,
+            bulan: namaBulanSaja, nominal: santri.biaya_per_bulan,
+            metode: 'Lunas', tanggal: now.toISOString().split('T')[0], petugas: dep.petugas,
+          }).select().single();
+        if (insErr || !newP) continue;
+
+        // 2. Insert komponen
+        const base = {
+          siswa_id: dep.siswa_id, pembayaran_id: newP.id, nama_siswa: dep.nama_siswa,
+          kategori: kat, bulan: namaBulanSaja,
+          tanggal: now.toISOString().split('T')[0], petugas: dep.petugas,
+        };
+        if (biaya.konsumsi > 0)    await supabase.from('konsumsi_pesantren').insert({ ...base, nominal: biaya.konsumsi });
+        if (biaya.operasional > 0) await supabase.from('operasional_pesantren').insert({ ...base, nominal: biaya.operasional });
+        if (biaya.pembangunan > 0) await supabase.from('pembangunan_pesantren').insert({ ...base, nominal: biaya.pembangunan });
+
+        // 3. Update santri: hapus tunggakan & kurangi deposit
+        await supabase.from('santri').update({
+          tunggakan_pesantren: (santri.tunggakan_pesantren || []).filter(
+            (t: string) => t !== namaBulanSaja && t !== dep.bulan
+          ),
+          deposit: Math.max(0, (santri.deposit || 0) - santri.biaya_per_bulan),
+        }).eq('id', dep.siswa_id);
+
+        // 4. Hapus deposit lama
+        await supabase.from('pembayaran_pesantren').delete().eq('id', dep.id);
+
+        processed++;
+      }
+
+      return { processed };
+    },
+    onSuccess: (result) => {
+      if (result.processed > 0) {
+        qc.invalidateQueries({ queryKey: ['pembayaran_pesantren'] });
+        qc.invalidateQueries({ queryKey: ['santri'] });
+        qc.invalidateQueries({ queryKey: ['konsumsi_pesantren'] });
+        qc.invalidateQueries({ queryKey: ['operasional_pesantren'] });
+        qc.invalidateQueries({ queryKey: ['pembangunan_pesantren'] });
+        toast.success(`✅ ${result.processed} deposit pesantren diproses otomatis menjadi pembayaran Lunas`);
+      }
+    },
+    onError: (e) => toast.error(`Gagal memproses deposit: ${e.message}`),
+  });
+}
