@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Printer, X, AlertCircle, Receipt, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { usePengeluaranPesantren, useInsertPengeluaranPesantren } from '@/hooks/useSupabasePesantren';
+import { usePengeluaranPesantren, useInsertPengeluaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren, usePendapatanLainPesantren } from '@/hooks/useSupabasePesantren';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatRupiah, formatDate } from '@/lib/format';
 import { toast } from 'sonner';
@@ -36,6 +36,10 @@ export default function PengeluaranPesantren() {
   const notaRef = useRef<HTMLDivElement>(null);
 
   const { data: pengeluaranList = [], isLoading } = usePengeluaranPesantren();
+  const { data: konsumsiData = [] } = useKonsumsiPesantren();
+  const { data: operasionalData = [] } = useOperasionalPesantren();
+  const { data: pembangunanData = [] } = usePembangunanPesantren();
+  const { data: pendapatanLainData = [] } = usePendapatanLainPesantren();
   const insertPengeluaran = useInsertPengeluaranPesantren();
   const { userName } = useAuth();
 
@@ -44,6 +48,23 @@ export default function PengeluaranPesantren() {
       <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
+
+  // Hitung saldo tersedia per dana
+  const getSaldoDana = (dana: 'Konsumsi' | 'Operasional' | 'Pembangunan') => {
+    const pendapatan = dana === 'Konsumsi'
+      ? konsumsiData.reduce((a,c) => a + c.nominal, 0) + pendapatanLainData.reduce((a,p) => a + p.nominal, 0)
+      : dana === 'Operasional'
+      ? operasionalData.reduce((a,c) => a + c.nominal, 0)
+      : pembangunanData.reduce((a,c) => a + c.nominal, 0);
+    const pengeluaran = pengeluaranList
+      .filter(e => e.jenis_keperluan.startsWith(dana))
+      .reduce((a,e) => a + e.nominal, 0);
+    return pendapatan - pengeluaran;
+  };
+
+  const saldoTersedia = getSaldoDana(danaDigunakan);
+  const nominalInput = parseInt(nominal.replace(/\D/g, '') || '0');
+  const sisaSetelahInput = saldoTersedia - nominalInput;
 
   const handleSubmit = () => {
     if (!keterangan || !jenisKeperluan || !nominal) { toast.error('Mohon lengkapi semua field'); return; }
@@ -169,7 +190,7 @@ export default function PengeluaranPesantren() {
                   placeholder="Contoh: Pembelian bahan makanan"
                   className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 col-span-2">
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Dana yang Digunakan</label>
                   <select value={danaDigunakan} onChange={e => setDanaDigunakan(e.target.value as any)}
@@ -193,6 +214,40 @@ export default function PengeluaranPesantren() {
                   </select>
                 </div>
               </div>
+
+              {/* Saldo tersedia per dana */}
+              <div className="col-span-2">
+                <div className={`flex items-center justify-between px-4 py-3 rounded-xl border text-sm ${
+                  saldoTersedia <= 0 ? 'bg-destructive/5 border-destructive/20' :
+                  sisaSetelahInput < 0 ? 'bg-warning/5 border-warning/20' :
+                  'bg-success/5 border-success/20'
+                }`}>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">
+                      Total Nominal Dana {danaDigunakan}
+                    </p>
+                    <p className={`font-extrabold text-lg ${saldoTersedia <= 0 ? 'text-destructive' : 'text-success'}`}>
+                      {formatRupiah(saldoTersedia)}
+                    </p>
+                  </div>
+                  {nominalInput > 0 && (
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">
+                        Sisa Setelah Pengeluaran
+                      </p>
+                      <p className={`font-extrabold text-lg ${sisaSetelahInput < 0 ? 'text-destructive' : 'text-primary'}`}>
+                        {formatRupiah(sisaSetelahInput)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {sisaSetelahInput < 0 && nominalInput > 0 && (
+                  <p className="text-xs text-warning font-semibold mt-1.5 flex items-center gap-1">
+                    ⚠️ Nominal melebihi saldo dana {danaDigunakan}
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nominal</label>
                 <input value={nominal ? formatRupiah(parseInt(nominal)) : ''}
