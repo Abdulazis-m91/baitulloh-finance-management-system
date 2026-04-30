@@ -87,6 +87,61 @@ export function useInsertPembayaranPesantren() {
   });
 }
 
+// ========== DELETE PEMBAYARAN PESANTREN (dengan rollback) ==========
+export function useDeletePembayaranPesantren() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (pembayaran: PembayaranPesantrenDB) => {
+      const { id, siswa_id, bulan } = pembayaran;
+
+      // 1. Hapus komponen dari 3 tabel berdasarkan pembayaran_id
+      const [k, o, b] = await Promise.all([
+        supabase.from('konsumsi_pesantren').delete().eq('pembayaran_id', id),
+        supabase.from('operasional_pesantren').delete().eq('pembayaran_id', id),
+        supabase.from('pembangunan_pesantren').delete().eq('pembayaran_id', id),
+      ]);
+      if (k.error) throw k.error;
+      if (o.error) throw o.error;
+      if (b.error) throw b.error;
+
+      // 2. Rollback tunggakan santri jika ada siswa_id
+      if (siswa_id) {
+        const { data: santri, error: santriError } = await supabase
+          .from('santri')
+          .select('tunggakan_pesantren')
+          .eq('id', siswa_id)
+          .single();
+        if (!santriError && santri) {
+          const tunggakanBaru = [...(santri.tunggakan_pesantren || [])];
+          if (!tunggakanBaru.includes(bulan)) {
+            tunggakanBaru.push(bulan);
+          }
+          await supabase
+            .from('santri')
+            .update({ tunggakan_pesantren: tunggakanBaru })
+            .eq('id', siswa_id);
+        }
+      }
+
+      // 3. Hapus pembayaran utama
+      const { error: delError } = await supabase
+        .from('pembayaran_pesantren')
+        .delete()
+        .eq('id', id);
+      if (delError) throw delError;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pembayaran_pesantren'] });
+      qc.invalidateQueries({ queryKey: ['konsumsi_pesantren'] });
+      qc.invalidateQueries({ queryKey: ['operasional_pesantren'] });
+      qc.invalidateQueries({ queryKey: ['pembangunan_pesantren'] });
+      qc.invalidateQueries({ queryKey: ['santri'] });
+      toast.success('Pembayaran dihapus & tunggakan santri dikembalikan');
+    },
+    onError: (e) => toast.error(`Gagal menghapus: ${e.message}`),
+  });
+}
+
 // ========== KONSUMSI ==========
 export function useKonsumsiPesantren() {
   return useQuery({
