@@ -27,6 +27,8 @@ export default function PendapatanPesantren() {
   const [filterKategori, setFilterKategori] = useState('');
   const [page, setPage] = useState(1);
   const [showAddPopup, setShowAddPopup] = useState(false);
+  const [isManualNama, setIsManualNama] = useState(false);
+  const [manualNama, setManualNama] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<PembayaranPesantrenDB | null>(null);
   const [showDeleteKonsumsi, setShowDeleteKonsumsi] = useState<KomponenPesantrenDB | null>(null);
   const [addNama, setAddNama] = useState('');
@@ -114,10 +116,18 @@ export default function PendapatanPesantren() {
     toast.success('Data berhasil diekspor');
   };
 
+  const handleCloseAddPopup = () => {
+    setShowAddPopup(false);
+    setIsManualNama(false);
+    setManualNama('');
+  };
+
   const handleAddPendapatan = () => {
-    if (!addNama || !addNominal) { toast.error('Mohon lengkapi semua field'); return; }
+    const namaFinal = isManualNama ? manualNama.trim() : addNama;
+    if (!namaFinal || !addNominal) { toast.error('Mohon lengkapi semua field'); return; }
+
     insertKonsumsi.mutate({
-      nama_siswa: addNama, kategori: 'Pendapatan Lainnya', bulan: currentBulan,
+      nama_siswa: namaFinal, kategori: 'Pendapatan Lainnya', bulan: currentBulan,
       nominal: parseInt(addNominal.replace(/\D/g, '')), tanggal: todayISO,
       petugas: userName || 'Petugas', siswa_id: null, pembayaran_id: null,
     }, {
@@ -320,14 +330,14 @@ export default function PendapatanPesantren() {
       <AnimatePresence>
         {showAddPopup && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className={modalOverlay} onClick={() => setShowAddPopup(false)}>
+            className={modalOverlay} onClick={handleCloseAddPopup}>
             <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
               transition={modalSpring} className="bg-card rounded-3xl shadow-2xl w-full max-w-md p-7 space-y-5"
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-foreground text-lg">Tambah Pendapatan Lainnya</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
-                  onClick={() => setShowAddPopup(false)} className="p-2 rounded-full hover:bg-muted">
+                  onClick={handleCloseAddPopup} className="p-2 rounded-full hover:bg-muted">
                   <X className="w-4 h-4" />
                 </motion.button>
               </div>
@@ -336,12 +346,37 @@ export default function PendapatanPesantren() {
               </p>
               <div>
                 <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nama Pemasukan</label>
-                <select value={addNama} onChange={e => setAddNama(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-                  <option value="">Pilih</option>
-                  <option value="Sodaqoh">Sodaqoh</option>
-                  <option value="Sisa Pendapatan Bulan Lalu">Sisa Pendapatan Bulan Lalu</option>
-                </select>
+                {!isManualNama ? (
+                  <select value={addNama} onChange={e => {
+                    if (e.target.value === '__manual__') {
+                      setIsManualNama(true);
+                      setAddNama('');
+                    } else {
+                      setAddNama(e.target.value);
+                    }
+                  }} className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+                    <option value="">Pilih</option>
+                    <option value="Sodaqoh">Sodaqoh</option>
+                    <option value="Sisa Pendapatan Bulan Lalu">Sisa Pendapatan Bulan Lalu</option>
+                    <option value="__manual__">✏️ Ketik Manual...</option>
+                  </select>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={manualNama}
+                      onChange={e => setManualNama(e.target.value)}
+                      placeholder="Ketik nama pemasukan..."
+                      autoFocus
+                      className="flex-1 px-4 py-3.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus"
+                    />
+                    <button
+                      onClick={() => { setIsManualNama(false); setManualNama(''); }}
+                      className="px-3 py-2 rounded-xl bg-muted text-muted-foreground text-xs hover:bg-muted/80 transition-colors whitespace-nowrap">
+                      ← Pilih
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nominal</label>
@@ -362,7 +397,7 @@ export default function PendapatanPesantren() {
                   className="flex-1 py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine disabled:opacity-50">
                   {insertKonsumsi.isPending ? 'Menyimpan...' : 'Simpan'}
                 </motion.button>
-                <button onClick={() => setShowAddPopup(false)}
+                <button onClick={handleCloseAddPopup}
                   className="flex-1 py-3.5 rounded-xl border-2 border-border text-foreground font-semibold hover:bg-muted transition-colors">
                   Batal
                 </button>
