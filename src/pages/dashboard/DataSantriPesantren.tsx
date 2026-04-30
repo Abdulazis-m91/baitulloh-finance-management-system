@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
+import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSantri, useInsertSantri, useUpdateSantri, useDeleteSantri, type SantriDB } from '@/hooks/useSupabaseSantri';
 import { useCicilanPesantrenBySiswa, KATEGORI_LIST, KATEGORI_BIAYA, KategoriSantri } from '@/hooks/useSupabasePesantren';
 import { formatRupiah } from '@/lib/format';
@@ -25,6 +25,7 @@ const emptyForm: StudentForm = {
 
 const modalOverlay = "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4";
 const modalSpring = { type: 'spring' as const, stiffness: 300, damping: 25 };
+const PAGE_SIZE = 15;
 
 function SantriFormPopup({ title, onClose, onSubmit, form, setForm, toggleBulan, handleWhatsAppChange }: {
   title: string; onClose: () => void; onSubmit: () => void; form: StudentForm;
@@ -81,17 +82,14 @@ function SantriFormPopup({ title, onClose, onSubmit, form, setForm, toggleBulan,
                   <span className="text-[10px] text-muted-foreground font-mono">{rfidFocused ? '🟢 Siap scan' : '⚪ Klik untuk aktifkan scanner'}</span>
                 </div>
               </div>
-              {/* Kategori & Total Nominal */}
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Kategori</label>
                   <select value={form.kategori} onChange={e => setForm(p => ({ ...p, kategori: e.target.value as KategoriSantri }))}
                     className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required>
                     {KATEGORI_LIST.map(k => <option key={k} value={k}>{k}</option>)}
-                  </select>
-                </div>
+                  </select></div>
                 <div><label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Total Nominal</label>
-                  <input value={formatRupiah(biaya.total)} readOnly className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted text-foreground text-sm font-bold cursor-not-allowed" />
-                </div>
+                  <input value={formatRupiah(biaya.total)} readOnly className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted text-foreground text-sm font-bold cursor-not-allowed" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Jenjang</label>
@@ -150,7 +148,6 @@ function SantriFormPopup({ title, onClose, onSubmit, form, setForm, toggleBulan,
   );
 }
 
-// Detail popup with cicilan info
 function DetailSantriPopup({ student, onClose }: { student: SantriDB; onClose: () => void }) {
   const { data: cicilanSiswa = [] } = useCicilanPesantrenBySiswa(student.id);
   const kat = (student.kategori as KategoriSantri) || 'REGULER';
@@ -219,6 +216,21 @@ function DetailSantriPopup({ student, onClose }: { student: SantriDB; onClose: (
   );
 }
 
+// Label warna kategori
+function KategoriLabel({ kat }: { kat: string }) {
+  const colors: Record<string, string> = {
+    'DALAM DAERAH': 'bg-info/10 text-info',
+    'LUAR DAERAH':  'bg-primary/10 text-primary',
+    'REGULER':      'bg-warning/10 text-warning',
+    'NON MUKIM':    'bg-muted text-muted-foreground',
+  };
+  return (
+    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${colors[kat] || 'bg-muted text-muted-foreground'}`}>
+      {kat}
+    </span>
+  );
+}
+
 export default function DataSantriPesantren() {
   const [search, setSearch] = useState('');
   const [filterJenjang, setFilterJenjang] = useState('');
@@ -232,14 +244,17 @@ export default function DataSantriPesantren() {
   const [showTunggakan, setShowTunggakan] = useState<SantriDB | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<SantriDB | null>(null);
   const [form, setForm] = useState<StudentForm>(emptyForm);
-  const perPage = 15;
 
   const { data: students = [], isLoading } = useSantri();
   const insertStudent = useInsertSantri();
   const updateStudentMut = useUpdateSantri();
   const deleteStudentMut = useDeleteSantri();
 
-  if (isLoading) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (isLoading) return (
+    <div className="flex items-center justify-center min-h-[40vh]">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
 
   const filtered = students.filter(s => {
     const matchSearch = !search || s.nama_lengkap.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search);
@@ -250,8 +265,8 @@ export default function DataSantriPesantren() {
     return matchSearch && matchJenjang && matchKelas && matchStatus && matchKategori;
   });
 
-  const totalPages = Math.ceil(filtered.length / perPage);
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const exportExcel = () => {
     const data = filtered.map((s, i) => ({
@@ -315,85 +330,143 @@ export default function DataSantriPesantren() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Data Santri Pesantren</h1>
           <p className="text-muted-foreground text-sm mt-1">Kelola data santri pesantren</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-wrap gap-2">
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={openAdd} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine shadow-glow-primary"><Plus className="w-4 h-4" /> Tambah Data</motion.button>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine"><Download className="w-4 h-4" /> Export Excel</motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={openAdd}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine shadow-glow-primary">
+            <Plus className="w-4 h-4" /> Tambah Data
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
+            <Download className="w-4 h-4" /> Export Excel
+          </motion.button>
           {filterStatus === 'menunggak' && (
-            <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ scale: 1.02 }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-warning text-warning-foreground text-sm font-bold btn-shine"><Send className="w-4 h-4" /> Tagih Sekaligus</motion.button>
+            <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ scale: 1.02 }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-warning text-warning-foreground text-sm font-bold btn-shine">
+              <Send className="w-4 h-4" /> Tagih Sekaligus
+            </motion.button>
           )}
         </motion.div>
       </div>
 
       {/* Filters */}
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card rounded-3xl border border-border p-5 shadow-elegant">
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        className="bg-card rounded-3xl border border-border p-5 shadow-elegant">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div className="relative">
+          <div className="relative lg:col-span-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Cari nama atau NISN..."
+            <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Cari nama atau NISN..."
               className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
           </div>
-          <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+          <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }}
+            className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
             <option value="">Semua Jenjang</option><option value="SMP">SMP</option><option value="SMA">SMA</option><option value="Reguler">Reguler</option>
           </select>
-          <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }} disabled={!filterJenjang} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50">
+          <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }} disabled={!filterJenjang}
+            className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50">
             <option value="">{filterJenjang ? 'Semua Kelas' : 'Pilih jenjang'}</option>
             {filterJenjang && kelasOptions[filterJenjang]?.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
-          <select value={filterKategori} onChange={e => { setFilterKategori(e.target.value); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+          <select value={filterKategori} onChange={e => { setFilterKategori(e.target.value); setPage(1); }}
+            className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
             <option value="">Semua Kategori</option>
             {KATEGORI_LIST.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
-          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value as FilterStatus); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value as FilterStatus); setPage(1); }}
+            className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
             <option value="">Semua Status</option><option value="lunas">Lunas</option><option value="menunggak">Belum Lunas</option>
           </select>
         </div>
       </motion.div>
 
       {/* Table */}
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+        className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col style={{ width: '3%' }} />   {/* No */}
+              <col style={{ width: '10%' }} />  {/* NISN */}
+              <col style={{ width: '18%' }} />  {/* Nama */}
+              <col style={{ width: '7%' }} />   {/* Jenjang */}
+              <col style={{ width: '6%' }} />   {/* Kelas */}
+              <col style={{ width: '10%' }} />  {/* Status */}
+              <col style={{ width: '13%' }} />  {/* Kategori */}
+              <col style={{ width: '13%' }} />  {/* Orang Tua */}
+              <col style={{ width: '12%' }} />  {/* WhatsApp */}
+              <col style={{ width: '8%' }} />   {/* Aksi */}
+            </colgroup>
             <thead>
               <tr className="bg-muted/30 border-b border-border">
                 {['No', 'NISN', 'Nama Lengkap', 'Jenjang', 'Kelas', 'Status', 'Kategori', 'Orang Tua', 'WhatsApp', 'Aksi'].map(h => (
-                  <th key={h} className="py-4 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider text-left">{h}</th>
+                  <th key={h} className="py-4 px-3 text-muted-foreground font-semibold text-xs uppercase tracking-wider text-left">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
+              {paginated.length === 0 && (
+                <tr><td colSpan={10} className="py-16 text-center text-muted-foreground">
+                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3"><User className="w-8 h-8 text-muted-foreground/30" /></div>
+                  Tidak ada data santri
+                </td></tr>
+              )}
               {paginated.map((s, i) => (
-                <motion.tr key={s.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
+                <motion.tr key={s.id}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                   className="border-b border-border/30 hover:bg-primary/[0.02] transition-colors group">
-                  <td className="py-4 px-4 text-muted-foreground">{(page - 1) * perPage + i + 1}</td>
-                  <td className="py-4 px-4 text-foreground font-mono text-xs">{s.nisn}</td>
-                  <td className="py-4 px-4 text-foreground font-semibold group-hover:text-primary transition-colors">{s.nama_lengkap}</td>
-                  <td className="py-4 px-4"><span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : (s.jenjang as string) === 'Reguler' ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary'}`}>{s.jenjang}</span></td>
-                  <td className="py-4 px-4 text-foreground font-medium">{s.kelas}</td>
-                  <td className="py-4 px-4">
-                    {s.tunggakan_pesantren.length > 0 ? (
-                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTunggakan(s)}
-                        className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">{s.tunggakan_pesantren.length} bulan ↗</motion.button>
-                    ) : (<span className="px-3 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">✓ Lunas</span>)}
+                  <td className="py-3.5 px-3 text-muted-foreground text-xs">{(page - 1) * PAGE_SIZE + i + 1}</td>
+                  <td className="py-3.5 px-3 text-foreground font-mono text-xs truncate">{s.nisn}</td>
+                  <td className="py-3.5 px-3 text-foreground font-semibold text-xs leading-tight group-hover:text-primary transition-colors">{s.nama_lengkap}</td>
+                  <td className="py-3.5 px-3">
+                    <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${s.jenjang === 'SMP' ? 'bg-info/10 text-info' : (s.jenjang as string) === 'Reguler' ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary'}`}>
+                      {s.jenjang}
+                    </span>
                   </td>
-                  <td className="py-4 px-4"><span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground text-xs font-semibold">{s.kategori || 'REGULER'}</span></td>
-                  <td className="py-4 px-4 text-muted-foreground text-xs">{s.nama_orang_tua}</td>
-                  <td className="py-4 px-4"><a href={`https://wa.me/${s.nomor_whatsapp.replace('+', '')}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold font-mono text-success hover:underline">{s.nomor_whatsapp}</a></td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center justify-start gap-1">
-                      {[
-                        { icon: Eye, color: 'text-info hover:bg-info/10', action: () => setShowDetail(s), title: 'Lihat' },
-                        { icon: Edit, color: 'text-warning hover:bg-warning/10', action: () => openEdit(s), title: 'Edit' },
-                        { icon: Trash2, color: 'text-destructive hover:bg-destructive/10', action: () => setShowDeleteConfirm(s), title: 'Hapus' },
-                      ].map(({ icon: Icon, color, action, title }) => (
-                        <motion.button key={title} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={action} className={`p-2 rounded-xl ${color} transition-colors`} title={title}><Icon className="w-4 h-4" /></motion.button>
-                      ))}
+                  <td className="py-3.5 px-3 text-foreground font-medium text-xs">{s.kelas}</td>
+                  <td className="py-3.5 px-3">
+                    {s.tunggakan_pesantren.length > 0 ? (
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowTunggakan(s)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors whitespace-nowrap">
+                        {s.tunggakan_pesantren.length} bulan ↗
+                      </motion.button>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-success/10 text-success whitespace-nowrap">✓ Lunas</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-3"><KategoriLabel kat={s.kategori || 'REGULER'} /></td>
+                  <td className="py-3.5 px-3 text-muted-foreground text-xs leading-tight">{s.nama_orang_tua}</td>
+                  <td className="py-3.5 px-3">
+                    <a href={`https://wa.me/${s.nomor_whatsapp.replace('+', '')}`} target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-bold font-mono text-success hover:underline block truncate">
+                      {s.nomor_whatsapp}
+                    </a>
+                  </td>
+                  <td className="py-3.5 px-3">
+                    <div className="flex items-center gap-0.5">
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowDetail(s)} className="p-1.5 rounded-lg text-info hover:bg-info/10 transition-colors" title="Lihat">
+                        <Eye className="w-3.5 h-3.5" />
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                        onClick={() => openEdit(s)} className="p-1.5 rounded-lg text-warning hover:bg-warning/10 transition-colors" title="Edit">
+                        <Edit className="w-3.5 h-3.5" />
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowDeleteConfirm(s)} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors" title="Hapus">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </motion.button>
                       {s.tunggakan_pesantren.length > 0 && (
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => sendWhatsApp(s)} className="p-2 rounded-xl text-success hover:bg-success/10 transition-colors" title="WhatsApp"><MessageCircle className="w-4 h-4" /></motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                          onClick={() => sendWhatsApp(s)} className="p-1.5 rounded-lg text-success hover:bg-success/10 transition-colors" title="WhatsApp">
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </motion.button>
                       )}
                     </div>
                   </td>
@@ -402,23 +475,34 @@ export default function DataSantriPesantren() {
             </tbody>
           </table>
         </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-4 border-t border-border">
-            <p className="text-xs text-muted-foreground font-medium">Menampilkan {paginated.length} dari {filtered.length} data</p>
-            <div className="flex gap-1.5">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <motion.button key={i} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setPage(i + 1)}
-                  className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${page === i + 1 ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'hover:bg-muted text-muted-foreground'}`}>{i + 1}</motion.button>
-              ))}
+
+        {/* Footer pagination */}
+        <div className="flex items-center justify-between px-5 py-4 border-t border-border bg-muted/10">
+          <p className="text-xs text-muted-foreground">
+            Menampilkan <span className="font-bold text-foreground">{paginated.length}</span> dari{' '}
+            <span className="font-bold text-foreground">{filtered.length}</span> data
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="p-2 rounded-lg border border-border bg-background disabled:opacity-30 hover:bg-muted transition-colors">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {page} / {totalPages}
+              </span>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                className="p-2 rounded-lg border border-border bg-background disabled:opacity-30 hover:bg-muted transition-colors">
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </motion.div>
 
-      {/* Detail Popup */}
+      {/* Popups */}
       <AnimatePresence>{showDetail && <DetailSantriPopup student={showDetail} onClose={() => setShowDetail(null)} />}</AnimatePresence>
 
-      {/* Tunggakan Popup */}
       <AnimatePresence>
         {showTunggakan && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={() => setShowTunggakan(null)}>
@@ -446,9 +530,9 @@ export default function DataSantriPesantren() {
         )}
       </AnimatePresence>
 
-      {/* Add/Edit/Delete popups */}
       <AnimatePresence>{showAdd && <SantriFormPopup title="Tambah Data Santri" onClose={() => setShowAdd(false)} onSubmit={handleAdd} form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange} />}</AnimatePresence>
       <AnimatePresence>{showEdit && <SantriFormPopup title="Edit Data Santri" onClose={() => setShowEdit(null)} onSubmit={handleEdit} form={form} setForm={setForm} toggleBulan={toggleBulan} handleWhatsAppChange={handleWhatsAppChange} />}</AnimatePresence>
+
       <AnimatePresence>
         {showDeleteConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
@@ -458,8 +542,10 @@ export default function DataSantriPesantren() {
               <h3 className="font-bold text-foreground text-lg mb-2">Konfirmasi Hapus</h3>
               <p className="text-sm text-muted-foreground mb-6">Apakah Anda yakin akan menghapus data <span className="font-bold text-foreground">{showDeleteConfirm.nama_lengkap}</span>?</p>
               <div className="flex gap-3">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowDeleteConfirm(null)} className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-bold text-sm hover:bg-muted/80 transition-colors">Batal</motion.button>
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleDelete} className="flex-1 py-3 rounded-xl gradient-danger text-destructive-foreground font-bold text-sm btn-shine">Ya, Hapus</motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowDeleteConfirm(null)}
+                  className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-bold text-sm hover:bg-muted/80 transition-colors">Batal</motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleDelete}
+                  className="flex-1 py-3 rounded-xl gradient-danger text-destructive-foreground font-bold text-sm btn-shine">Ya, Hapus</motion.button>
               </div>
             </motion.div>
           </motion.div>
