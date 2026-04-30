@@ -363,14 +363,23 @@ export function useProcessDepositPesantren() {
       if (error) throw error;
       if (!deposits || deposits.length === 0) return { processed: 0 };
 
-      // Filter yang jatuh tempo — format bulan: "Mei-2026"
+      // Filter yang jatuh tempo
+      // Handle format "Mei" (tanpa tahun) DAN "Mei-2026" (dengan tahun)
       const jatuhTempo = deposits.filter(d => {
         const parts = d.bulan.split('-');
-        if (parts.length !== 2) return false;
-        const bulanIdx = bulanNama.indexOf(parts[0]);
-        if (bulanIdx === -1) return false;
-        return new Date(parseInt(parts[1]), bulanIdx, 1) <=
-               new Date(now.getFullYear(), now.getMonth(), 1);
+        if (parts.length === 2) {
+          // Format "Mei-2026"
+          const bulanIdx = bulanNama.indexOf(parts[0]);
+          if (bulanIdx === -1) return false;
+          return new Date(parseInt(parts[1]), bulanIdx, 1) <=
+                 new Date(now.getFullYear(), now.getMonth(), 1);
+        } else {
+          // Format "Mei" (tanpa tahun) — asumsikan tahun ini atau tahun lalu
+          const bulanIdx = bulanNama.indexOf(d.bulan);
+          if (bulanIdx === -1) return false;
+          // Jika bulan deposit <= bulan sekarang, anggap jatuh tempo
+          return bulanIdx <= now.getMonth();
+        }
       });
 
       if (jatuhTempo.length === 0) return { processed: 0 };
@@ -386,7 +395,8 @@ export function useProcessDepositPesantren() {
           .eq('id', dep.siswa_id).single();
         if (sErr || !santri) continue;
 
-        const namaBulanSaja = dep.bulan.split('-')[0];
+        // Ambil nama bulan saja (tanpa tahun)
+        const namaBulanSaja = dep.bulan.includes('-') ? dep.bulan.split('-')[0] : dep.bulan;
         const kat = (santri.kategori as string) || 'REGULER';
         const biaya = BIAYA_MAP[kat] || BIAYA_MAP['REGULER'];
 
