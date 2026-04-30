@@ -253,3 +253,41 @@ export function useDeleteCicilanBySiswaAndBulan() {
     onError: (e) => toast.error(`Gagal menghapus cicilan: ${e.message}`),
   });
 }
+
+// ========== NAIK KELAS (BATCH UPDATE) ==========
+export function useBatchUpdateKelas() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, kelasBaru }: { ids: string[]; kelasBaru: string }) => {
+      const { error } = await supabase
+        .from('students')
+        .update({ kelas: kelasBaru })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['students'] });
+      toast.success('Kelas siswa berhasil diperbarui');
+    },
+    onError: (e) => toast.error(`Gagal memperbarui kelas: ${e.message}`),
+  });
+}
+
+// ========== UPDATE STATUS (aktif / lulus) ==========
+export function useUpdateStatusSiswa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, status }: { ids: string[]; status: 'aktif' | 'lulus' }) => {
+      const { error } = await supabase
+        .from('students')
+        .update({ status })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['students'] });
+      toast.success(vars.status === 'lulus' ? 'Siswa berhasil diarsipkan' : 'Siswa berhasil diaktifkan kembali');
+    },
+    onError: (e) => toast.error(`Gagal mengubah status: ${e.message}`),
+  });
+}
