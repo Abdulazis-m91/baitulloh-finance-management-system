@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, User, BookOpen, MessageCircle, ChevronRight } from 'lucide-react';
+import { Search, X, User, MessageCircle, ChevronRight, ChevronDown, ChevronUp, BookOpen, GraduationCap } from 'lucide-react';
 import { formatRupiah } from '@/lib/format';
 
 interface MergedResult {
@@ -36,6 +36,8 @@ export default function HeroSection() {
   const [waSekolah, setWaSekolah] = useState('');
   const [waPesantren, setWaPesantren] = useState('');
   const [loading, setLoading] = useState(false);
+  const [expandSekolah, setExpandSekolah] = useState(false);
+  const [expandPesantren, setExpandPesantren] = useState(false);
 
   const particles = useMemo(() =>
     Array.from({ length: 30 }).map((_, i) => ({
@@ -47,13 +49,14 @@ export default function HeroSection() {
       opacity: 0.1 + Math.random() * 0.3
     })), []);
 
-  // ── Reset textbox setelah popup ditutup ──
   const handleClosePopup = () => {
     setShowPopup(false);
     setSelectedResult(null);
-    setNama('');       // reset nama
-    setJenjang('');    // reset jenjang
-    setKelas('');      // reset kelas
+    setNama('');
+    setJenjang('');
+    setKelas('');
+    setExpandSekolah(false);
+    setExpandPesantren(false);
   };
 
   const handleSearch = async () => {
@@ -108,107 +111,175 @@ export default function HeroSection() {
     }).join(', ');
     const label = type === 'sekolah' ? 'Sekolah' : 'Pesantren';
     const nisn = type === 'sekolah' ? result.nisn_sekolah : result.nisn_pesantren;
-
     const message = `Halo, saya ingin melakukan pembayaran tunggakan ${label} untuk:\n\nNama: ${result.nama_lengkap}\nNISN: ${nisn || '-'}\nBulan Tunggakan: ${bulanList}\nJumlah Tunggakan: ${formatRupiah(total)}\n\nMohon info cara pembayaran. Terima kasih.`;
     const formattedPhone = phone.startsWith('+') ? phone.substring(1) : phone.startsWith('0') ? '62' + phone.substring(1) : phone;
     return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };
 
   const renderResultDetail = (r: MergedResult) => (
-    <div className="space-y-6 stagger-children">
-      <div className="flex items-center gap-4 p-5 rounded-2xl gradient-card border border-border">
-        <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center shadow-glow-primary">
+    <div className="space-y-5">
+      {/* ── Profile Card ── */}
+      <div className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/15">
+        <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center shadow-glow-primary flex-shrink-0">
           <User className="w-8 h-8 text-primary-foreground" />
         </div>
-        <div>
-          <h4 className="font-bold text-foreground text-lg">{r.nama_lengkap}</h4>
-          {r.is_siswa && <p className="text-sm text-muted-foreground">NISN Sekolah: {r.nisn_sekolah} · {r.jenjang_sekolah} - {r.kelas_sekolah}</p>}
-          {r.is_santri && <p className="text-sm text-muted-foreground">NISN Pesantren: {r.nisn_pesantren} · {r.jenjang_pesantren} - {r.kelas_pesantren}{r.kategori_pesantren ? ` · ${r.kategori_pesantren}` : ''}</p>}
+        <div className="flex-1 min-w-0">
+          <h4 className="font-extrabold text-foreground text-lg leading-tight">{r.nama_lengkap}</h4>
+          {r.is_siswa && (
+            <div className="mt-1 space-y-0.5">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">NISN:</span> {r.nisn_sekolah}
+                <span className="mx-1.5">·</span>
+                <span className="font-semibold text-primary">{r.jenjang_sekolah} - {r.kelas_sekolah}</span>
+              </p>
+            </div>
+          )}
+          {r.is_santri && r.kategori_pesantren && (
+            <span className="inline-block mt-1.5 px-2 py-0.5 rounded-lg bg-warning/10 text-warning text-[10px] font-bold border border-warning/20">
+              {r.kategori_pesantren}
+            </span>
+          )}
         </div>
       </div>
 
+      {/* ── Biaya Sekolah ── */}
       {r.is_siswa && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center">
-              <BookOpen className="w-3.5 h-3.5 text-primary-foreground" />
-            </div>
-            <h5 className="font-bold text-foreground">Biaya Sekolah</h5>
-          </div>
-          <div className="p-4 rounded-xl bg-muted/30 border border-border mb-2">
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-muted-foreground">SPP per bulan</span>
-              <span className="font-semibold text-foreground">{formatRupiah(r.biaya_sekolah)}</span>
-            </div>
-          </div>
-          {r.tunggakan_sekolah.length > 0 ? (
-            <div className="space-y-2">
-              {r.tunggakan_sekolah.map((bulan) => (
-                <div key={bulan} className="flex items-center justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10">
-                  <span className="text-sm text-foreground">{bulan.includes('-') ? bulan.split('-').reverse().join(' - ') : bulan}</span>
-                  <span className="text-sm font-semibold text-destructive">{formatRupiah(r.biaya_sekolah)}</span>
-                </div>
-              ))}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-destructive/10 border border-destructive/20 font-bold">
-                <span className="text-sm text-foreground">Total Tunggakan</span>
-                <span className="text-sm text-destructive">{formatRupiah(r.tunggakan_sekolah.length * r.biaya_sekolah)}</span>
+        <div className="rounded-2xl border border-border overflow-hidden">
+          {/* Header Sekolah */}
+          <div className="flex items-center justify-between p-4 bg-muted/30">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center">
+                <GraduationCap className="w-3.5 h-3.5 text-primary-foreground" />
               </div>
+              <div>
+                <p className="font-bold text-foreground text-sm">Biaya Sekolah</p>
+                <p className="text-[10px] text-muted-foreground">SPP {formatRupiah(r.biaya_sekolah)} / bulan</p>
+              </div>
+            </div>
+            {r.tunggakan_sekolah.length > 0 ? (
+              <span className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive text-xs font-bold">
+                {r.tunggakan_sekolah.length} bulan tunggakan
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-lg bg-success/10 text-success text-xs font-bold">✓ Lunas</span>
+            )}
+          </div>
+
+          {r.tunggakan_sekolah.length > 0 && (
+            <div className="p-4 space-y-3">
+              {/* Total Tunggakan - Klik untuk expand */}
+              <button
+                onClick={() => setExpandSekolah(!expandSekolah)}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/15 hover:bg-destructive/10 transition-colors">
+                <span className="text-sm font-bold text-foreground">Total Tunggakan</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-extrabold text-destructive">{formatRupiah(r.tunggakan_sekolah.length * r.biaya_sekolah)}</span>
+                  {expandSekolah
+                    ? <ChevronUp className="w-4 h-4 text-destructive" />
+                    : <ChevronDown className="w-4 h-4 text-destructive" />
+                  }
+                </div>
+              </button>
+
+              {/* Detail bulan tunggakan - dropdown */}
+              <AnimatePresence>
+                {expandSekolah && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden space-y-1.5">
+                    {r.tunggakan_sekolah.map((bulan) => (
+                      <div key={bulan} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40 border border-border">
+                        <span className="text-sm text-foreground">{bulan.includes('-') ? bulan.split('-').reverse().join(' ') : bulan}</span>
+                        <span className="text-sm font-semibold text-destructive">{formatRupiah(r.biaya_sekolah)}</span>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <a href={buildWhatsAppUrl(waSekolah, r, 'sekolah')} target="_blank" rel="noopener noreferrer"
-                className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm flex items-center justify-center gap-2 mt-2 transition-colors">
+                className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors">
                 <MessageCircle className="w-4 h-4" /> Bayar Tunggakan Sekolah
               </a>
             </div>
-          ) : (
-            <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full gradient-success flex items-center justify-center text-xs text-success-foreground">✓</span>
-              Tidak ada tunggakan
-            </p>
           )}
         </div>
       )}
 
+      {/* ── Biaya Pesantren ── */}
       {r.is_santri && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg gradient-gold flex items-center justify-center">
-              <BookOpen className="w-3.5 h-3.5 text-foreground" />
-            </div>
-            <h5 className="font-bold text-foreground">Biaya Pesantren</h5>
-          </div>
-          <div className="p-4 rounded-xl bg-muted/30 border border-border mb-2">
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-muted-foreground">Syahriah per bulan</span>
-              <span className="font-semibold text-foreground">{formatRupiah(r.biaya_pesantren)}</span>
-            </div>
-            {r.kategori_pesantren && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Kategori</span>
-                <span className="font-semibold text-foreground">{r.kategori_pesantren}</span>
+        <div className="rounded-2xl border border-border overflow-hidden">
+          {/* Header Pesantren */}
+          <div className="flex items-center justify-between p-4 bg-muted/30">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg gradient-gold flex items-center justify-center">
+                <BookOpen className="w-3.5 h-3.5 text-foreground" />
               </div>
+              <div>
+                <p className="font-bold text-foreground text-sm">Biaya Pesantren</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Syahriah {formatRupiah(r.biaya_pesantren)} / bulan
+                  {r.kategori_pesantren && <span className="ml-1 opacity-70">· {r.kategori_pesantren}</span>}
+                </p>
+              </div>
+            </div>
+            {r.tunggakan_pesantren.length > 0 ? (
+              <span className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive text-xs font-bold">
+                {r.tunggakan_pesantren.length} bulan tunggakan
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-lg bg-success/10 text-success text-xs font-bold">✓ Lunas</span>
             )}
           </div>
-          {r.tunggakan_pesantren.length > 0 ? (
-            <div className="space-y-2">
-              {r.tunggakan_pesantren.map((bulan) => (
-                <div key={bulan} className="flex items-center justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10">
-                  <span className="text-sm text-foreground">{bulan.includes('-') ? bulan.split('-').reverse().join(' - ') : bulan}</span>
-                  <span className="text-sm font-semibold text-destructive">{formatRupiah(r.biaya_pesantren)}</span>
+
+          {r.tunggakan_pesantren.length > 0 && (
+            <div className="p-4 space-y-3">
+              {/* Total Tunggakan - Klik untuk expand */}
+              <button
+                onClick={() => setExpandPesantren(!expandPesantren)}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/15 hover:bg-destructive/10 transition-colors">
+                <div className="text-left">
+                  <span className="text-sm font-bold text-foreground block">Total Tunggakan</span>
+                  {r.kategori_pesantren && (
+                    <span className="text-[10px] text-muted-foreground">{r.kategori_pesantren}</span>
+                  )}
                 </div>
-              ))}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-destructive/10 border border-destructive/20 font-bold">
-                <span className="text-sm text-foreground">Total Tunggakan</span>
-                <span className="text-sm text-destructive">{formatRupiah(r.tunggakan_pesantren.length * r.biaya_pesantren)}</span>
-              </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-extrabold text-destructive">{formatRupiah(r.tunggakan_pesantren.length * r.biaya_pesantren)}</span>
+                  {expandPesantren
+                    ? <ChevronUp className="w-4 h-4 text-destructive" />
+                    : <ChevronDown className="w-4 h-4 text-destructive" />
+                  }
+                </div>
+              </button>
+
+              {/* Detail bulan tunggakan - dropdown */}
+              <AnimatePresence>
+                {expandPesantren && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden space-y-1.5">
+                    {r.tunggakan_pesantren.map((bulan) => (
+                      <div key={bulan} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40 border border-border">
+                        <span className="text-sm text-foreground">{bulan.includes('-') ? bulan.split('-').reverse().join(' ') : bulan}</span>
+                        <span className="text-sm font-semibold text-destructive">{formatRupiah(r.biaya_pesantren)}</span>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <a href={buildWhatsAppUrl(waPesantren, r, 'pesantren')} target="_blank" rel="noopener noreferrer"
-                className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm flex items-center justify-center gap-2 mt-2 transition-colors">
+                className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors">
                 <MessageCircle className="w-4 h-4" /> Bayar Tunggakan Pesantren
               </a>
             </div>
-          ) : (
-            <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full gradient-success flex items-center justify-center text-xs text-success-foreground">✓</span>
-              Tidak ada tunggakan
-            </p>
           )}
         </div>
       )}
@@ -308,13 +379,19 @@ export default function HeroSection() {
             onClick={handleClosePopup}>
             <motion.div initial={{ scale: 0.85, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bg-card rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-8"
+              className="bg-card rounded-3xl shadow-2xl w-full max-w-lg max-h-[88vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}>
 
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-foreground">
-                  {selectedResult ? 'Informasi Siswa/Santri' : 'Hasil Pencarian'}
-                </h3>
+              {/* Popup Header */}
+              <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-4 rounded-t-3xl flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    {selectedResult ? 'Informasi Siswa dan Santri' : 'Hasil Pencarian'}
+                  </h3>
+                  {selectedResult && (
+                    <p className="text-xs text-muted-foreground mt-0.5">Data pembayaran & tunggakan</p>
+                  )}
+                </div>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
                   onClick={handleClosePopup}
                   className="p-2 rounded-full hover:bg-muted transition-colors">
@@ -322,47 +399,50 @@ export default function HeroSection() {
                 </motion.button>
               </div>
 
-              {results.length === 0 ? (
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
-                  <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-                    <Search className="w-10 h-10 text-muted-foreground/50" />
+              {/* Popup Body */}
+              <div className="p-6">
+                {results.length === 0 ? (
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
+                    <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                      <Search className="w-10 h-10 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-foreground font-bold text-lg">Data tidak ditemukan</p>
+                    <p className="text-sm text-muted-foreground mt-1">Pastikan nama sudah benar</p>
+                  </motion.div>
+                ) : selectedResult ? (
+                  <>
+                    {results.length > 1 && (
+                      <button onClick={() => setSelectedResult(null)}
+                        className="text-sm text-primary hover:underline mb-4 flex items-center gap-1">
+                        ← Kembali ke daftar
+                      </button>
+                    )}
+                    {renderResultDetail(selectedResult)}
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground mb-4">Ditemukan {results.length} data</p>
+                    {results.map((r, i) => (
+                      <motion.button key={i} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                        onClick={() => setSelectedResult(r)}
+                        className="w-full flex items-center gap-4 p-4 rounded-2xl gradient-card border border-border text-left hover:border-primary/30 transition-colors">
+                        <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shrink-0">
+                          <User className="w-6 h-6 text-primary-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-foreground truncate">{r.nama_lengkap}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {r.is_siswa && `Siswa: ${r.jenjang_sekolah}-${r.kelas_sekolah}`}
+                            {r.is_siswa && r.is_santri && ' · '}
+                            {r.is_santri && `Santri: ${r.jenjang_pesantren}-${r.kelas_pesantren}`}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                      </motion.button>
+                    ))}
                   </div>
-                  <p className="text-foreground font-bold text-lg">Data tidak ditemukan</p>
-                  <p className="text-sm text-muted-foreground mt-1">Pastikan nama sudah benar</p>
-                </motion.div>
-              ) : selectedResult ? (
-                <>
-                  {results.length > 1 && (
-                    <button onClick={() => setSelectedResult(null)}
-                      className="text-sm text-primary hover:underline mb-4 flex items-center gap-1">
-                      ← Kembali ke daftar
-                    </button>
-                  )}
-                  {renderResultDetail(selectedResult)}
-                </>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground mb-4">Ditemukan {results.length} data</p>
-                  {results.map((r, i) => (
-                    <motion.button key={i} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                      onClick={() => setSelectedResult(r)}
-                      className="w-full flex items-center gap-4 p-4 rounded-2xl gradient-card border border-border text-left hover:border-primary/30 transition-colors">
-                      <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shrink-0">
-                        <User className="w-6 h-6 text-primary-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-foreground truncate">{r.nama_lengkap}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {r.is_siswa && `Siswa: ${r.jenjang_sekolah}-${r.kelas_sekolah}`}
-                          {r.is_siswa && r.is_santri && ' · '}
-                          {r.is_santri && `Santri: ${r.jenjang_pesantren}-${r.kelas_pesantren}`}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-                    </motion.button>
-                  ))}
-                </div>
-              )}
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
