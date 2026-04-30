@@ -31,11 +31,19 @@ export default function DashboardPesantren() {
   const bulanIni = now.getMonth();
   const tahunIni = now.getFullYear();
 
-  // Pemasukan & santri membayar: HANYA bulan ini
+  // Pemasukan & santri membayar: filter by kolom "bulan" (bukan tanggal transaksi)
+  // karena deposit yang diproses punya tanggal lama tapi bulan=bulan berjalan
+  const bulanNamaList = ['Januari','Februari','Maret','April','Mei','Juni',
+    'Juli','Agustus','September','Oktober','November','Desember'];
+  const namabulanIni = bulanNamaList[bulanIni];
+
   const pembayaranLunas = pembayaran.filter(p => {
     if (p.metode !== 'Lunas') return false;
-    const d = new Date(p.tanggal);
-    return d.getMonth() === bulanIni && d.getFullYear() === tahunIni;
+    // Cek kolom bulan mengandung nama bulan ini
+    const bulanParts = p.bulan.split('-');
+    const namaBulanP = bulanParts[0];
+    const tahunP = bulanParts.length > 1 ? parseInt(bulanParts[1]) : tahunIni;
+    return namaBulanP === namabulanIni && tahunP === tahunIni;
   });
   const totalPemasukan = pembayaranLunas.reduce((acc, p) => acc + p.nominal, 0);
   const santriMenunggak = students.filter(s => s.tunggakan_pesantren.length > 0);
