@@ -98,6 +98,8 @@ export default function PendapatanPesantren() {
   const showJenjangFilter = ['Pembayaran', 'Deposit'].includes(activeTab);
   const showKategoriFilter = !['Cicilan'].includes(activeTab);
   const isPembayaranTab = activeTab === 'Pembayaran';
+  const isKonsumsiTab = activeTab === 'Konsumsi';
+  const hasAksi = isPembayaranTab || isKonsumsiTab;
 
   const exportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(data);
@@ -139,7 +141,7 @@ export default function PendapatanPesantren() {
     'Pembangunan': '🏢', 'Cicilan': '💳', 'Deposit': '💰'
   };
 
-  const headers = isPembayaranTab
+  const headers = hasAksi
     ? ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Kategori', 'Bulan', 'Nominal', 'Petugas', 'Aksi']
     : ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Kategori', 'Bulan', 'Nominal', 'Petugas'];
 
