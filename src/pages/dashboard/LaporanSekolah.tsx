@@ -545,3 +545,154 @@ export default function LaporanSekolah() {
             <div className="divide-y divide-destructive/10">
               <div className="p-6">
                 <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex-shrink-0 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
+                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN SMP</p>
+                  </div>
+                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(smp.totalTunggakan)}</p>
+                </div>
+                <div className="mt-3 ml-[52px] space-y-1 overflow-hidden">
+                  {getTunggakanPerKelas('SMP').map(k => (
+                    <div key={k.kelas} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">Kelas {k.kelas} · <span className="font-semibold text-foreground">{k.jumlah} siswa</span></span>
+                      <span className="font-semibold text-destructive whitespace-nowrap">{formatRupiah(k.nominal)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex-shrink-0 flex items-center justify-center"><Users className="w-5 h-5 text-destructive" /></div>
+                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN SMA</p>
+                  </div>
+                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(sma.totalTunggakan)}</p>
+                </div>
+                <div className="mt-3 ml-[52px] space-y-1 overflow-hidden">
+                  {getTunggakanPerKelas('SMA').map(k => (
+                    <div key={k.kelas} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">Kelas {k.kelas} · <span className="font-semibold text-foreground">{k.jumlah} siswa</span></span>
+                      <span className="font-semibold text-destructive whitespace-nowrap">{formatRupiah(k.nominal)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Tunggakan Khusus — hanya tampil jika ada */}
+              {khusus.totalTunggakan > 0 && (
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center"><Users className="w-5 h-5 text-warning" /></div>
+                      <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN KHUSUS</p>
+                    </div>
+                    <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(khusus.totalTunggakan)}</p>
+                  </div>
+                  <div className="mt-3 ml-[52px] space-y-1">
+                    {getTunggakanPerKelasKhusus().map(k => (
+                      <div key={k.kelas} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">Kelas {k.kelas} · <span className="font-semibold text-foreground">{k.jumlah} siswa</span></span>
+                      <span className="font-semibold text-destructive whitespace-nowrap">{formatRupiah(k.nominal)}</span>
+                    </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="p-6" style={{ backgroundColor: 'hsl(0 84% 60% / 0.12)' }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl gradient-danger flex items-center justify-center flex-shrink-0"><AlertTriangle className="w-5 h-5 text-destructive-foreground" /></div>
+                    <p className="font-extrabold text-foreground text-base leading-tight">TOTAL TUNGGAKAN<br/>({bulanTahun})</p>
+                  </div>
+                  <p className="text-xl font-extrabold text-destructive whitespace-nowrap">{formatRupiah(totalTunggakanAll)}</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="bg-card rounded-3xl border border-border shadow-elegant overflow-hidden">
+          <div className="p-6 flex gap-4 items-start">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+              <Info className="w-5 h-5 text-primary" />
+            </div>
+            <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
+              <p>Ini adalah sisa keuangan sekolah <span className="font-bold text-foreground">{bulanIni} {tahunIni}</span> saat ini.</p>
+              <p>Klik <span className="font-bold text-foreground">Cetak Laporan</span> untuk mengunduh PDF profesional dengan tanda tangan bendahara.</p>
+              <p>Sisa keuangan bisa dimasukan secara manual di halaman <span className="font-bold text-foreground">Pendapatan SMP/SMA</span>.</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Laporan Sekolah</h1>
+          <p className="text-muted-foreground text-sm mt-1">Laporan keuangan periode {bulanIni} {tahunIni}</p>
+        </motion.div>
+        <div className="flex gap-2 flex-wrap">
+          {activeTab === 'Total' && (
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handlePrint()}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine">
+              <Printer className="w-4 h-4" /> Cetak Laporan
+            </motion.button>
+          )}
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={exportExcel}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
+            <Download className="w-4 h-4" /> Export Excel
+          </motion.button>
+        </div>
+      </div>
+
+      {/* ── Navigasi Periode ── */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-3 bg-card border border-border rounded-2xl px-5 py-3 shadow-elegant w-fit">
+        <button
+          onClick={() => {
+            if (periodeMonth === 0) { setPeriodeMonth(11); setPeriodeYear(y => y - 1); }
+            else setPeriodeMonth(m => m - 1);
+          }}
+          className="w-8 h-8 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary flex items-center justify-center transition-colors font-bold text-lg">
+          ‹
+        </button>
+        <div className="text-center min-w-[140px]">
+          <p className="font-extrabold text-foreground text-base">{bulanNama[periodeMonth]} {periodeYear}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Periode Laporan</p>
+        </div>
+        <button
+          onClick={() => {
+            if (periodeMonth === 11) { setPeriodeMonth(0); setPeriodeYear(y => y + 1); }
+            else setPeriodeMonth(m => m + 1);
+          }}
+          disabled={periodeMonth === new Date().getMonth() && periodeYear === new Date().getFullYear()}
+          className="w-8 h-8 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary flex items-center justify-center transition-colors font-bold text-lg disabled:opacity-30">
+          ›
+        </button>
+        {(periodeMonth !== new Date().getMonth() || periodeYear !== new Date().getFullYear()) && (
+          <button
+            onClick={() => { setPeriodeMonth(new Date().getMonth()); setPeriodeYear(new Date().getFullYear()); }}
+            className="text-xs text-primary font-semibold hover:underline ml-1">
+            Bulan Ini
+          </button>
+        )}
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        className="flex gap-1 bg-muted p-1.5 rounded-2xl w-fit flex-wrap">
+        {(['SMP', 'SMA', 'Khusus', 'Total'] as Tab[]).map(tab => (
+          <motion.button key={tab} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={() => setActiveTab(tab)}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'gradient-primary text-primary-foreground shadow-glow-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+            {tab === 'Total' ? 'Laporan Total' : tab === 'Khusus' ? 'Laporan Khusus' : `Laporan ${tab}`}
+          </motion.button>
+        ))}
+      </motion.div>
+
+      {activeTab === 'Total' ? renderTotalTab() : activeTab === 'Khusus' ? renderKhususTab() : renderJenjangTab(activeTab)}
+    </div>
+  );
+}
