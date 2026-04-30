@@ -22,6 +22,7 @@ import PengeluaranPesantren from "./pages/dashboard/PengeluaranPesantren";
 import LaporanPesantren from "./pages/dashboard/LaporanPesantren";
 import AdminControl from "./pages/dashboard/AdminControl";
 import PetugasYayasan from "./pages/dashboard/PetugasYayasan";
+import NaikKelas from './pages/dashboard/NaikKelas';
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const AppRoutes = () => (
       <Route path="laporan-pesantren" element={<LaporanPesantren />} />
       <Route path="admin-control" element={<AdminControl />} />
       <Route path="petugas-yayasan" element={<PetugasYayasan />} />
+      <Route path="naik-kelas" element={<NaikKelas />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

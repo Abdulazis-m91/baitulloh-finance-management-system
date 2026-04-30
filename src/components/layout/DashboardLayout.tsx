@@ -16,6 +16,7 @@ const menuItemsSekolah = [
   { icon: TrendingDown, label: 'Pengeluaran', path: '/dashboard/pengeluaran' },
   { icon: BookOpen, label: 'Dana BOS', path: '/dashboard/dana-bos' },
   { icon: FileText, label: 'Laporan', path: '/dashboard/laporan' },
+  { icon: GraduationCap, label: 'Naik Kelas & Arsip', path: '/dashboard/naik-kelas' },
 ];
 
 const menuItemsPesantren = [

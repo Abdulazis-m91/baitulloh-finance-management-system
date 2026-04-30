@@ -301,6 +301,7 @@ export default function DataSiswaSekolah() {
   );
 
   const filtered = students.filter(s => {
+    if (s.status === 'lulus') return false;
     const jenjangLabel = getJenjangLabel(s);
     const matchSearch = !search || s.nama_lengkap.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search);
     const matchJenjang = !filterJenjang || jenjangLabel === filterJenjang;
