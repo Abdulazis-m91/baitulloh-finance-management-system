@@ -167,6 +167,22 @@ export function useInsertKonsumsi() {
   });
 }
 
+
+export function useDeleteKonsumsi() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('konsumsi_pesantren').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['konsumsi_pesantren'] });
+      toast.success('Data konsumsi berhasil dihapus');
+    },
+    onError: (e) => toast.error(`Gagal menghapus: ${e.message}`),
+  });
+}
+
 // ========== OPERASIONAL ==========
 export function useOperasionalPesantren() {
   return useQuery({

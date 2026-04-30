@@ -4,8 +4,8 @@ import { Download, Loader2, ChevronLeft, ChevronRight, Plus, X, Trash2, AlertTri
 import { useSantri } from '@/hooks/useSupabaseSantri';
 import {
   usePembayaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren,
-  useCicilanPesantren, KATEGORI_LIST, useInsertKonsumsi, useDeletePembayaranPesantren,
-  type PembayaranPesantrenDB,
+  useCicilanPesantren, KATEGORI_LIST, useInsertKonsumsi, useDeleteKonsumsi, useDeletePembayaranPesantren,
+  type PembayaranPesantrenDB, type KomponenPesantrenDB,
 } from '@/hooks/useSupabasePesantren';
 import { usePendapatanLainPesantren } from '@/hooks/useSupabasePesantren';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +28,7 @@ export default function PendapatanPesantren() {
   const [page, setPage] = useState(1);
   const [showAddPopup, setShowAddPopup] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<PembayaranPesantrenDB | null>(null);
+  const [showDeleteKonsumsi, setShowDeleteKonsumsi] = useState<KomponenPesantrenDB | null>(null);
   const [addNama, setAddNama] = useState('');
   const [addNominal, setAddNominal] = useState('');
   const [addKeterangan, setAddKeterangan] = useState('');
@@ -42,6 +43,7 @@ export default function PendapatanPesantren() {
   const { data: pendapatanLain = [], isLoading: l7 } = usePendapatanLainPesantren();
   const insertKonsumsi = useInsertKonsumsi();
   const deletePembayaran = useDeletePembayaranPesantren();
+  const deleteKonsumsi = useDeleteKonsumsi();
   const { userName } = useAuth();
 
   if (l1 || l2 || l3 || l4 || l5 || l6 || l7) return (
@@ -115,6 +117,13 @@ export default function PendapatanPesantren() {
       onSuccess: () => {
         setShowAddPopup(false); setAddNama(''); setAddNominal(''); setAddKeterangan('');
       },
+    });
+  };
+
+  const handleDeleteKonsumsi = () => {
+    if (!showDeleteKonsumsi) return;
+    deleteKonsumsi.mutate(showDeleteKonsumsi.id, {
+      onSuccess: () => setShowDeleteKonsumsi(null),
     });
   };
 
@@ -227,10 +236,13 @@ export default function PendapatanPesantren() {
                   <td className="py-4 px-4"><span className="px-2.5 py-1 rounded-lg bg-accent/50 text-accent-foreground text-xs font-bold">{p.bulan}</span></td>
                   <td className="py-4 px-4 text-right text-foreground font-bold whitespace-nowrap">{formatRupiah(p.nominal)}</td>
                   <td className="py-4 px-4 text-muted-foreground text-xs">{p.petugas}</td>
-                  {isPembayaranTab && (
+                  {hasAksi && (
                     <td className="py-4 px-4 text-center">
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                        onClick={() => setShowDeleteConfirm(p as PembayaranPesantrenDB)}
+                        onClick={() => {
+                          if (isPembayaranTab) setShowDeleteConfirm(p as PembayaranPesantrenDB);
+                          if (isKonsumsiTab) setShowDeleteKonsumsi(p as KomponenPesantrenDB);
+                        }}
                         className="p-2 rounded-xl text-destructive hover:bg-destructive/10 transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </motion.button>
@@ -382,6 +394,39 @@ export default function PendapatanPesantren() {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* ── POPUP KONFIRMASI HAPUS KONSUMSI ── */}
+      <AnimatePresence>
+        {showDeleteKonsumsi && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className={modalOverlay} onClick={() => setShowDeleteKonsumsi(null)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              transition={modalSpring} className="bg-card rounded-3xl shadow-2xl w-full max-w-sm p-7 text-center"
+              onClick={e => e.stopPropagation()}>
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-destructive" />
+              </div>
+              <h3 className="font-bold text-foreground text-lg mb-2">Hapus Data Konsumsi?</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Data konsumsi <span className="font-bold text-foreground">{showDeleteKonsumsi.nama_siswa}</span> bulan{' '}
+                <span className="font-bold text-destructive">{showDeleteKonsumsi.bulan}</span> akan dihapus permanen.
+              </p>
+              <div className="flex gap-3">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowDeleteKonsumsi(null)}
+                  className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-bold text-sm hover:bg-muted/80">
+                  Batal
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={handleDeleteKonsumsi} disabled={deleteKonsumsi.isPending}
+                  className="flex-1 py-3 rounded-xl gradient-danger text-destructive-foreground font-bold text-sm btn-shine disabled:opacity-50">
+                  {deleteKonsumsi.isPending ? 'Menghapus...' : 'Ya, Hapus'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
