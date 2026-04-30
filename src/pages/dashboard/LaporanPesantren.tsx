@@ -115,144 +115,167 @@ export default function LaporanPesantren() {
     const doc = new jsPDF('p', 'mm', 'a4');
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
-    const margin = 15;
+    const margin = 18;
     const cw = W - margin * 2;
-    const C = {
-      primary: [37, 99, 235] as [number,number,number],
-      success: [22, 163, 74] as [number,number,number],
-      danger:  [220, 38, 38] as [number,number,number],
-      gray:    [100, 100, 100] as [number,number,number],
-      dark:    [30, 30, 30] as [number,number,number],
-      gold:    [180, 140, 30] as [number,number,number],
-    };
-    const setColor = (c: [number,number,number]) => doc.setTextColor(...c);
-    const setFill  = (c: [number,number,number]) => doc.setFillColor(...c);
-    const setDraw  = (c: [number,number,number]) => doc.setDrawColor(...c);
-    const fillRect = (x: number, y: number, w: number, h: number) => doc.rect(x, y, w, h, 'F');
     let y = 0;
 
-    // ── HEADER BIRU ─────────────────────────────────────────────────────────
-    setFill(C.primary); fillRect(0, 0, W, 38);
+    // ── WARNA ───────────────────────────────────────────────────────────────
+    const C = {
+      primary:  [30, 64, 175]  as [number,number,number],  // biru tua
+      success:  [21, 128, 61]  as [number,number,number],
+      danger:   [185, 28, 28]  as [number,number,number],
+      gold:     [161, 120, 20] as [number,number,number],
+      gray:     [107, 114, 128]as [number,number,number],
+      lightGray:[243, 244, 246]as [number,number,number],
+      dark:     [17, 24, 39]   as [number,number,number],
+      white:    [255,255,255]  as [number,number,number],
+    };
+    const rgb = (c: [number,number,number]) => c;
+    const setTC = (c: [number,number,number]) => doc.setTextColor(...c);
+    const setFC = (c: [number,number,number]) => doc.setFillColor(...c);
+    const setDC = (c: [number,number,number]) => doc.setDrawColor(...c);
+    const rect  = (x:number,y:number,w:number,h:number,s='F') => doc.rect(x,y,w,h,s as any);
+
+    // ── HEADER ──────────────────────────────────────────────────────────────
+    setFC(C.primary); rect(0, 0, W, 42);
 
     // Logo
     try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      await new Promise<void>((res, rej) => {
-        img.onload = () => res();
-        img.onerror = () => rej();
-        img.src = logoYB;
-      });
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width; canvas.height = img.height;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0);
-      doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, 5, 22, 22);
-    } catch { /* logo gagal load, skip */ }
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      await new Promise<void>((res,rej) => { img.onload=()=>res(); img.onerror=()=>rej(); img.src=logoYB; });
+      const cv = document.createElement('canvas'); cv.width=img.width; cv.height=img.height;
+      cv.getContext('2d')!.drawImage(img,0,0);
+      doc.addImage(cv.toDataURL('image/png'),'PNG', margin, 7, 20, 20);
+    } catch {}
 
-    // Judul header
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-    setColor([255,255,255]);
-    doc.text('YAYASAN BAITULLOH', margin + 26, 14);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-    setColor([200, 220, 255]);
-    doc.text('LAPORAN TOTAL KEUANGAN PESANTREN', margin + 26, 20);
-    doc.text(`Periode: ${bulanIni} ${tahunIni}`, margin + 26, 26);
+    // Nama yayasan & judul
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); setTC(C.white);
+    doc.text('YAYASAN BAITULLOH', margin+24, 16);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); setTC([180,200,255] as any);
+    doc.text('SISTEM INFORMASI KEUANGAN PESANTREN', margin+24, 22);
+    doc.text('Jl. Yukum Jaya, Terbanggi Besar, Lampung Tengah', margin+24, 27);
 
-    // Garis emas bawah header
-    setFill(C.gold); fillRect(0, 38, W, 1.5);
-    y = 48;
+    // Judul laporan di kanan header
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); setTC(C.white);
+    doc.text('LAPORAN KEUANGAN', W-margin, 16, { align:'right' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); setTC([180,200,255] as any);
+    doc.text(`Periode: ${bulanIni} ${tahunIni}`, W-margin, 22, { align:'right' });
+    doc.text(`Dicetak: ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, W-margin, 27, { align:'right' });
+
+    // Garis emas
+    setFC(C.gold); rect(0, 42, W, 2);
+    y = 52;
 
     // ── HELPERS ─────────────────────────────────────────────────────────────
-    const drawRow = (label: string, value: string, bold = false, color: [number,number,number] = C.dark) => {
-      doc.setFont('helvetica', bold ? 'bold' : 'normal');
-      doc.setFontSize(bold ? 10 : 9);
-      setColor(C.dark); doc.text(label, margin + 2, y);
-      setColor(color); doc.text(value, W - margin - 2, y, { align: 'right' });
-      y += bold ? 6 : 5;
-    };
-    const drawSection = (title: string) => {
-      setFill([235, 240, 255]); fillRect(margin, y - 4, cw, 8);
-      setColor(C.primary); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-      doc.text(title, margin + 3, y + 1); y += 10; setColor(C.dark);
-    };
-    const drawLine = (gold = false) => {
-      setDraw(gold ? C.gold : [200,200,200]);
-      doc.setLineWidth(gold ? 0.8 : 0.3);
-      doc.line(margin, y, W - margin, y); y += 4;
+    const sectionHeader = (title: string) => {
+      setFC(C.primary); rect(margin, y-3, cw, 7);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); setTC(C.white);
+      doc.text(title, margin+3, y+2); y += 10;
     };
 
-    // ── ISI LAPORAN ──────────────────────────────────────────────────────────
-    drawSection('LAPORAN PENDAPATAN');
-    drawRow('Pendapatan Konsumsi',    formatRupiah(pendapatanKonsumsi),    false, C.success);
-    drawRow('Pendapatan Operasional', formatRupiah(pendapatanOperasional), false, C.success);
-    drawRow('Pendapatan Pembangunan', formatRupiah(pendapatanPembangunan), false, C.success);
-    drawRow('TOTAL PENDAPATAN',       formatRupiah(totalPendapatan),       true,  C.success);
+    const dataRow = (label:string, value:string, indent=0, bold=false, valColor=C.dark) => {
+      doc.setFont('helvetica', bold?'bold':'normal');
+      doc.setFontSize(bold ? 9.5 : 9);
+      setTC(C.dark); doc.text(label, margin+2+indent, y);
+      setTC(valColor); doc.text(value, W-margin-2, y, { align:'right' });
+      y += 5.5;
+    };
+
+    const subRow = (label:string, value:string) => {
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); setTC(C.gray);
+      doc.text(label, margin+10, y);
+      setTC(C.danger); doc.text(value, W-margin-2, y, { align:'right' });
+      y += 4.5;
+    };
+
+    const divider = (gold=false, thick=false) => {
+      setDC(gold ? C.gold : [220,220,220] as any);
+      doc.setLineWidth(gold||thick ? 0.6 : 0.2);
+      doc.line(margin, y, W-margin, y); y += gold ? 5 : 3;
+    };
+
+    const totalRow = (label:string, value:string, color:[number,number,number]) => {
+      setFC(C.lightGray); rect(margin, y-3, cw, 8);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); setTC(C.dark);
+      doc.text(label, margin+3, y+2);
+      setTC(color); doc.text(value, W-margin-3, y+2, { align:'right' });
+      y += 11;
+    };
+
+    // ── SECTION 1: PENDAPATAN ───────────────────────────────────────────────
+    sectionHeader('I.  LAPORAN PENDAPATAN');
+    dataRow('Pendapatan Dana Konsumsi',    formatRupiah(pendapatanKonsumsi));
+    divider();
+    dataRow('Pendapatan Dana Operasional', formatRupiah(pendapatanOperasional));
+    divider();
+    dataRow('Pendapatan Dana Pembangunan', formatRupiah(pendapatanPembangunan));
+    divider(false, true);
+    totalRow('TOTAL PENDAPATAN', formatRupiah(totalPendapatan), C.success);
+
     y += 3;
 
-    drawSection('LAPORAN PENGELUARAN');
-    drawRow('Pengeluaran Konsumsi',    formatRupiah(pengeluaranKonsumsi),    false, C.danger);
-    drawRow('Pengeluaran Operasional', formatRupiah(pengeluaranOperasional), false, C.danger);
-    drawRow('Pengeluaran Pembangunan', formatRupiah(pengeluaranPembangunan), false, C.danger);
-    drawRow('TOTAL PENGELUARAN',       formatRupiah(totalPengeluaran),       true,  C.danger);
+    // ── SECTION 2: PENGELUARAN ──────────────────────────────────────────────
+    sectionHeader('II. LAPORAN PENGELUARAN');
+    dataRow('Pengeluaran Dana Konsumsi',    formatRupiah(pengeluaranKonsumsi));
+    divider();
+    dataRow('Pengeluaran Dana Operasional', formatRupiah(pengeluaranOperasional));
+    divider();
+    dataRow('Pengeluaran Dana Pembangunan', formatRupiah(pengeluaranPembangunan));
+    divider(false, true);
+    totalRow('TOTAL PENGELUARAN', formatRupiah(totalPengeluaran), C.danger);
+
     y += 3;
 
-    drawLine(true);
-    drawRow(`SISA KEUANGAN PESANTREN (${bulanTahun})`, formatRupiah(totalPendapatan - totalPengeluaran), true, C.primary);
-    y += 5;
+    // ── SISA KEUANGAN ───────────────────────────────────────────────────────
+    divider(true);
+    setFC([239, 246, 255] as any); rect(margin, y-3, cw, 10);
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); setTC(C.primary);
+    doc.text(`SISA KEUANGAN PESANTREN  (${bulanTahun})`, margin+3, y+3);
+    setTC(C.primary); doc.text(formatRupiah(totalPendapatan-totalPengeluaran), W-margin-3, y+3, { align:'right' });
+    y += 14;
 
-    drawSection('TOTAL TUNGGAKAN PESANTREN');
-    drawRow('Tunggakan SMP', formatRupiah(totalTunggakanSMP), true, C.danger);
-    getTunggakanPerKelas('SMP').forEach(k => {
-      doc.setFontSize(8); doc.setFont('helvetica','normal'); setColor(C.gray);
-      doc.text(`   Kelas ${k.kelas}: ${k.jumlah} santri`, margin+4, y);
-      setColor(C.danger); doc.text(formatRupiah(k.nominal), W-margin-2, y, { align: 'right' }); y += 4;
-    });
-    y += 2; setColor(C.dark);
+    // ── SECTION 3: TUNGGAKAN ────────────────────────────────────────────────
+    sectionHeader('III. TOTAL TUNGGAKAN PESANTREN');
 
-    drawRow('Tunggakan SMA', formatRupiah(totalTunggakanSMA), true, C.danger);
-    getTunggakanPerKelas('SMA').forEach(k => {
-      doc.setFontSize(8); doc.setFont('helvetica','normal'); setColor(C.gray);
-      doc.text(`   Kelas ${k.kelas}: ${k.jumlah} santri`, margin+4, y);
-      setColor(C.danger); doc.text(formatRupiah(k.nominal), W-margin-2, y, { align: 'right' }); y += 4;
-    });
-    y += 2; setColor(C.dark);
+    // SMP
+    dataRow('Tunggakan SMP', formatRupiah(totalTunggakanSMP), 0, true, C.danger);
+    getTunggakanPerKelas('SMP').forEach(k => subRow(`Kelas ${k.kelas}  (${k.jumlah} santri)`, formatRupiah(k.nominal)));
+    divider();
 
-    drawRow('Tunggakan Reguler', formatRupiah(totalTunggakanReguler), true, C.danger);
-    getTunggakanPerKelas('Reguler').forEach(k => {
-      doc.setFontSize(8); doc.setFont('helvetica','normal'); setColor(C.gray);
-      doc.text(`   Kelas ${k.kelas}: ${k.jumlah} santri`, margin+4, y);
-      setColor(C.danger); doc.text(formatRupiah(k.nominal), W-margin-2, y, { align: 'right' }); y += 4;
-    });
-    y += 2; setColor(C.dark);
-    drawLine(true);
-    drawRow(`TOTAL TUNGGAKAN (${bulanTahun})`, formatRupiah(totalTunggakan), true, C.danger);
-    y += 6;
+    // SMA
+    dataRow('Tunggakan SMA', formatRupiah(totalTunggakanSMA), 0, true, C.danger);
+    getTunggakanPerKelas('SMA').forEach(k => subRow(`Kelas ${k.kelas}  (${k.jumlah} santri)`, formatRupiah(k.nominal)));
+    divider();
+
+    // Reguler
+    dataRow('Tunggakan Reguler', formatRupiah(totalTunggakanReguler), 0, true, C.danger);
+    getTunggakanPerKelas('Reguler').forEach(k => subRow(`Kelas ${k.kelas}  (${k.jumlah} santri)`, formatRupiah(k.nominal)));
+    divider(false, true);
+    totalRow(`TOTAL TUNGGAKAN  (${bulanTahun})`, formatRupiah(totalTunggakan), C.danger);
 
     // ── TANDA TANGAN ────────────────────────────────────────────────────────
-    const footerY = H - 28;
-    const sigX = W - margin - 30;
-    const sigTop = footerY - 36;
+    const footerY = H - 30;
+    const sigX = W - margin - 32;
+    const sigTop = footerY - 38;
 
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); setColor(C.dark);
-    doc.text(`Yukum Jaya, ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })}`, sigX, sigTop, { align: 'center' });
-    doc.text('Bendahara,', sigX, sigTop + 6, { align: 'center' });
-    // Ruang tanda tangan
-    setDraw(C.dark); doc.setLineWidth(0.3);
-    doc.line(sigX - 24, sigTop + 24, sigX + 24, sigTop + 24);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); setColor(C.dark);
-    doc.text(userName || 'Petugas', sigX, sigTop + 30, { align: 'center' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); setTC(C.dark);
+    doc.text(`Yukum Jaya, ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, sigX, sigTop, { align:'center' });
+    doc.text('Bendahara Pesantren,', sigX, sigTop+6, { align:'center' });
+    setDC(C.dark); doc.setLineWidth(0.4);
+    doc.line(sigX-26, sigTop+26, sigX+26, sigTop+26);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); setTC(C.dark);
+    doc.text(userName || 'Petugas', sigX, sigTop+32, { align:'center' });
 
-    // ── FOOTER ───────────────────────────────────────────────────────────────
-    setFill(C.gold); fillRect(0, footerY, W, 1.5);
-    setFill([248,250,252]); fillRect(0, footerY + 1.5, W, H - footerY);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); setColor(C.gray);
-    doc.text('Dokumen ini digenerate secara otomatis oleh Sistem Informasi Keuangan Yayasan Baitulloh.', W/2, footerY+9, { align: 'center' });
-    doc.text(`Halaman 1 dari 1  |  ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })} pukul ${new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })}`, W/2, footerY+15, { align: 'center' });
+    // ── FOOTER ──────────────────────────────────────────────────────────────
+    setFC(C.gold); rect(0, footerY, W, 2);
+    setFC(C.lightGray); rect(0, footerY+2, W, H-footerY);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); setTC(C.gray);
+    doc.text('Dokumen ini digenerate secara otomatis oleh Sistem Informasi Keuangan Yayasan Baitulloh.', W/2, footerY+10, { align:'center' });
+    doc.text(`Halaman 1 dari 1   |   ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} pukul ${new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}`, W/2, footerY+16, { align:'center' });
 
     doc.save(`Laporan-Pesantren-${bulanIni}-${tahunIni}.pdf`);
     toast.success('Laporan PDF berhasil didownload');
-  };
+  };;
 
   // ── Komponen baris tunggakan per kelas ──────────────────────────────────
   const TunggakanKelasDetail = ({ jenjang }: { jenjang: string }) => {
