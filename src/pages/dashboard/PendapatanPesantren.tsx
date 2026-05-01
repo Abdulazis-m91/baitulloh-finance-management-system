@@ -4,7 +4,7 @@ import { Download, Loader2, ChevronLeft, ChevronRight, Plus, X, Trash2, AlertTri
 import { useSantri } from '@/hooks/useSupabaseSantri';
 import {
   usePembayaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren,
-  useCicilanPesantren, KATEGORI_LIST, useInsertKonsumsi, useDeleteKonsumsi, useDeletePembayaranPesantren,
+  useCicilanPesantren, KATEGORI_LIST, useInsertKonsumsi, useDeleteKonsumsi, useDeleteOperasional, useDeletePembangunan, useDeletePembayaranPesantren,
   type PembayaranPesantrenDB, type KomponenPesantrenDB,
 } from '@/hooks/useSupabasePesantren';
 import { usePendapatanLainPesantren } from '@/hooks/useSupabasePesantren';
@@ -31,6 +31,8 @@ export default function PendapatanPesantren() {
   const [manualNama, setManualNama] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<PembayaranPesantrenDB | null>(null);
   const [showDeleteKonsumsi, setShowDeleteKonsumsi] = useState<KomponenPesantrenDB | null>(null);
+  const [showDeleteOperasional, setShowDeleteOperasional] = useState<KomponenPesantrenDB | null>(null);
+  const [showDeletePembangunan, setShowDeletePembangunan] = useState<KomponenPesantrenDB | null>(null);
   const [addNama, setAddNama] = useState('');
   const [addNominal, setAddNominal] = useState('');
   const [addKeterangan, setAddKeterangan] = useState('');
@@ -47,6 +49,8 @@ export default function PendapatanPesantren() {
   const insertKonsumsi = useInsertKonsumsi();
   const deletePembayaran = useDeletePembayaranPesantren();
   const deleteKonsumsi = useDeleteKonsumsi();
+  const deleteOperasional = useDeleteOperasional();
+  const deletePembangunan = useDeletePembangunan();
   const { userName } = useAuth();
 
   if (l1 || l2 || l3 || l4 || l5 || l6 || l7) return (
@@ -138,7 +142,9 @@ export default function PendapatanPesantren() {
   const showKategoriFilter = !['Cicilan'].includes(activeTab);
   const isPembayaranTab = activeTab === 'Pembayaran';
   const isKonsumsiTab = activeTab === 'Konsumsi';
-  const hasAksi = isPembayaranTab || isKonsumsiTab;
+  const isOperasionalTab = activeTab === 'Operasional';
+  const isPembangunanTab = activeTab === 'Pembangunan';
+  const hasAksi = isPembayaranTab || isKonsumsiTab || isOperasionalTab || isPembangunanTab;
 
   const exportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(data);
@@ -175,6 +181,18 @@ export default function PendapatanPesantren() {
       onSuccess: () => setShowDeleteKonsumsi(null),
     });
   };
+  const handleDeleteOperasional = () => {
+    if (!showDeleteOperasional) return;
+    deleteOperasional.mutate(showDeleteOperasional.id, {
+      onSuccess: () => setShowDeleteOperasional(null),
+    });
+  };
+  const handleDeletePembangunan = () => {
+    if (!showDeletePembangunan) return;
+    deletePembangunan.mutate(showDeletePembangunan.id, {
+      onSuccess: () => setShowDeletePembangunan(null),
+    });
+  };
 
   const handleDelete = () => {
     if (!showDeleteConfirm) return;
@@ -191,6 +209,7 @@ export default function PendapatanPesantren() {
   const headers = hasAksi
     ? ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Kategori', 'Bulan', 'Nominal', 'Petugas', 'Aksi']
     : ['No', 'Tanggal', 'Nama', 'Jenjang', 'Kelas', 'Kategori', 'Bulan', 'Nominal', 'Petugas'];
+
 
   return (
     <div className="space-y-6">
@@ -303,6 +322,8 @@ export default function PendapatanPesantren() {
                         onClick={() => {
                           if (isPembayaranTab) setShowDeleteConfirm(p as PembayaranPesantrenDB);
                           if (isKonsumsiTab) setShowDeleteKonsumsi(p as KomponenPesantrenDB);
+                          if (isOperasionalTab) setShowDeleteOperasional(p as KomponenPesantrenDB);
+                          if (isPembangunanTab) setShowDeletePembangunan(p as KomponenPesantrenDB);
                         }}
                         className="p-2 rounded-xl text-destructive hover:bg-destructive/10 transition-colors">
                         <Trash2 className="w-4 h-4" />
@@ -513,6 +534,58 @@ export default function PendapatanPesantren() {
         )}
       </AnimatePresence>
 
+
+      {/* Delete Operasional Confirm */}
+      <AnimatePresence>
+        {showDeleteOperasional && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className={modalOverlay} onClick={() => setShowDeleteOperasional(null)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              transition={modalSpring} className="bg-card rounded-3xl shadow-2xl w-full max-w-sm p-7 text-center"
+              onClick={e => e.stopPropagation()}>
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-destructive" />
+              </div>
+              <h3 className="font-bold text-foreground text-lg mb-2">Hapus Data Operasional?</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                <span className="font-bold text-foreground">{showDeleteOperasional.nama_siswa}</span> — {showDeleteOperasional.bulan}
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowDeleteOperasional(null)}
+                  className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-bold text-sm hover:bg-muted/80">Batal</button>
+                <button onClick={handleDeleteOperasional}
+                  className="flex-1 py-3 rounded-xl bg-destructive text-white font-bold text-sm">Ya, Hapus</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Pembangunan Confirm */}
+      <AnimatePresence>
+        {showDeletePembangunan && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className={modalOverlay} onClick={() => setShowDeletePembangunan(null)}>
+            <motion.div initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              transition={modalSpring} className="bg-card rounded-3xl shadow-2xl w-full max-w-sm p-7 text-center"
+              onClick={e => e.stopPropagation()}>
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-destructive" />
+              </div>
+              <h3 className="font-bold text-foreground text-lg mb-2">Hapus Data Pembangunan?</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                <span className="font-bold text-foreground">{showDeletePembangunan.nama_siswa}</span> — {showDeletePembangunan.bulan}
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowDeletePembangunan(null)}
+                  className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-bold text-sm hover:bg-muted/80">Batal</button>
+                <button onClick={handleDeletePembangunan}
+                  className="flex-1 py-3 rounded-xl bg-destructive text-white font-bold text-sm">Ya, Hapus</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

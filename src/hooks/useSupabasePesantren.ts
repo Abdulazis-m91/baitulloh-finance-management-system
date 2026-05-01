@@ -78,6 +78,20 @@ export function useInsertPembayaranPesantren() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (record: Omit<PembayaranPesantrenDB, 'id' | 'created_at'>) => {
+      // Cek duplikat: siswa_id + bulan + metode sama
+      if (record.siswa_id && record.bulan && record.metode !== 'Cicil') {
+        const { data: existing } = await supabase
+          .from('pembayaran_pesantren')
+          .select('id')
+          .eq('siswa_id', record.siswa_id)
+          .eq('bulan', record.bulan)
+          .eq('metode', record.metode)
+          .maybeSingle();
+        if (existing) {
+          toast.warning(`Pembayaran ${record.bulan} (${record.metode}) sudah ada untuk santri ini`);
+          return existing;
+        }
+      }
       const { data, error } = await supabase.from('pembayaran_pesantren').insert(record).select().single();
       if (error) throw error;
       return data;
@@ -158,6 +172,16 @@ export function useInsertKonsumsi() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (record: Omit<KomponenPesantrenDB, 'id' | 'created_at'>) => {
+      // Cek duplikat: siswa_id + bulan
+      if (record.siswa_id && record.bulan) {
+        const { data: existing } = await supabase
+          .from('konsumsi_pesantren')
+          .select('id')
+          .eq('siswa_id', record.siswa_id)
+          .eq('bulan', record.bulan)
+          .maybeSingle();
+        if (existing) return existing;
+      }
       const { data, error } = await supabase.from('konsumsi_pesantren').insert(record).select().single();
       if (error) throw error;
       return data;
@@ -195,10 +219,49 @@ export function useOperasionalPesantren() {
   });
 }
 
+export function useDeleteOperasional() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('operasional_pesantren').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['operasional_pesantren'] });
+      toast.success('Data operasional berhasil dihapus');
+    },
+    onError: (e) => toast.error(`Gagal menghapus: ${e.message}`),
+  });
+}
+
+export function useDeletePembangunan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('pembangunan_pesantren').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pembangunan_pesantren'] });
+      toast.success('Data pembangunan berhasil dihapus');
+    },
+    onError: (e) => toast.error(`Gagal menghapus: ${e.message}`),
+  });
+}
+
 export function useInsertOperasional() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (record: Omit<KomponenPesantrenDB, 'id' | 'created_at'>) => {
+      if (record.siswa_id && record.bulan) {
+        const { data: existing } = await supabase
+          .from('operasional_pesantren')
+          .select('id')
+          .eq('siswa_id', record.siswa_id)
+          .eq('bulan', record.bulan)
+          .maybeSingle();
+        if (existing) return existing;
+      }
       const { data, error } = await supabase.from('operasional_pesantren').insert(record).select().single();
       if (error) throw error;
       return data;
@@ -224,6 +287,15 @@ export function useInsertPembangunan() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (record: Omit<KomponenPesantrenDB, 'id' | 'created_at'>) => {
+      if (record.siswa_id && record.bulan) {
+        const { data: existing } = await supabase
+          .from('pembangunan_pesantren')
+          .select('id')
+          .eq('siswa_id', record.siswa_id)
+          .eq('bulan', record.bulan)
+          .maybeSingle();
+        if (existing) return existing;
+      }
       const { data, error } = await supabase.from('pembangunan_pesantren').insert(record).select().single();
       if (error) throw error;
       return data;
