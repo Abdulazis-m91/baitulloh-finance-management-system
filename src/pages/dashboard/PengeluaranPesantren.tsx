@@ -24,6 +24,15 @@ const tataTertib = [
 
 const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
+function generateRefNo(): string {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const rand = Math.floor(Math.random() * 9000 + 1000);
+  return `YBP-${yy}${mm}${dd}-${rand}`;
+}
+
 export default function PengeluaranPesantren() {
   const [activeTab, setActiveTab] = useState<Tab>('pengeluaran');
   const [keterangan, setKeterangan] = useState('');
@@ -31,6 +40,7 @@ export default function PengeluaranPesantren() {
   const [jenisKeperluan, setJenisKeperluan] = useState('');
   const [nominal, setNominal] = useState('');
   const [showNota, setShowNota] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [notaData, setNotaData] = useState<any>(null);
   const [riwayatPage, setRiwayatPage] = useState(1);
   const notaRef = useRef<HTMLDivElement>(null);
@@ -75,7 +85,7 @@ export default function PengeluaranPesantren() {
       tanggal: new Date().toISOString().split('T')[0],
       petugas: userName || 'Petugas',
     };
-    setNotaData({ ...data, dana_digunakan: danaDigunakan, jenis: jenisKeperluan });
+    setNotaData({ ...data, dana_digunakan: danaDigunakan, jenis: jenisKeperluan, refNo: generateRefNo() });
     setShowNota(true);
   };
 
@@ -101,24 +111,37 @@ export default function PengeluaranPesantren() {
     }
   };
 
-  const saveNota = async () => {
-    if (notaData) {
-      const downloaded = await downloadNotaAsPDF();
-      if (downloaded) {
-        insertPengeluaran.mutate({
-          keterangan: notaData.keterangan,
-          jenis_keperluan: notaData.jenis_keperluan,
-          nominal: notaData.nominal,
-          tanggal: notaData.tanggal,
-          petugas: notaData.petugas,
-        });
-        setShowNota(false);
-        setKeterangan(''); setNominal(''); setJenisKeperluan('');
-        setRiwayatPage(1);
-        toast.success('Nota berhasil didownload & data tersimpan');
-      }
+  const doSave = () => {
+    if (!notaData) return;
+    insertPengeluaran.mutate({
+      keterangan: notaData.keterangan,
+      jenis_keperluan: notaData.jenis_keperluan,
+      nominal: notaData.nominal,
+      tanggal: notaData.tanggal,
+      petugas: notaData.petugas,
+    });
+    setShowNota(false);
+    setKeterangan(''); setNominal(''); setJenisKeperluan('');
+    setRiwayatPage(1);
+    toast.success('Data pengeluaran berhasil disimpan');
+  };
+
+  const handleSimpanCetak = async () => {
+    if (!notaData) return;
+    setIsSaving(true);
+    const downloaded = await downloadNotaAsPDF();
+    setIsSaving(false);
+    if (downloaded) {
+      doSave();
+      toast.success('Nota dicetak & data tersimpan');
     }
   };
+
+  const handleSimpanSaja = () => {
+    doSave();
+  };
+
+  const saveNota = handleSimpanCetak; // backward compat
 
   const rekapData = (dana: string) => pengeluaranList.filter(e => e.jenis_keperluan.startsWith(dana));
 
@@ -424,48 +447,84 @@ export default function PengeluaranPesantren() {
                 </motion.button>
               </div>
 
-              <div ref={notaRef} className="border-2 border-dashed border-gray-300 rounded-2xl p-6 space-y-3 bg-white">
-                <div className="text-center mb-5 pb-4 border-b border-dashed border-gray-300">
-                  <img src={logoYB} alt="Logo Yayasan Baitulloh" className="w-12 h-12 rounded-xl mx-auto mb-2 object-contain" />
-                  <h4 className="font-extrabold text-gray-900">YAYASAN BAITULLOH</h4>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Nota Pengeluaran Pesantren</p>
-                </div>
-                {[
-                  ['Tanggal', formatDate(notaData.tanggal)],
-                  ['Keterangan', notaData.keterangan],
-                  ['Dana Digunakan', notaData.dana_digunakan],
-                  ['Jenis', notaData.jenis],
-                ].map(([l, v]) => (
-                  <div key={l} className="flex justify-between text-sm">
-                    <span className="text-gray-500">{l}</span>
-                    <span className="text-gray-900 font-medium">{v}</span>
+              {/* Struk Profesional */}
+              <div ref={notaRef} className="bg-white rounded-xl overflow-hidden" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px' }}>
+                {/* Header biru */}
+                <div style={{ background: '#1e40af', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <img src={logoYB} alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '6px' }} />
+                  <div>
+                    <div style={{ color: '#fff', fontWeight: 900, fontSize: '13px', letterSpacing: '0.5px' }}>YAYASAN BAITULLOH</div>
+                    <div style={{ color: '#bfdbfe', fontSize: '9px' }}>Nota Pengeluaran Pesantren</div>
                   </div>
-                ))}
-                <div className="border-t border-dashed border-gray-300 pt-3 flex justify-between text-sm font-extrabold">
-                  <span className="text-gray-900">Nominal</span>
-                  <span className="text-red-600 text-lg">{formatRupiah(notaData.nominal)}</span>
+                  <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: '10px' }}>NOTA PENGELUARAN</div>
+                    <div style={{ color: '#bfdbfe', fontSize: '9px' }}>{notaData.refNo}</div>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Petugas</span>
-                  <span className="text-gray-900">{notaData.petugas}</span>
+                {/* Garis emas */}
+                <div style={{ height: '3px', background: '#a17810' }} />
+                {/* Body */}
+                <div style={{ padding: '10px 14px' }}>
+                  {/* Section: Detail Transaksi */}
+                  <div style={{ background: '#1e40af', padding: '4px 8px', borderRadius: '4px', marginBottom: '6px' }}>
+                    <span style={{ color: '#fff', fontWeight: 700, fontSize: '9px', letterSpacing: '0.5px' }}>DETAIL TRANSAKSI</span>
+                  </div>
+                  {[
+                    ['No. Referensi', notaData.refNo],
+                    ['Tanggal', formatDate(notaData.tanggal)],
+                    ['Keterangan', notaData.keterangan],
+                    ['Dana Digunakan', notaData.dana_digunakan],
+                    ['Jenis Keperluan', notaData.jenis],
+                    ['Petugas', notaData.petugas],
+                  ].map(([l, v]) => (
+                    <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', borderBottom: '1px dashed #e5e7eb', paddingBottom: '3px' }}>
+                      <span style={{ color: '#6b7280', fontSize: '10px' }}>{l}</span>
+                      <span style={{ color: '#111', fontWeight: 600, fontSize: '10px', textAlign: 'right', maxWidth: '55%' }}>{v}</span>
+                    </div>
+                  ))}
+                  {/* Total */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', marginTop: '8px' }}>
+                    <span style={{ fontWeight: 700, fontSize: '11px', color: '#111' }}>TOTAL PENGELUARAN</span>
+                    <span style={{ fontWeight: 900, fontSize: '13px', color: '#dc2626' }}>{formatRupiah(notaData.nominal)}</span>
+                  </div>
+                  {/* TTD */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '9px', color: '#555' }}>Yukum Jaya, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                      <div style={{ fontSize: '9px', color: '#555', marginTop: '2px' }}>Bendahara,</div>
+                      <div style={{ height: '28px' }} />
+                      <div style={{ borderTop: '1px solid #333', paddingTop: '2px', minWidth: '90px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '9px', color: '#111' }}>{notaData.petugas}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Footer */}
+                <div style={{ height: '2px', background: '#a17810' }} />
+                <div style={{ background: '#f8fafc', padding: '5px 14px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '8px', color: '#9ca3af', fontStyle: 'italic' }}>Dokumen ini sah sebagai bukti pengeluaran Yayasan Baitulloh</span>
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-5">
+              {/* 3 Tombol */}
+              <div className="grid grid-cols-3 gap-3 mt-5">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => window.print()}
-                  className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold btn-shine flex items-center justify-center gap-2">
-                  <Printer className="w-4 h-4" /> Cetak
+                  onClick={handleSimpanCetak} disabled={isSaving}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-xs shadow-md disabled:opacity-50">
+                  <Printer className="w-5 h-5" />
+                  <span>Simpan &<br />Cetak</span>
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={saveNota}
-                  className="flex-1 py-3 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
-                  Simpan
+                  onClick={handleSimpanSaja}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl gradient-success text-success-foreground font-semibold text-xs shadow-md">
+                  <Download className="w-5 h-5" />
+                  <span>Simpan</span>
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => setShowNota(false)}
-                  className="flex-1 py-3 rounded-xl border-2 border-border text-foreground text-sm font-semibold hover:bg-muted transition-colors">
-                  Batal
+                  className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl border-2 border-border text-muted-foreground font-semibold text-xs hover:bg-muted transition-colors">
+                  <X className="w-5 h-5" />
+                  <span>Batal</span>
                 </motion.button>
               </div>
             </motion.div>
