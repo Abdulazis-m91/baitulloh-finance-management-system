@@ -293,10 +293,14 @@ export default function DataSiswaSekolah() {
     setShowEdit(null);
   };
 
-  // Kirim WA individual (buka browser)
-  const sendWhatsApp = (s: StudentDB) => {
-    const msg = encodeURIComponent(`Assalamu'alaikum. Yth. ${s.nama_orang_tua}, kami informasikan bahwa ${s.nama_lengkap} (${getJenjangLabel(s)} ${s.kelas}) memiliki tunggakan SPP sebanyak ${s.tunggakan_sekolah.length} bulan (${s.tunggakan_sekolah.join(', ')}). Total: ${formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan)}. Mohon segera melakukan pembayaran. Terima kasih.`);
-    window.open(`https://wa.me/${s.nomor_whatsapp}?text=${msg}`, '_blank');
+  // Kirim WA individual via Fonnte API
+  const sendWhatsApp = async (s: StudentDB) => {
+    const total = formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan);
+    const bulanStr = s.tunggakan_sekolah.join(', ');
+    const pesan = `Assalamu'alaikum Yth. Bapak/Ibu ${s.nama_orang_tua},\n\nDengan hormat, kami informasikan bahwa:\n\n👤 Nama  : ${s.nama_lengkap}\n🏫 Kelas : ${getJenjangLabel(s)} ${s.kelas}\n📅 Bulan : ${bulanStr}\n💰 Total : ${total}\n\nMohon segera melakukan pembayaran SPP. Terima kasih atas perhatiannya.\n\n_Yayasan Baitulloh_`;
+    const ok = await kirimFonnte(s.nomor_whatsapp, pesan);
+    if (ok) toast.success(`✅ Tagihan terkirim ke ${s.nama_orang_tua}`);
+    else toast.error(`❌ Gagal kirim ke ${s.nomor_whatsapp}`);
   };
 
   const toggleBulan = (b: string) => setForm(p => ({ ...p, tunggakanBulan: p.tunggakanBulan.includes(b) ? p.tunggakanBulan.filter(x => x !== b) : [...p.tunggakanBulan, b] }));

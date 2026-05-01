@@ -2,6 +2,21 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSantri, useInsertSantri, useUpdateSantri, useDeleteSantri, type SantriDB } from '@/hooks/useSupabaseSantri';
+
+const FONNTE_TOKEN = import.meta.env.VITE_FONNTE_TOKEN || 'UfZ8GV7RQHsWRRLBXJK7';
+
+async function kirimFonnte(noWa: string, pesan: string): Promise<boolean> {
+  try {
+    const nomor = noWa.replace(/\D/g, '');
+    const res = await fetch('https://api.fonnte.com/send', {
+      method: 'POST',
+      headers: { 'Authorization': FONNTE_TOKEN },
+      body: new URLSearchParams({ target: nomor, message: pesan }),
+    });
+    const data = await res.json();
+    return data.status === true;
+  } catch { return false; }
+}
 import { useAutoTambahTunggakanPesantren } from '@/hooks/useSupabasePesantren';
 import { useCicilanPesantrenBySiswa, KATEGORI_LIST, KATEGORI_BIAYA, KategoriSantri } from '@/hooks/useSupabasePesantren';
 import { formatRupiah } from '@/lib/format';
@@ -245,9 +260,29 @@ export default function DataSantriPesantren() {
   const [showTunggakan, setShowTunggakan] = useState<SantriDB | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<SantriDB | null>(null);
   const [form, setForm] = useState<StudentForm>(emptyForm);
+  const [isTagihLoading, setIsTagihLoading] = useState(false);
 
   const autoTunggakan = useAutoTambahTunggakanPesantren();
   const { data: students = [], isLoading } = useSantri();
+
+  const handleTagihSekaligus = async () => {
+    const menunggak = filtered.filter(s => s.tunggakan_pesantren.length > 0);
+    if (menunggak.length === 0) { toast.error('Tidak ada santri yang menunggak'); return; }
+    setIsTagihLoading(true);
+    let sukses = 0; let gagal = 0;
+    for (const s of menunggak) {
+      const kat = (s.kategori as KategoriSantri) || 'REGULER';
+      const biaya = KATEGORI_BIAYA[kat].total;
+      const total = formatRupiah(s.tunggakan_pesantren.length * biaya);
+      const bulanStr = s.tunggakan_pesantren.join(', ');
+      const pesan = `Assalamu'alaikum Yth. Bapak/Ibu ${s.nama_orang_tua},\n\nDengan hormat, kami informasikan bahwa:\n\n👤 Nama  : ${s.nama_lengkap}\n🏫 Kelas : ${s.jenjang} ${s.kelas}\n📅 Bulan : ${bulanStr}\n💰 Total : ${total}\n\nMohon segera melakukan pembayaran pesantren. Terima kasih atas perhatiannya.\n\n_Yayasan Baitulloh_`;
+      const ok = await kirimFonnte(s.nomor_whatsapp, pesan);
+      if (ok) sukses++; else gagal++;
+    }
+    setIsTagihLoading(false);
+    if (sukses > 0) toast.success(`✅ ${sukses} pesan tagihan terkirim`);
+    if (gagal > 0) toast.error(`❌ ${gagal} pesan gagal dikirim`);
+  };
 
   // Auto tambah tunggakan bulan baru saat halaman dibuka
   useEffect(() => {
@@ -325,11 +360,15 @@ export default function DataSantriPesantren() {
     setShowEdit(null);
   };
 
-  const sendWhatsApp = (s: SantriDB) => {
+  const sendWhatsApp = async (s: SantriDB) => {
     const kat = (s.kategori as KategoriSantri) || 'REGULER';
     const biaya = KATEGORI_BIAYA[kat].total;
-    const msg = encodeURIComponent(`Assalamu'alaikum. Yth. ${s.nama_orang_tua}, kami informasikan bahwa ${s.nama_lengkap} (${s.jenjang} ${s.kelas}) memiliki tunggakan pesantren sebanyak ${s.tunggakan_pesantren.length} bulan. Total: ${formatRupiah(s.tunggakan_pesantren.length * biaya)}. Mohon segera melakukan pembayaran. Terima kasih.`);
-    window.open(`https://wa.me/${s.nomor_whatsapp}?text=${msg}`, '_blank');
+    const total = formatRupiah(s.tunggakan_pesantren.length * biaya);
+    const bulanStr = s.tunggakan_pesantren.join(', ');
+    const pesan = `Assalamu'alaikum Yth. Bapak/Ibu ${s.nama_orang_tua},\n\nDengan hormat, kami informasikan bahwa:\n\n👤 Nama  : ${s.nama_lengkap}\n🏫 Kelas : ${s.jenjang} ${s.kelas}\n📅 Bulan : ${bulanStr}\n💰 Total : ${total}\n\nMohon segera melakukan pembayaran pesantren. Terima kasih atas perhatiannya.\n\n_Yayasan Baitulloh_`;
+    const ok = await kirimFonnte(s.nomor_whatsapp, pesan);
+    if (ok) toast.success(`✅ Tagihan terkirim ke ${s.nama_orang_tua}`);
+    else toast.error(`❌ Gagal kirim ke ${s.nomor_whatsapp}`);
   };
 
   const toggleBulan = (b: string) => setForm(p => ({ ...p, tunggakanBulan: p.tunggakanBulan.includes(b) ? p.tunggakanBulan.filter(x => x !== b) : [...p.tunggakanBulan, b] }));
