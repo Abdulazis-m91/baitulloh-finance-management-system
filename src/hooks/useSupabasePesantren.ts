@@ -450,3 +450,82 @@ export function useProcessDepositPesantren() {
     onError: (e) => toast.error(`Gagal memproses deposit: ${e.message}`),
   });
 }
+
+// ========== AUTO TAMBAH TUNGGAKAN BULAN BARU (PESANTREN) ==========
+export function useAutoTambahTunggakanPesantren() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const now = new Date();
+      const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni',
+        'Juli','Agustus','September','Oktober','November','Desember'];
+      const bulanIni = bulanNama[now.getMonth()];
+      const tahunIni = now.getFullYear();
+      const periodeKey = `${bulanIni}-${tahunIni}`; // "Mei-2026"
+
+      // Cek apakah sudah pernah dijalankan bulan ini via localStorage
+      const lastRunKey = 'auto_tunggakan_pesantren_last_run';
+      const lastRun = localStorage.getItem(lastRunKey);
+      if (lastRun === periodeKey) return { added: 0, skipped: true };
+
+      // Ambil semua santri aktif
+      const { data: santriList, error } = await supabase
+        .from('santri')
+        .select('id, tunggakan_pesantren, deposit, kategori')
+        .eq('status', 'aktif');
+      if (error) throw error;
+      if (!santriList || santriList.length === 0) return { added: 0 };
+
+      // Ambil semua pembayaran Lunas bulan ini
+      const { data: pembayaranBulanIni } = await supabase
+        .from('pembayaran_pesantren')
+        .select('siswa_id, bulan, metode')
+        .eq('metode', 'Lunas');
+
+      // Set siswa yang sudah lunas bulan ini
+      const sudahLunas = new Set(
+        (pembayaranBulanIni || [])
+          .filter(p => {
+            const parts = p.bulan.split('-');
+            const nm = parts[0];
+            const thn = parts.length > 1 ? parseInt(parts[1]) : tahunIni;
+            return nm === bulanIni && thn === tahunIni;
+          })
+          .map(p => p.siswa_id)
+      );
+
+      let added = 0;
+
+      for (const santri of santriList) {
+        // Skip jika sudah lunas bulan ini
+        if (sudahLunas.has(santri.id)) continue;
+
+        const tunggakan: string[] = santri.tunggakan_pesantren || [];
+
+        // Skip jika bulan ini sudah ada di tunggakan
+        if (tunggakan.includes(bulanIni)) continue;
+
+        // Tambah bulan ini ke tunggakan
+        const { error: updateError } = await supabase
+          .from('santri')
+          .update({ tunggakan_pesantren: [...tunggakan, bulanIni] })
+          .eq('id', santri.id);
+
+        if (!updateError) added++;
+      }
+
+      // Simpan ke localStorage agar tidak jalan lagi bulan ini
+      localStorage.setItem(lastRunKey, periodeKey);
+
+      return { added };
+    },
+    onSuccess: (result) => {
+      if (result.skipped) return;
+      if (result.added > 0) {
+        qc.invalidateQueries({ queryKey: ['santri'] });
+        toast.success(`✅ ${result.added} santri ditambahkan tunggakan ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`);
+      }
+    },
+    onError: (e) => console.error('Auto tunggakan error:', e),
+  });
+}

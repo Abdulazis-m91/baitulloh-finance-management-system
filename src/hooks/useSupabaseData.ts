@@ -399,3 +399,79 @@ export function useProcessDeposit() {
     onError: (e) => toast.error(`Gagal memproses deposit: ${e.message}`),
   });
 }
+
+// ========== AUTO TAMBAH TUNGGAKAN BULAN BARU (SEKOLAH) ==========
+export function useAutoTambahTunggakanSekolah() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const now = new Date();
+      const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni',
+        'Juli','Agustus','September','Oktober','November','Desember'];
+      const bulanIni = bulanNama[now.getMonth()];
+      const tahunIni = now.getFullYear();
+      const periodeKey = `${bulanIni}-${tahunIni}`;
+
+      // Cek localStorage - jangan jalankan 2x sebulan
+      const lastRunKey = 'auto_tunggakan_sekolah_last_run';
+      const lastRun = localStorage.getItem(lastRunKey);
+      if (lastRun === periodeKey) return { added: 0, skipped: true };
+
+      // Ambil semua siswa aktif
+      const { data: siswaList, error } = await supabase
+        .from('students')
+        .select('id, tunggakan_sekolah, status')
+        .eq('status', 'aktif');
+      if (error) throw error;
+      if (!siswaList || siswaList.length === 0) return { added: 0 };
+
+      // Ambil semua pembayaran Lunas bulan ini
+      const { data: pembayaranBulanIni } = await supabase
+        .from('pembayaran')
+        .select('siswa_id, bulan, metode')
+        .eq('metode', 'Lunas');
+
+      // Set siswa yang sudah lunas bulan ini
+      const sudahLunas = new Set(
+        (pembayaranBulanIni || [])
+          .filter(p => {
+            const parts = (p.bulan || '').split('-');
+            const nm = parts[0];
+            const thn = parts.length > 1 ? parseInt(parts[1]) : tahunIni;
+            return nm === bulanIni && thn === tahunIni;
+          })
+          .map(p => p.siswa_id)
+      );
+
+      let added = 0;
+
+      for (const siswa of siswaList) {
+        // Skip jika sudah lunas
+        if (sudahLunas.has(siswa.id)) continue;
+
+        const tunggakan: string[] = siswa.tunggakan_sekolah || [];
+
+        // Skip jika bulan ini sudah ada
+        if (tunggakan.includes(bulanIni)) continue;
+
+        const { error: updateError } = await supabase
+          .from('students')
+          .update({ tunggakan_sekolah: [...tunggakan, bulanIni] })
+          .eq('id', siswa.id);
+
+        if (!updateError) added++;
+      }
+
+      localStorage.setItem(lastRunKey, periodeKey);
+      return { added };
+    },
+    onSuccess: (result) => {
+      if (result.skipped) return;
+      if (result.added > 0) {
+        qc.invalidateQueries({ queryKey: ['students'] });
+        toast.success(`✅ ${result.added} siswa ditambahkan tunggakan ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`);
+      }
+    },
+    onError: (e) => console.error('Auto tunggakan sekolah error:', e),
+  });
+}

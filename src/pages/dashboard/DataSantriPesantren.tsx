@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSantri, useInsertSantri, useUpdateSantri, useDeleteSantri, type SantriDB } from '@/hooks/useSupabaseSantri';
+import { useAutoTambahTunggakanPesantren } from '@/hooks/useSupabasePesantren';
 import { useCicilanPesantrenBySiswa, KATEGORI_LIST, KATEGORI_BIAYA, KategoriSantri } from '@/hooks/useSupabasePesantren';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
@@ -245,7 +246,13 @@ export default function DataSantriPesantren() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<SantriDB | null>(null);
   const [form, setForm] = useState<StudentForm>(emptyForm);
 
+  const autoTunggakan = useAutoTambahTunggakanPesantren();
   const { data: students = [], isLoading } = useSantri();
+
+  // Auto tambah tunggakan bulan baru saat halaman dibuka
+  useEffect(() => {
+    autoTunggakan.mutate();
+  }, []);
   const insertStudent = useInsertSantri();
   const updateStudentMut = useUpdateSantri();
   const deleteStudentMut = useDeleteSantri();
