@@ -61,13 +61,18 @@ export default function PengeluaranPesantren() {
 
   // Hitung saldo tersedia per dana
   const getSaldoDana = (dana: 'Konsumsi' | 'Operasional' | 'Pembangunan') => {
+    const nowD = new Date(); const cm = nowD.getMonth(); const cy = nowD.getFullYear();
+    const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    // Pemasukan hanya bulan ini (filter by kolom bulan)
     const pendapatan = dana === 'Konsumsi'
-      ? konsumsiData.reduce((a,c) => a + c.nominal, 0) + pendapatanLainData.reduce((a,p) => a + p.nominal, 0)
+      ? konsumsiData.filter(c => { const p = c.bulan.split('-'); return p[0] === bulanNama[cm] && (p.length>1 ? parseInt(p[1]) : cy) === cy; }).reduce((a,c) => a + c.nominal, 0)
+        + pendapatanLainData.filter(p => { const d = new Date(p.tanggal); return d.getMonth()===cm && d.getFullYear()===cy; }).reduce((a,p) => a + p.nominal, 0)
       : dana === 'Operasional'
-      ? operasionalData.reduce((a,c) => a + c.nominal, 0)
-      : pembangunanData.reduce((a,c) => a + c.nominal, 0);
+      ? operasionalData.filter(c => { const p = c.bulan.split('-'); return p[0] === bulanNama[cm] && (p.length>1 ? parseInt(p[1]) : cy) === cy; }).reduce((a,c) => a + c.nominal, 0)
+      : pembangunanData.filter(c => { const p = c.bulan.split('-'); return p[0] === bulanNama[cm] && (p.length>1 ? parseInt(p[1]) : cy) === cy; }).reduce((a,c) => a + c.nominal, 0);
+    // Pengeluaran hanya bulan ini
     const pengeluaran = pengeluaranList
-      .filter(e => e.jenis_keperluan.startsWith(dana))
+      .filter(e => { const d = new Date(e.tanggal); return e.jenis_keperluan.startsWith(dana) && d.getMonth()===cm && d.getFullYear()===cy; })
       .reduce((a,e) => a + e.nominal, 0);
     return pendapatan - pengeluaran;
   };
@@ -165,10 +170,15 @@ export default function PengeluaranPesantren() {
     toast.success('Data berhasil diekspor');
   };
 
-  // Pagination riwayat
-  const totalRiwayat = pengeluaranList.length;
+  // Riwayat hanya bulan ini
+  const nowRiwayat = new Date();
+  const riwayatBulanIni = pengeluaranList.filter(e => {
+    const d = new Date(e.tanggal);
+    return d.getMonth() === nowRiwayat.getMonth() && d.getFullYear() === nowRiwayat.getFullYear();
+  });
+  const totalRiwayat = riwayatBulanIni.length;
   const totalRiwayatPages = Math.max(1, Math.ceil(totalRiwayat / RIWAYAT_PAGE_SIZE));
-  const pagedRiwayat = pengeluaranList.slice((riwayatPage - 1) * RIWAYAT_PAGE_SIZE, riwayatPage * RIWAYAT_PAGE_SIZE);
+  const pagedRiwayat = riwayatBulanIni.slice((riwayatPage - 1) * RIWAYAT_PAGE_SIZE, riwayatPage * RIWAYAT_PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -534,3 +544,4 @@ export default function PengeluaranPesantren() {
     </div>
   );
 }
+ 
