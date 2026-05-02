@@ -14,7 +14,9 @@ type Tab = 'SMP' | 'SMA' | 'Khusus' | 'Total';
 const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
 export default function LaporanSekolah() {
-  const [activeTab, setActiveTab] = useState<Tab>('SMP');
+  const [activeTab, setActiveTab] = useState<Tab>('Total');
+  const [periodeMonth, setPeriodeMonth] = useState(new Date().getMonth());
+  const [periodeYear, setPeriodeYear] = useState(new Date().getFullYear());
   const { data: students = [], isLoading: l1 } = useStudents();
   const { data: pembayaranAll = [], isLoading: l2 } = usePembayaran();
   const { data: pengeluaranAll = [], isLoading: l3 } = usePengeluaran();
