@@ -286,14 +286,8 @@ Alhamdulilahi Jazakumullahu Khoiro,
 _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
 
     const noWa = strukData.student?.nomor_whatsapp || '';
-    const imgBase64 = await getCanvasBase64();
-    let ok = false;
-    if (imgBase64) {
-      ok = await kirimStrukFonnte(noWa, pesan, imgBase64);
-    } else {
-      ok = await kirimFonnte(noWa, pesan);
-    }
-    if (ok) toast.success('✅ Struk + pesan terkirim via WhatsApp!');
+    const ok = await kirimFonnte(noWa, pesan);
+    if (ok) toast.success('✅ Notifikasi pembayaran terkirim via WhatsApp!');
     else toast.error('❌ Gagal kirim WA, cek koneksi Fonnte');
     resetForm();
   };
