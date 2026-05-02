@@ -72,6 +72,25 @@ async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string
     return kirimFonnte(noWa, pesan);
   }
 }
+
+const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function generateRefNo(): string {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const rand = Math.floor(Math.random() * 9000 + 1000);
+  return `YBP-${yy}${mm}${dd}-${rand}`;
+}
+
+function getTahunAjaran(): string {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  return month >= 7 ? `${year}/${year + 1}` : `${year - 1}/${year}`;
+}
+
 export default function PembayaranPesantren() {
   const [searchQuery, setSearchQuery] = useState('');
   const [barcodeQuery, setBarcodeQuery] = useState('');
