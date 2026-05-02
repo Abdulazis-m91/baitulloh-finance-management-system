@@ -37,6 +37,9 @@ export default function DashboardSekolah() {
 
   const pembayaranLunas = pembayaran.filter(p => {
     if (p.metode !== 'Lunas') return false;
+    // Filter by tanggal ATAU kolom bulan (handle Khusus & semua jenjang)
+    const d = new Date(p.tanggal);
+    if (d.getMonth() === bulanIni && d.getFullYear() === tahunIni) return true;
     const parts = p.bulan.split('-');
     const nm = parts[0];
     const thn = parts.length > 1 ? parseInt(parts[1]) : tahunIni;
@@ -124,7 +127,12 @@ export default function DashboardSekolah() {
                 </tr>
               </thead>
               <tbody>
-                {pembayaran.slice(0, 5).map((p, i) => (
+                {[...pembayaran].filter(p => {
+                    const d = new Date(p.tanggal);
+                    if (d.getMonth() === bulanIni && d.getFullYear() === tahunIni) return true;
+                    const parts = p.bulan.split('-');
+                    return parts[0] === namaBulanIniSekolah && (parts.length > 1 ? parseInt(parts[1]) : tahunIni) === tahunIni;
+                  }).sort((a,b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()).slice(0, 5).map((p, i) => (
                   <motion.tr key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.05 }}
                     className="border-b border-border/50 hover:bg-muted/50 transition-colors group">
                     <td className="py-3.5 text-muted-foreground">{formatDate(p.tanggal)}</td>
@@ -177,3 +185,4 @@ export default function DashboardSekolah() {
     </div>
   );
 }
+ 
