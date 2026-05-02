@@ -589,3 +589,4 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
     </div>
   );
 }
+ 
