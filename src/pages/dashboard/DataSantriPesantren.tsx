@@ -8,20 +8,58 @@ const FONNTE_TOKEN = import.meta.env.VITE_FONNTE_TOKEN || 'UfZ8GV7RQHsWRRLBXJK7'
 async function kirimFonnte(noWa: string, pesan: string): Promise<boolean> {
   try {
     const nomor = noWa.replace(/\D/g, '');
+    const formData = new FormData();
+    formData.append('target', nomor);
+    formData.append('message', pesan);
+
     const res = await fetch('https://api.fonnte.com/send', {
       method: 'POST',
       headers: { 'Authorization': FONNTE_TOKEN },
-      body: new URLSearchParams({ target: nomor, message: pesan }),
+      body: formData,
     });
     const data = await res.json();
-    return data.status === true;
-  } catch { return false; }
+    // Fonnte return status: true (boolean) atau "true" (string)
+    return data.status === true || data.status === 'true' || data.detail === 'success';
+  } catch (e) {
+    console.error('Fonnte error:', e);
+    return false;
+  }
 }
-import { useAutoTambahTunggakanPesantren } from '@/hooks/useSupabasePesantren';
-import { useCicilanPesantrenBySiswa, KATEGORI_LIST, KATEGORI_BIAYA, KategoriSantri } from '@/hooks/useSupabasePesantren';
-import { formatRupiah } from '@/lib/format';
-import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+
+async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string): Promise<boolean> {
+  try {
+    const nomor = noWa.replace(/\D/g, '');
+    // Fonnte tidak support upload langsung - kirim teks dulu, lalu upload gambar via URL
+    // Alternatif: upload ke Supabase Storage lalu kirim URL
+    // Untuk sementara: kirim teks saja dengan tanda bahwa struk sudah dicetak
+    const formData = new FormData();
+    formData.append('target', nomor);
+    formData.append('message', pesan);
+
+    // Coba kirim dengan gambar sebagai file
+    try {
+      const byteString = atob(imageBase64.split(',')[1] || imageBase64);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+      const blob = new Blob([ab], { type: 'image/png' });
+      formData.append('file', blob, 'struk-pembayaran.png');
+    } catch {}
+
+    const res = await fetch('https://api.fonnte.com/send', {
+      method: 'POST',
+      headers: { 'Authorization': FONNTE_TOKEN },
+      body: formData,
+    });
+    const data = await res.json();
+    console.log('Fonnte response:', data);
+    return data.status === true || data.status === 'true' || data.detail === 'success';
+  } catch (e) {
+    console.error('Fonnte struk error:', e);
+    // Fallback: kirim teks saja
+    return kirimFonnte(noWa, pesan);
+  }
+}
 
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const kelasOptions: Record<string, string[]> = { SMP: ['7A','7B','8A','8B','9A','9B'], SMA: ['10A','10B','11A','11B','12A','12B'], Reguler: ['Reguler'] };
