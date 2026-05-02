@@ -1,14 +1,22 @@
-const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-const kelasKhusus = ['7A','7B','8A','8B','9A','9B','10A','10B','11A','11B','12A','12B'];
-const kelasOptions: Record<string, string[]> = { SMP: ['7A','7B','8A','8B','9A','9B'], SMA: ['10A','10B','11A','11B','12A','12B'], Reguler: ['Reguler'] };
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
 import { useStudents, useInsertStudent, useUpdateStudent, useDeleteStudent, useAutoTambahTunggakanSekolah, type StudentDB } from '@/hooks/useSupabaseData';
 import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
+
+
+const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const kelasOptions: Record<string, string[]> = {
+  SMP: ['7A','7B','8A','8B','9A','9B'],
+  SMA: ['10A','10B','11A','11B','12A','12B'],
+  Khusus: ['7A','7B','8A','8B','9A','9B','10A','10B','11A','11B','12A','12B'],
+};
+const SPP_DEFAULT: Record<string, number> = { SMP: 125000, SMA: 150000, Khusus: 0 };
+const isKhususSiswa = (s: any) => s.kategori === 'Khusus';
+const getJenjangLabel = (s: any) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
+
 
 const FONNTE_TOKEN = import.meta.env.VITE_FONNTE_TOKEN || 'UfZ8GV7RQHsWRRLBXJK7';
 
@@ -114,8 +122,8 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
     const handleKey = (e: KeyboardEvent) => {
       const active = document.activeElement;
       if (active && active !== rfidRef.current && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
-      if (e.key === 'Enter') { if (buffer.length > 0) { setForm(p => ({ ...p, barcode: p.barcode + buffer })); buffer = ''; setRfidFlash(true); setTimeout(() => setRfidFlash(false), 600); toast.success('✅ Kartu RFID terbaca!'); } e.preventDefault(); return; }
-      if (e.key.length === 1) { buffer += e.key; clearTimeout(bufferTimer); bufferTimer = setTimeout(() => { if (buffer.length > 2) { setForm(p => ({ ...p, barcode: p.barcode + buffer })); setRfidFlash(true); setTimeout(() => setRfidFlash(false), 600); toast.success('✅ Kartu RFID terbaca!'); } buffer = ''; }, 150); }
+      if (e.key === 'Enter') { if (buffer.length > 0) { setForm(p => ({ ...p, barcode: p.barcode + buffer })); buffer = ''; setRfidFlash(true); setTimeout(() => setRfidFlash(false), 600); toast.success('âœ… Kartu RFID terbaca!'); } e.preventDefault(); return; }
+      if (e.key.length === 1) { buffer += e.key; clearTimeout(bufferTimer); bufferTimer = setTimeout(() => { if (buffer.length > 2) { setForm(p => ({ ...p, barcode: p.barcode + buffer })); setRfidFlash(true); setTimeout(() => setRfidFlash(false), 600); toast.success('âœ… Kartu RFID terbaca!'); } buffer = ''; }, 150); }
     };
     window.addEventListener('keydown', handleKey);
     return () => { window.removeEventListener('keydown', handleKey); clearTimeout(bufferTimer); };
@@ -145,11 +153,11 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
               <div><label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Barcode / RFID</label>
                 <input ref={rfidRef} value={form.barcode} onChange={e => setForm(p => ({ ...p, barcode: e.target.value }))}
                   onFocus={() => setRfidFocused(true)} onBlur={() => setRfidFocused(false)}
-                  autoComplete="off" placeholder="📡 Tempelkan kartu RFID..."
+                  autoComplete="off" placeholder="ðŸ“¡ Tempelkan kartu RFID..."
                   className={`w-full px-4 py-3 rounded-xl border-2 text-foreground text-sm input-focus font-mono transition-all duration-300 ${rfidFlash ? 'border-green-500 bg-green-500/10' : rfidFocused ? 'border-primary bg-primary/5' : 'border-primary/40 bg-primary/5'} placeholder:text-primary/40`} />
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className={`w-2.5 h-2.5 rounded-full ${rfidFocused ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
-                  <span className="text-[10px] text-muted-foreground">{rfidFocused ? '🟢 Siap scan' : '⚪ Klik untuk aktifkan scanner'}</span>
+                  <span className="text-[10px] text-muted-foreground">{rfidFocused ? 'ðŸŸ¢ Siap scan' : 'âšª Klik untuk aktifkan scanner'}</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -265,7 +273,7 @@ export default function DataSiswaSekolah() {
   const totalPages = Math.ceil(filtered.length / perPage);
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
-  // ── Tagih Sekaligus via Fonnte ──────────────────────────────────────────
+  // â”€â”€ Tagih Sekaligus via Fonnte â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleTagihSekaligus = async () => {
     const siswaMenunggak = filtered.filter(s => s.tunggakan_sekolah.length > 0);
     if (siswaMenunggak.length === 0) { toast.error('Tidak ada siswa yang menunggak'); return; }
@@ -274,13 +282,13 @@ export default function DataSiswaSekolah() {
     for (const s of siswaMenunggak) {
       const total = formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan);
       const bulanList2 = s.tunggakan_sekolah.join(', ');
-      const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\n📋 *INFORMASI TAGIHAN*\n━━━━━━━━━━━━━━━━━━━━\n👤 Nama Siswa : *${s.nama_lengkap}*\n🏫 Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\n📅 Bulan        : ${bulanList2}\n💵 Nominal      : _${total}_\n━━━━━━━━━━━━━━━━━━━━\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut. Pembayaran dapat dilakukan langsung ke kantor yayasan pada hari dan jam kerja.\n\nAtas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.\n\nAlhamdulillah, Jazakumullahu Khairan atas perhatian dan kerja sama Bapak/Ibu.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
+      const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\nðŸ“‹ *INFORMASI TAGIHAN*\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nðŸ‘¤ Nama Siswa : *${s.nama_lengkap}*\nðŸ« Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\nðŸ“… Bulan        : ${bulanList2}\nðŸ’µ Nominal      : _${total}_\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut. Pembayaran dapat dilakukan langsung ke kantor yayasan pada hari dan jam kerja.\n\nAtas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.\n\nAlhamdulillah, Jazakumullahu Khairan atas perhatian dan kerja sama Bapak/Ibu.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
       const ok = await kirimFonnte(s.nomor_whatsapp, pesan);
       if (ok) sukses++; else gagal++;
     }
     setIsTagihLoading(false);
-    if (sukses > 0) toast.success(`✅ ${sukses} pesan tagihan terkirim`);
-    if (gagal > 0) toast.error(`❌ ${gagal} pesan gagal dikirim`);
+    if (sukses > 0) toast.success(`âœ… ${sukses} pesan tagihan terkirim`);
+    if (gagal > 0) toast.error(`âŒ ${gagal} pesan gagal dikirim`);
   };
 
   const exportExcel = () => {
@@ -337,10 +345,10 @@ export default function DataSiswaSekolah() {
   const sendWhatsApp = async (s: StudentDB) => {
     const total = formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan);
     const bulanStr = s.tunggakan_sekolah.join(', ');
-    const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\n📋 *INFORMASI TAGIHAN*\n━━━━━━━━━━━━━━━━━━━━\n👤 Nama Siswa : *${s.nama_lengkap}*\n🏫 Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\n📅 Bulan        : ${bulanStr}\n💵 Nominal      : _${total}_\n━━━━━━━━━━━━━━━━━━━━\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut. Pembayaran dapat dilakukan langsung ke kantor yayasan pada hari dan jam kerja.\n\nAtas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.\n\nAlhamdulillah, Jazakumullahu Khairan atas perhatian dan kerja sama Bapak/Ibu.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
+    const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\nðŸ“‹ *INFORMASI TAGIHAN*\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nðŸ‘¤ Nama Siswa : *${s.nama_lengkap}*\nðŸ« Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\nðŸ“… Bulan        : ${bulanStr}\nðŸ’µ Nominal      : _${total}_\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut. Pembayaran dapat dilakukan langsung ke kantor yayasan pada hari dan jam kerja.\n\nAtas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.\n\nAlhamdulillah, Jazakumullahu Khairan atas perhatian dan kerja sama Bapak/Ibu.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
     const ok = await kirimFonnte(s.nomor_whatsapp, pesan);
-    if (ok) toast.success(`✅ Tagihan terkirim ke ${s.nama_orang_tua}`);
-    else toast.error(`❌ Gagal kirim ke ${s.nomor_whatsapp}`);
+    if (ok) toast.success(`âœ… Tagihan terkirim ke ${s.nama_orang_tua}`);
+    else toast.error(`âŒ Gagal kirim ke ${s.nomor_whatsapp}`);
   };
 
   const toggleBulan = (b: string) => setForm(p => ({ ...p, tunggakanBulan: p.tunggakanBulan.includes(b) ? p.tunggakanBulan.filter(x => x !== b) : [...p.tunggakanBulan, b] }));
@@ -437,10 +445,10 @@ export default function DataSiswaSekolah() {
                       {s.tunggakan_sekolah.length > 0 ? (
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTunggakan(s)}
                           className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
-                          {s.tunggakan_sekolah.length} bulan ↗
+                          {s.tunggakan_sekolah.length} bulan â†—
                         </motion.button>
                       ) : (
-                        <span className="px-3 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">✓ Lunas</span>
+                        <span className="px-3 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">âœ“ Lunas</span>
                       )}
                     </td>
                     <td className="py-4 px-4 text-muted-foreground text-xs">{s.nama_orang_tua}</td>
@@ -528,7 +536,7 @@ export default function DataSiswaSekolah() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 text-center">✓ Tidak ada tunggakan</p>
+                  <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 text-center">âœ“ Tidak ada tunggakan</p>
                 )}
               </div>
             </motion.div>
@@ -545,7 +553,7 @@ export default function DataSiswaSekolah() {
                 <h3 className="font-bold text-foreground text-lg">Detail Tunggakan</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowTunggakan(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">{showTunggakan.nama_lengkap} · <span className="font-bold text-foreground">{getJenjangLabel(showTunggakan)} {showTunggakan.kelas}</span></p>
+              <p className="text-sm text-muted-foreground mb-4">{showTunggakan.nama_lengkap} Â· <span className="font-bold text-foreground">{getJenjangLabel(showTunggakan)} {showTunggakan.kelas}</span></p>
               <div className="space-y-2">
                 {showTunggakan.tunggakan_sekolah.map(b => (
                   <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
@@ -583,4 +591,4 @@ export default function DataSiswaSekolah() {
     </div>
   );
 }
-      
+ 
