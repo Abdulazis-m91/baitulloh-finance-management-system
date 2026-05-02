@@ -1,3 +1,4 @@
+﻿const hasAksi = (activeTab: string) => activeTab === 'Pembayaran';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Loader2, ChevronLeft, ChevronRight, Plus, X, Trash2, AlertTriangle, Search } from 'lucide-react';
@@ -172,8 +173,8 @@ export default function PendapatanPesantren() {
   };
 
   const tabIcons: Record<Tab, string> = {
-    'Pembayaran': '📌', 'Konsumsi': '🍚', 'Operasional': '🏗️',
-    'Pembangunan': '🏢', 'Cicilan': '💳', 'Deposit': '💰'
+    'Pembayaran': 'ðŸ“Œ', 'Konsumsi': 'ðŸš', 'Operasional': 'ðŸ—ï¸',
+    'Pembangunan': 'ðŸ¢', 'Cicilan': 'ðŸ’³', 'Deposit': 'ðŸ’°'
   };
 
   const headers = hasAksi
@@ -349,7 +350,7 @@ export default function PendapatanPesantren() {
         )}
       </motion.div>
 
-      {/* ── POPUP TAMBAH PENDAPATAN ── */}
+      {/* â”€â”€ POPUP TAMBAH PENDAPATAN â”€â”€ */}
       <AnimatePresence>
         {showAddPopup && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -365,7 +366,7 @@ export default function PendapatanPesantren() {
                 </motion.button>
               </div>
               <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-xl">
-                💡 Pendapatan lainnya akan otomatis masuk ke <span className="font-bold text-foreground">Dana Konsumsi</span>
+                ðŸ’¡ Pendapatan lainnya akan otomatis masuk ke <span className="font-bold text-foreground">Dana Konsumsi</span>
               </p>
               <div>
                 <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nama Pemasukan</label>
@@ -381,7 +382,7 @@ export default function PendapatanPesantren() {
                     <option value="">Pilih</option>
                     <option value="Sodaqoh">Sodaqoh</option>
                     <option value="Sisa Pendapatan Bulan Lalu">Sisa Pendapatan Bulan Lalu</option>
-                    <option value="__manual__">✏️ Ketik Manual...</option>
+                    <option value="__manual__">âœï¸ Ketik Manual...</option>
                   </select>
                 ) : (
                   <div className="flex gap-2">
@@ -396,7 +397,7 @@ export default function PendapatanPesantren() {
                     <button
                       onClick={() => { setIsManualNama(false); setManualNama(''); }}
                       className="px-3 py-2 rounded-xl bg-muted text-muted-foreground text-xs hover:bg-muted/80 transition-colors whitespace-nowrap">
-                      ← Pilih
+                      â† Pilih
                     </button>
                   </div>
                 )}
@@ -430,7 +431,7 @@ export default function PendapatanPesantren() {
         )}
       </AnimatePresence>
 
-      {/* ── POPUP KONFIRMASI HAPUS ── */}
+      {/* â”€â”€ POPUP KONFIRMASI HAPUS â”€â”€ */}
       <AnimatePresence>
         {showDeleteConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -471,7 +472,7 @@ export default function PendapatanPesantren() {
           </motion.div>
         )}
       </AnimatePresence>
-      {/* ── POPUP KONFIRMASI HAPUS KONSUMSI ── */}
+      {/* â”€â”€ POPUP KONFIRMASI HAPUS KONSUMSI â”€â”€ */}
       <AnimatePresence>
         {showDeleteKonsumsi && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -518,7 +519,7 @@ export default function PendapatanPesantren() {
               </div>
               <h3 className="font-bold text-foreground text-lg mb-2">Hapus Data Operasional?</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                <span className="font-bold text-foreground">{showDeleteOperasional.nama_siswa}</span> — {showDeleteOperasional.bulan}
+                <span className="font-bold text-foreground">{showDeleteOperasional.nama_siswa}</span> â€” {showDeleteOperasional.bulan}
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setShowDeleteOperasional(null)}
@@ -544,7 +545,7 @@ export default function PendapatanPesantren() {
               </div>
               <h3 className="font-bold text-foreground text-lg mb-2">Hapus Data Pembangunan?</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                <span className="font-bold text-foreground">{showDeletePembangunan.nama_siswa}</span> — {showDeletePembangunan.bulan}
+                <span className="font-bold text-foreground">{showDeletePembangunan.nama_siswa}</span> â€” {showDeletePembangunan.bulan}
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setShowDeletePembangunan(null)}
@@ -560,3 +561,4 @@ export default function PendapatanPesantren() {
   );
 } 
 // 2026-05-03 01:32:12
+ 
