@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Printer, X, AlertCircle, Receipt, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePengeluaranPesantren, useInsertPengeluaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren, usePendapatanLainPesantren } from '@/hooks/useSupabasePesantren';
@@ -84,18 +84,7 @@ export default function PengeluaranPesantren() {
       .filter(e => { const d = new Date(e.tanggal); return e.jenis_keperluan.startsWith(dana) && d.getMonth()===cm && d.getFullYear()===cy; })
       .reduce((a,e) => a + e.nominal, 0);
     return pendapatan - pengeluaran;
-  }ort { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Printer, X, AlertCircle, Receipt, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { usePengeluaranPesantren, useInsertPengeluaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren, usePendapatanLainPesantren } from '@/hooks/useSupabasePesantren';
-import { useAuth } from '@/contexts/AuthContext';
-import { formatRupiah, formatDate } from '@/lib/format';
-import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import logoYB from '@/assets/logo-yb.png';
-
+  }
 type Tab = 'pengeluaran' | 'rekap_konsumsi' | 'rekap_operasional' | 'rekap_pembangunan';
 
 const RIWAYAT_PAGE_SIZE = 5;
@@ -362,7 +351,7 @@ export default function PengeluaranPesantren() {
                 </div>
                 {sisaSetelahInput < 0 && nominalInput > 0 && (
                   <p className="text-xs text-warning font-semibold mt-1.5 flex items-center gap-1">
-                    ⚠️ Nominal melebihi saldo dana {danaDigunakan}
+                    âš ï¸ Nominal melebihi saldo dana {danaDigunakan}
                   </p>
                 )}
               </div>
@@ -525,7 +514,7 @@ export default function PengeluaranPesantren() {
         );
       })()}
 
-      {/* ── Nota Popup ── */}
+      {/* â”€â”€ Nota Popup â”€â”€ */}
       <AnimatePresence>
         {showNota && notaData && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -631,4 +620,3 @@ export default function PengeluaranPesantren() {
   );
 }
  
-// 2026-05-03 01:32:12
