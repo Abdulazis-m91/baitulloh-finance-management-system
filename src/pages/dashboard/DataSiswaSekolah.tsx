@@ -1,7 +1,3 @@
-const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-const kelasKhusus = ['7A','7B','8A','8B','9A','9B','10A','10B','11A','11B','12A','12B'];
-const kelasOptions: Record<string, string[]> = { SMP: ['7A','7B','8A','8B','9A','9B'], SMA: ['10A','10B','11A','11B','12A','12B'], Reguler: ['Reguler'] };
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
@@ -583,4 +579,3 @@ export default function DataSiswaSekolah() {
     </div>
   );
 }
-      
