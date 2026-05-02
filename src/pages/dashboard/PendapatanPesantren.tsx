@@ -90,12 +90,12 @@ export default function PendapatanPesantren() {
     if (activeTab === 'Pembangunan') return pembangunan
       .filter(c => byTglAtauBulan(c.tanggal, c.bulan) && (!filterKategori || c.kategori === filterKategori))
       .map(c => ({ ...c, jenjang: '-', kelas: '-' }));
-    if (activeTab === 'Cicilan') return cicilan.filter(c => byTgl(c.tanggal)).map(c => ({
+    if (activeTab === 'Cicilan') return cicilan.map(c => ({
       ...c, nama_siswa: studentMap[c.siswa_id]?.nama_lengkap || '',
       jenjang: studentMap[c.siswa_id]?.jenjang || '-', kelas: studentMap[c.siswa_id]?.kelas || '-', kategori: '-',
     }));
     if (activeTab === 'Deposit') return pembayaran.filter(p =>
-      p.metode === 'Deposit' && byTgl(p.tanggal) &&
+      p.metode === 'Deposit' &&
       (!filterJenjang || p.jenjang === filterJenjang) &&
       (!filterKelas || p.kelas === filterKelas) &&
       (!filterKategori || p.kategori === filterKategori)
