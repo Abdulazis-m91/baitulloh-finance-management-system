@@ -52,11 +52,28 @@ export default function PengeluaranSekolah() {
 
   // Hitung saldo tersedia per dana (pemasukan - pengeluaran)
   const getSaldoDana = (dana: 'SMP' | 'SMA' | 'Reguler') => {
+    const nowObj = new Date();
+    const bulanNamaArr = ['Januari','Februari','Maret','April','Mei','Juni',
+      'Juli','Agustus','September','Oktober','November','Desember'];
+    const nmBulanIni = bulanNamaArr[nowObj.getMonth()];
+    const thnIni = nowObj.getFullYear();
+    // Pemasukan hanya bulan ini (filter by kolom bulan)
     const pemasukan = pembayaranList
-      .filter(p => p.jenjang === dana && p.metode === 'Lunas')
+      .filter(p => {
+        if (p.jenjang !== dana || p.metode !== 'Lunas') return false;
+        const parts = (p.bulan || '').split('-');
+        const nm = parts[0];
+        const thn = parts.length > 1 ? parseInt(parts[1]) : thnIni;
+        return nm === nmBulanIni && thn === thnIni;
+      })
       .reduce((a, p) => a + p.nominal, 0);
+    // Pengeluaran hanya bulan ini (filter by tanggal)
     const pengeluaran = pengeluaranList
-      .filter(e => e.sumber_dana === dana)
+      .filter(e => {
+        if (e.sumber_dana !== dana) return false;
+        const d = new Date(e.tanggal);
+        return d.getMonth() === nowObj.getMonth() && d.getFullYear() === nowObj.getFullYear();
+      })
       .reduce((a, e) => a + e.nominal, 0);
     return pemasukan - pengeluaran;
   };
@@ -129,7 +146,13 @@ export default function PengeluaranSekolah() {
 
   const handleSimpanSaja = () => { doSave(); };
 
-  const rekapData = (jenjang: string) => pengeluaranList.filter(e => e.sumber_dana === jenjang);
+  // Rekap hanya bulan ini
+  const nowRekap = new Date();
+  const rekapData = (jenjang: string) => pengeluaranList.filter(e => {
+    if (e.sumber_dana !== jenjang) return false;
+    const d = new Date(e.tanggal);
+    return d.getMonth() === nowRekap.getMonth() && d.getFullYear() === nowRekap.getFullYear();
+  });
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -152,8 +175,14 @@ export default function PengeluaranSekolah() {
     toast.success('Data berhasil diekspor');
   };
 
-  const totalRiwayatPages = Math.max(1, Math.ceil(pengeluaranList.length / PAGE_SIZE_RIWAYAT));
-  const pagedRiwayat = pengeluaranList.slice(
+  // Riwayat hanya bulan ini
+  const nowRiwayat = new Date();
+  const riwayatBulanIni = pengeluaranList.filter(e => {
+    const d = new Date(e.tanggal);
+    return d.getMonth() === nowRiwayat.getMonth() && d.getFullYear() === nowRiwayat.getFullYear();
+  });
+  const totalRiwayatPages = Math.max(1, Math.ceil(riwayatBulanIni.length / PAGE_SIZE_RIWAYAT));
+  const pagedRiwayat = riwayatBulanIni.slice(
     (riwayatPage - 1) * PAGE_SIZE_RIWAYAT,
     riwayatPage * PAGE_SIZE_RIWAYAT
   );
@@ -287,7 +316,7 @@ export default function PengeluaranSekolah() {
             className="bg-card rounded-3xl border border-border shadow-elegant flex flex-col" style={{ minHeight: '520px' }}>
             <div className="px-7 pt-7 pb-4 border-b border-border flex items-center justify-between">
               <h3 className="font-bold text-foreground text-lg">Riwayat Pengeluaran</h3>
-              <span className="text-xs text-muted-foreground">{pengeluaranList.length} transaksi</span>
+              <span className="text-xs text-muted-foreground">{riwayatBulanIni.length} transaksi bulan ini</span>
             </div>
             <div className="flex-1 px-7 py-4 space-y-3 overflow-hidden">
               {pagedRiwayat.length === 0 ? (
