@@ -116,6 +116,7 @@ export default function PendapatanPesantren() {
     if (activeTab === 'Deposit') {
       return pembayaran.filter(p =>
         p.metode === 'Deposit' &&
+        filterTanggalBulanIni(p.tanggal) &&
         (!filterJenjang || p.jenjang === filterJenjang) &&
         (!filterKelas || p.kelas === filterKelas) &&
         (!filterKategori || p.kategori === filterKategori)
@@ -582,4 +583,4 @@ export default function PendapatanPesantren() {
       </AnimatePresence>
     </div>
   );
-} 
+}  

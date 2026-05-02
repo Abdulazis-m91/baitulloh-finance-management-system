@@ -93,7 +93,7 @@ export default function PendapatanSekolah() {
       }));
     }
     if (activeTab === 'Deposit') {
-      return pembayaran.filter(p => p.metode === 'Deposit' && (!filterKelas || p.kelas === filterKelas));
+      return pembayaran.filter(p => p.metode === 'Deposit' && isTanggalBulanIni(p.tanggal) && (!filterKelas || p.kelas === filterKelas));
     }
     return [];
   };
@@ -508,4 +508,4 @@ export default function PendapatanSekolah() {
     </div>
   );
 }
- 
+  
