@@ -9,6 +9,48 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import logoYB from '@/assets/logo-yb.png';
 
+const FONNTE_TOKEN = import.meta.env.VITE_FONNTE_TOKEN || 'UfZ8GV7RQHsWRRLBXJK7';
+
+
+async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string): Promise<boolean> {
+  try {
+    const nomor = noWa.replace(/\D/g, '');
+    // Konversi base64 ke Blob
+    const byteString = atob(imageBase64.split(',')[1] || imageBase64);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: 'image/png' });
+
+    // Kirim gambar + caption via Fonnte
+    const formData = new FormData();
+    formData.append('target', nomor);
+    formData.append('message', pesan);
+    formData.append('file', blob, 'struk-pembayaran.png');
+
+    const res = await fetch('https://api.fonnte.com/send', {
+      method: 'POST',
+      headers: { 'Authorization': FONNTE_TOKEN },
+      body: formData,
+    });
+    const data = await res.json();
+    return data.status === true;
+  } catch { return false; }
+}
+
+async function kirimFonnte(noWa: string, pesan: string): Promise<boolean> {
+  try {
+    const nomor = noWa.replace(/\D/g, '');
+    const res = await fetch('https://api.fonnte.com/send', {
+      method: 'POST',
+      headers: { 'Authorization': FONNTE_TOKEN },
+      body: new URLSearchParams({ target: nomor, message: pesan }),
+    });
+    const data = await res.json();
+    return data.status === true;
+  } catch { return false; }
+}
+
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 // ── Helper: generate nomor referensi unik ──────────────────────────────────
@@ -192,6 +234,21 @@ export default function PembayaranSekolah() {
   };
 
   // ── Download PDF dengan ukuran kertas yang dipilih ─────────────────────
+  const getCanvasBase64 = async (): Promise<string | null> => {
+    if (!strukRef.current) return null;
+    try {
+      const images = strukRef.current.querySelectorAll('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+      }));
+      const canvas = await html2canvas(strukRef.current, {
+        backgroundColor: '#ffffff', scale: 3, useCORS: true, allowTaint: true, logging: false,
+      });
+      return canvas.toDataURL('image/png');
+    } catch { return null; }
+  };
+
   const downloadStrukAsPDF = async (): Promise<boolean> => {
     if (!strukRef.current) return false;
     try {
@@ -267,12 +324,49 @@ export default function PembayaranSekolah() {
     const downloaded = await downloadStrukAsPDF();
     if (!downloaded) return;
     saveData();
+
+    // Kirim via Fonnte
     const nominalText = formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal);
-    const msg = `Assalamu'alaikum,\n\nBerikut struk pembayaran SPP:\n\nNo. Ref: ${strukData.refNo}\nNama: ${strukData.nama_siswa}\nNISN: ${strukData.nisn}\nJenjang/Kelas: ${strukData.jenjangLabel} - ${strukData.kelas}\nBulan: ${strukData.bulan}\nMetode: ${strukData.metode}\nNominal: ${nominalText}\nTanggal: ${formatDate(strukData.tanggal)}\nPetugas: ${strukData.petugas}\n\nTerima kasih atas pembayarannya.\n\n- Yayasan Baitulloh`;
-    const phone = strukData.student?.nomor_whatsapp?.replace(/^0/, '62')?.replace(/[^0-9]/g, '') || '';
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    const bulanDisplay = strukData.bulan.includes('-') ? strukData.bulan.split('-').join(' ') : strukData.bulan;
+    const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,
+
+Kepada Yth.
+Bapak/Ibu *${strukData.namaOrangTua || strukData.student?.nama_orang_tua || ''}*
+Orang Tua/Wali dari *${strukData.nama_siswa}*
+
+Dengan hormat, kami sampaikan bahwa putra/putri Bapak/Ibu telah melakukan pembayaran SPP.
+
+📋 *BUKTI PEMBAYARAN*
+━━━━━━━━━━━━━━━━━━━━
+🔖 No. Ref      : ${strukData.refNo}
+👤 Nama Siswa : *${strukData.nama_siswa}*
+🏫 Jenjang      : ${strukData.jenjangLabel || strukData.jenjang} ${strukData.kelas}
+📅 Bulan         : ${bulanDisplay}
+💳 Metode       : ${strukData.metode}
+💵 Nominal      : _${nominalText}_
+📆 Tanggal      : ${formatDate(strukData.tanggal)}
+👩‍💼 Petugas      : ${strukData.petugas}
+━━━━━━━━━━━━━━━━━━━━
+
+Terima kasih atas pembayarannya. Semoga menjadi berkah.
+
+Alhamdulilahi Jazakumullahu Khoiro,
+
+*Bendahara Yayasan Baitulloh*
+_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
+
+    const noWa = strukData.student?.nomor_whatsapp || '';
+    // Ambil gambar struk lalu kirim dengan gambar
+    const imgBase64 = await getCanvasBase64();
+    let ok = false;
+    if (imgBase64) {
+      ok = await kirimStrukFonnte(noWa, pesan, imgBase64);
+    } else {
+      ok = await kirimFonnte(noWa, pesan);
+    }
+    if (ok) toast.success('✅ Struk + pesan terkirim via WhatsApp!');
+    else toast.error('❌ Gagal kirim WA, cek koneksi Fonnte');
     resetForm();
-    toast.success('Data tersimpan & struk dikirim via WhatsApp');
   };
 
   const effectiveMetode = (() => {
