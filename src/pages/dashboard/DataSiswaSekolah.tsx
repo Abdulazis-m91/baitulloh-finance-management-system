@@ -1,3 +1,4 @@
+const kelasKhusus = ['7A','7B','8A','8B','9A','9B','10A','10B','11A','11B','12A','12B'];
 const kelasKhusus = ['Khusus'];
 const kelasOptions: Record<string, string[]> = { SMP: ['7A','7B','8A','8B','9A','9B'], SMA: ['10A','10B','11A','11B','12A','12B'], Reguler: ['Reguler'] };
 import { useState, useEffect, useRef } from 'react';
@@ -581,4 +582,4 @@ export default function DataSiswaSekolah() {
     </div>
   );
 }
-  
+   
