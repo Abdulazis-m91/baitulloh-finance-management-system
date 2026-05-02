@@ -67,45 +67,29 @@ export default function PendapatanPesantren() {
   const currentBulan = bulanNama[now.getMonth()];
 
   const allData = (): any[] => {
-    const bulanNamaArr = ['Januari','Februari','Maret','April','Mei','Juni',
-      'Juli','Agustus','September','Oktober','November','Desember'];
-    const nmBulanIni = bulanNamaArr[now.getMonth()];
-    const thnIni = now.getFullYear();
-
-    // Filter by kolom bulan = bulan ini
-    const filterTanggalBulanIni = (tanggal: string) => {
-      const d = new Date(tanggal);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    };
-    const filterBulanIni = (bulanStr: string) => {
-      const parts = bulanStr.split('-');
-      const nm = parts[0];
-      const thn = parts.length > 1 ? parseInt(parts[1]) : thnIni;
-      return nm === nmBulanIni && thn === thnIni;
-    };
+    const cm = now.getMonth(); const cy = now.getFullYear();
+    const byTgl = (t: string) => { const d = new Date(t); return d.getMonth()===cm && d.getFullYear()===cy; };
 
     if (activeTab === 'Pembayaran') {
       return pembayaran.filter(p =>
-        filterTanggalBulanIni(p.tanggal) &&
+        p.metode !== 'Deposit' &&
+        byTgl(p.tanggal) &&
         (!filterJenjang || p.jenjang === filterJenjang) &&
         (!filterKelas || p.kelas === filterKelas) &&
         (!filterKategori || p.kategori === filterKategori)
       );
     }
-    if (activeTab === 'Konsumsi') return konsumsi.filter(c =>
-        filterTanggalBulanIni(c.tanggal) &&
-        (!filterKategori || c.kategori === filterKategori)
-      )).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
-    if (activeTab === 'Operasional') return operasional.filter(c =>
-        filterTanggalBulanIni(c.tanggal) &&
-        (!filterKategori || c.kategori === filterKategori)
-      )).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
-    if (activeTab === 'Pembangunan') return pembangunan.filter(c =>
-        filterTanggalBulanIni(c.tanggal) &&
-        (!filterKategori || c.kategori === filterKategori)
-      )).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Konsumsi') return konsumsi
+      .filter(c => byTgl(c.tanggal) && (!filterKategori || c.kategori === filterKategori))
+      .map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Operasional') return operasional
+      .filter(c => byTgl(c.tanggal) && (!filterKategori || c.kategori === filterKategori))
+      .map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Pembangunan') return pembangunan
+      .filter(c => byTgl(c.tanggal) && (!filterKategori || c.kategori === filterKategori))
+      .map(c => ({ ...c, jenjang: '-', kelas: '-' }));
     if (activeTab === 'Cicilan') {
-      return cicilan.map(c => ({
+      return cicilan.filter(c => byTgl(c.tanggal)).map(c => ({
         ...c,
         nama_siswa: studentMap[c.siswa_id]?.nama_lengkap || '',
         jenjang: studentMap[c.siswa_id]?.jenjang || '-',
@@ -116,14 +100,14 @@ export default function PendapatanPesantren() {
     if (activeTab === 'Deposit') {
       return pembayaran.filter(p =>
         p.metode === 'Deposit' &&
-        filterTanggalBulanIni(p.tanggal) &&
+        byTgl(p.tanggal) &&
         (!filterJenjang || p.jenjang === filterJenjang) &&
         (!filterKelas || p.kelas === filterKelas) &&
         (!filterKategori || p.kategori === filterKategori)
       );
     }
     return [];
-  };
+  }
 
   const data = allData().filter(p => {
     if (!searchNama) return true;
@@ -583,4 +567,4 @@ export default function PendapatanPesantren() {
       </AnimatePresence>
     </div>
   );
-}  03/05/2026 01:15:49
+} 
