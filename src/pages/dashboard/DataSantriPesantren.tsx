@@ -433,10 +433,12 @@ export default function DataSantriPesantren() {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-success text-success-foreground text-sm font-bold btn-shine">
             <Download className="w-4 h-4" /> Export Excel
           </motion.button>
-          {filterStatus === 'menunggak' && (
-            <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ scale: 1.02 }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-warning text-warning-foreground text-sm font-bold btn-shine">
-              <Send className="w-4 h-4" /> Tagih Sekaligus
+          {filtered.filter(s => s.tunggakan_pesantren.length > 0).length > 0 && (
+            <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              onClick={handleTagihSekaligus} disabled={isTagihLoading}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-warning text-warning-foreground text-sm font-bold btn-shine disabled:opacity-60">
+              {isTagihLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {isTagihLoading ? 'Mengirim...' : `Tagih Sekaligus (${filtered.filter(s => s.tunggakan_pesantren.length > 0).length})`}
             </motion.button>
           )}
         </motion.div>
