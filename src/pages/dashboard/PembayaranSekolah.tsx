@@ -17,14 +17,12 @@ async function kirimFonnte(noWa: string, pesan: string): Promise<boolean> {
     const formData = new FormData();
     formData.append('target', nomor);
     formData.append('message', pesan);
-
     const res = await fetch('https://api.fonnte.com/send', {
       method: 'POST',
       headers: { 'Authorization': FONNTE_TOKEN },
       body: formData,
     });
     const data = await res.json();
-    // Fonnte return status: true (boolean) atau "true" (string)
     return data.status === true || data.status === 'true' || data.detail === 'success';
   } catch (e) {
     console.error('Fonnte error:', e);
@@ -35,14 +33,9 @@ async function kirimFonnte(noWa: string, pesan: string): Promise<boolean> {
 async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string): Promise<boolean> {
   try {
     const nomor = noWa.replace(/\D/g, '');
-    // Fonnte tidak support upload langsung - kirim teks dulu, lalu upload gambar via URL
-    // Alternatif: upload ke Supabase Storage lalu kirim URL
-    // Untuk sementara: kirim teks saja dengan tanda bahwa struk sudah dicetak
     const formData = new FormData();
     formData.append('target', nomor);
     formData.append('message', pesan);
-
-    // Coba kirim dengan gambar sebagai file
     try {
       const byteString = atob(imageBase64.split(',')[1] || imageBase64);
       const ab = new ArrayBuffer(byteString.length);
@@ -51,7 +44,6 @@ async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string
       const blob = new Blob([ab], { type: 'image/png' });
       formData.append('file', blob, 'struk-pembayaran.png');
     } catch {}
-
     const res = await fetch('https://api.fonnte.com/send', {
       method: 'POST',
       headers: { 'Authorization': FONNTE_TOKEN },
@@ -62,14 +54,9 @@ async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string
     return data.status === true || data.status === 'true' || data.detail === 'success';
   } catch (e) {
     console.error('Fonnte struk error:', e);
-    // Fallback: kirim teks saja
     return kirimFonnte(noWa, pesan);
   }
 }
-
-$file = "src\pages\dashboard\PembayaranSekolah.tsx"
-$content = Get-Content $file -Raw
-$insert = @"
 
 function generateRefNo(): string {
   const now = new Date();
@@ -77,19 +64,15 @@ function generateRefNo(): string {
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
   const rand = Math.floor(Math.random() * 9000 + 1000);
-  return ``YBS-`${yy}`${mm}`${dd}-`${rand}``;
+  return `YBS-${yy}${mm}${dd}-${rand}`;
 }
 
 function getTahunAjaran(): string {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
-  return month >= 7 ? ``${year}/${year + 1}`` : ``${year - 1}/${year}``;
+  return month >= 7 ? `${year}/${year + 1}` : `${year - 1}/${year}`;
 }
-
-"@
-$content = $content -replace "const bulanList = ", ($insert + "const bulanList = ")
-Set-Content $file $content
 
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const SPP_DEFAULT: Record<string, number> = { SMP: 125000, SMA: 150000 };
@@ -128,25 +111,18 @@ export default function PembayaranSekolah() {
   const { userName } = useAuth();
   const processDeposit = useProcessDeposit();
 
-  // Auto-proses deposit jatuh tempo saat halaman dibuka
-  useEffect(() => {
-    processDeposit.mutate();
-  }, []);
+  useEffect(() => { processDeposit.mutate(); }, []);
 
   const hasTunggakan = selectedStudent ? selectedStudent.tunggakan_sekolah.length > 0 : false;
 
   const cicilanByBulan = useMemo(() => {
     const map: Record<string, CicilanDB[]> = {};
-    cicilanSiswa.forEach(c => {
-      if (!map[c.bulan]) map[c.bulan] = [];
-      map[c.bulan].push(c);
-    });
+    cicilanSiswa.forEach(c => { if (!map[c.bulan]) map[c.bulan] = []; map[c.bulan].push(c); });
     return map;
   }, [cicilanSiswa]);
 
   const bulanWithCicilan = useMemo(() => Object.keys(cicilanByBulan), [cicilanByBulan]);
   const hasAnyCicilan = bulanWithCicilan.length > 0;
-
   const isLunasEnabled   = hasTunggakan;
   const isCicilEnabled   = hasTunggakan && !hasAnyCicilan;
   const isDepositEnabled = !hasTunggakan;
@@ -154,24 +130,17 @@ export default function PembayaranSekolah() {
   if (isLoading) return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   const searchResults = searchQuery.length >= 2
-    ? students.filter(s =>
-        s.nama_lengkap.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.nisn.includes(searchQuery)
-      ).slice(0, 5)
+    ? students.filter(s => s.nama_lengkap.toLowerCase().includes(searchQuery.toLowerCase()) || s.nisn.includes(searchQuery)).slice(0, 5)
     : [];
 
   const selectStudent = (s: StudentDB) => {
-    setSelectedStudent(s);
-    setSearchQuery('');
-    setSelectedBulan('');
-    setNominalCicilInput('');
+    setSelectedStudent(s); setSearchQuery(''); setSelectedBulan(''); setNominalCicilInput('');
     if (s.tunggakan_sekolah.length > 0) { setMetode('Lunas'); setNominal(s.biaya_per_bulan); }
     else { setMetode('Deposit'); setNominal(0); }
   };
 
   const handleBarcode = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setBarcodeQuery(val);
+    const val = e.target.value; setBarcodeQuery(val);
     const found = students.find(s => s.barcode === val);
     if (found) { selectStudent(found); setBarcodeQuery(''); }
   };
@@ -179,10 +148,7 @@ export default function PembayaranSekolah() {
   const handleMetodeChange = (m: 'Lunas' | 'Cicil' | 'Deposit') => {
     const enabled = m === 'Cicil' ? isCicilEnabled : m === 'Lunas' ? isLunasEnabled : isDepositEnabled;
     if (!enabled) return;
-    setMetode(m);
-    setSelectedBulan('');
-    setNominalCicilInput('');
-    setNominal(0);
+    setMetode(m); setSelectedBulan(''); setNominalCicilInput(''); setNominal(0);
   };
 
   const getAvailableMonths = () => {
@@ -191,12 +157,7 @@ export default function PembayaranSekolah() {
     if (metode === 'Cicil') return selectedStudent.tunggakan_sekolah.filter(b => !bulanWithCicilan.includes(b));
     if (metode === 'Deposit') {
       const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      // Format: "Mei-2026" agar bisa deteksi jatuh tempo
-      return bulanList
-        .filter((_, i) => i > currentMonth)
-        .map(b => `${b}-${currentYear}`);
+      return bulanList.filter((_, i) => i > now.getMonth()).map(b => `${b}-${now.getFullYear()}`);
     }
     return [];
   };
@@ -225,55 +186,29 @@ export default function PembayaranSekolah() {
       if (nomCicil <= 0) { toast.error('Nominal cicilan harus lebih dari 0'); return; }
       if (nomCicil >= selectedStudent.biaya_per_bulan) { toast.error('Gunakan metode Lunas untuk pembayaran penuh'); return; }
     }
-    if (metode === 'Deposit') {
-      const nomDeposit = parseInt(nominalCicilInput) || 0;
-      if (nomDeposit <= 0) { toast.error('Nominal deposit harus lebih dari 0'); return; }
+    if (metode === 'Deposit' && (parseInt(nominalCicilInput) || 0) <= 0) {
+      toast.error('Nominal deposit harus lebih dari 0'); return;
     }
-
     const tanggal = new Date().toISOString().split('T')[0];
-    const lunasNominal  = getLunasNominal();
-    const cicilNominal  = parseInt(nominalCicilInput) || 0;
-    const depositNominal = parseInt(nominalCicilInput) || 0;
-    const finalNominal  = metode === 'Lunas' ? lunasNominal : metode === 'Cicil' ? cicilNominal : depositNominal;
-
-    const data = {
-      siswa_id:   selectedStudent.id,
-      nama_siswa: selectedStudent.nama_lengkap,
-      nisn:       selectedStudent.nisn,
-      jenjang:    selectedStudent.jenjang,
-      kelas:      selectedStudent.kelas,
-      bulan:      selectedBulan,
-      nominal:    finalNominal,
-      metode,
-      tanggal,
-      petugas:    userName || 'Petugas',
-    };
-
+    const finalNominal = metode === 'Lunas' ? getLunasNominal() : parseInt(nominalCicilInput) || 0;
     setStrukData({
-      ...data,
-      refNo: generateRefNo(),
-      tahunAjaran: getTahunAjaran(),
-      jenjangLabel: getJenjangLabel(selectedStudent),
-      student: selectedStudent,
-      hasCicilanAktif: selectedBulanHasCicilan,
-      totalCicilanSebelumnya: totalCicilanForBulan,
+      siswa_id: selectedStudent.id, nama_siswa: selectedStudent.nama_lengkap,
+      nisn: selectedStudent.nisn, jenjang: selectedStudent.jenjang, kelas: selectedStudent.kelas,
+      bulan: selectedBulan, nominal: finalNominal, metode, tanggal, petugas: userName || 'Petugas',
+      refNo: generateRefNo(), tahunAjaran: getTahunAjaran(),
+      jenjangLabel: getJenjangLabel(selectedStudent), student: selectedStudent,
+      hasCicilanAktif: selectedBulanHasCicilan, totalCicilanSebelumnya: totalCicilanForBulan,
       totalBayarUtuh: selectedStudent.biaya_per_bulan,
     });
     setShowStruk(true);
   };
 
-  // ── Download PDF dengan ukuran kertas yang dipilih ─────────────────────
   const getCanvasBase64 = async (): Promise<string | null> => {
     if (!strukRef.current) return null;
     try {
       const images = strukRef.current.querySelectorAll('img');
-      await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
-      }));
-      const canvas = await html2canvas(strukRef.current, {
-        backgroundColor: '#ffffff', scale: 3, useCORS: true, allowTaint: true, logging: false,
-      });
+      await Promise.all(Array.from(images).map(img => { if (img.complete) return Promise.resolve(); return new Promise(r => { img.onload = r; img.onerror = r; }); }));
+      const canvas = await html2canvas(strukRef.current, { backgroundColor: '#ffffff', scale: 3, useCORS: true, allowTaint: true, logging: false });
       return canvas.toDataURL('image/png');
     } catch { return null; }
   };
@@ -282,38 +217,24 @@ export default function PembayaranSekolah() {
     if (!strukRef.current) return false;
     try {
       const images = strukRef.current.querySelectorAll('img');
-      await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
-      }));
-      const canvas = await html2canvas(strukRef.current, {
-        backgroundColor: '#ffffff', scale: 3, useCORS: true, allowTaint: true, logging: false,
-      });
-      const imgData   = canvas.toDataURL('image/png');
-      const imgWidth  = canvas.width;
-      const imgHeight = canvas.height;
-
-      // Dimensi kertas (mm)
+      await Promise.all(Array.from(images).map(img => { if (img.complete) return Promise.resolve(); return new Promise(r => { img.onload = r; img.onerror = r; }); }));
+      const canvas = await html2canvas(strukRef.current, { backgroundColor: '#ffffff', scale: 3, useCORS: true, allowTaint: true, logging: false });
+      const imgData = canvas.toDataURL('image/png');
       const paperDims: Record<string, [number, number]> = {
-        thermal57: [57, (imgHeight * 57) / imgWidth],
-        thermal80: [80, (imgHeight * 80) / imgWidth],
-        a5: [148, 210],
-        a4: [210, 297],
+        thermal57: [57, (canvas.height * 57) / canvas.width],
+        thermal80: [80, (canvas.height * 80) / canvas.width],
+        a5: [148, 210], a4: [210, 297],
       };
       const [pdfW, pdfH] = paperDims[paperSize];
       const printW = paperSize === 'a5' || paperSize === 'a4' ? pdfW - 20 : pdfW;
-      const printH = (imgHeight * printW) / imgWidth;
+      const printH = (canvas.height * printW) / canvas.width;
       const offsetX = (pdfW - printW) / 2;
       const offsetY = paperSize === 'a5' || paperSize === 'a4' ? 10 : 3;
-
       const doc = new jsPDF({ unit: 'mm', format: [pdfW, Math.max(pdfH, printH + offsetY + 5)] });
       doc.addImage(imgData, 'PNG', offsetX, offsetY, printW, printH);
       doc.save(`struk-${strukData?.nama_siswa?.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
       return true;
-    } catch (err) {
-      toast.error('Gagal mendownload struk');
-      return false;
-    }
+    } catch { toast.error('Gagal mendownload struk'); return false; }
   };
 
   const saveData = () => {
@@ -331,20 +252,13 @@ export default function PembayaranSekolah() {
     }
   };
 
-  const resetForm = () => {
-    setShowStruk(false);
-    setSelectedStudent(null);
-    setSelectedBulan('');
-    setNominalCicilInput('');
-  };
+  const resetForm = () => { setShowStruk(false); setSelectedStudent(null); setSelectedBulan(''); setNominalCicilInput(''); };
 
   const handleSimpanCetak = async () => {
     if (!strukData) return;
     const downloaded = await downloadStrukAsPDF();
     if (!downloaded) return;
-    saveData();
-    window.print();
-    resetForm();
+    saveData(); window.print(); resetForm();
     toast.success('Data tersimpan & struk dicetak');
   };
 
@@ -353,14 +267,12 @@ export default function PembayaranSekolah() {
     const downloaded = await downloadStrukAsPDF();
     if (!downloaded) return;
     saveData();
-
-    // Kirim via Fonnte
     const nominalText = formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal);
     const bulanDisplay = strukData.bulan.includes('-') ? strukData.bulan.split('-').join(' ') : strukData.bulan;
     const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,
 
 Kepada Yth.
-Bapak/Ibu *${strukData.namaOrangTua || strukData.student?.nama_orang_tua || ''}*
+Bapak/Ibu *${strukData.student?.nama_orang_tua || ''}*
 Orang Tua/Wali dari *${strukData.nama_siswa}*
 
 Dengan hormat, kami sampaikan bahwa putra/putri Bapak/Ibu telah melakukan pembayaran SPP.
@@ -369,7 +281,7 @@ Dengan hormat, kami sampaikan bahwa putra/putri Bapak/Ibu telah melakukan pembay
 ━━━━━━━━━━━━━━━━━━━━
 🔖 No. Ref      : ${strukData.refNo}
 👤 Nama Siswa : *${strukData.nama_siswa}*
-🏫 Jenjang      : ${strukData.jenjangLabel || strukData.jenjang} ${strukData.kelas}
+🏫 Jenjang      : ${strukData.jenjangLabel} ${strukData.kelas}
 📅 Bulan         : ${bulanDisplay}
 💳 Metode       : ${strukData.metode}
 💵 Nominal      : _${nominalText}_
@@ -383,16 +295,9 @@ Alhamdulilahi Jazakumullahu Khoiro,
 
 *Bendahara Yayasan Baitulloh*
 _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
-
     const noWa = strukData.student?.nomor_whatsapp || '';
-    // Ambil gambar struk lalu kirim dengan gambar
     const imgBase64 = await getCanvasBase64();
-    let ok = false;
-    if (imgBase64) {
-      ok = await kirimStrukFonnte(noWa, pesan, imgBase64);
-    } else {
-      ok = await kirimFonnte(noWa, pesan);
-    }
+    const ok = imgBase64 ? await kirimStrukFonnte(noWa, pesan, imgBase64) : await kirimFonnte(noWa, pesan);
     if (ok) toast.success('✅ Struk + pesan terkirim via WhatsApp!');
     else toast.error('❌ Gagal kirim WA, cek koneksi Fonnte');
     resetForm();
@@ -416,7 +321,6 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
         <p className="text-muted-foreground text-sm mt-1">Proses pembayaran SPP siswa</p>
       </motion.div>
 
-      {/* Search */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="bg-card rounded-3xl border border-border p-6 shadow-elegant">
         <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
@@ -461,7 +365,6 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
         {selectedStudent && (
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5 }} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Info Siswa */}
             <div className="bg-card rounded-3xl border border-border p-6 shadow-elegant">
               <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg gradient-info flex items-center justify-center"><User className="w-4 h-4 text-info-foreground" /></div>
@@ -473,9 +376,7 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
                   <h4 className="font-extrabold text-foreground text-lg">{selectedStudent.nama_lengkap}</h4>
                   <p className="text-sm text-muted-foreground">NISN: {selectedStudent.nisn}</p>
                   <div className="flex gap-2 mt-1">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${selectedStudent.kategori === 'Khusus' ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary'}`}>
-                      {getJenjangLabel(selectedStudent)}
-                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${selectedStudent.kategori === 'Khusus' ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary'}`}>{getJenjangLabel(selectedStudent)}</span>
                     <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-semibold">Kelas {selectedStudent.kelas}</span>
                   </div>
                 </div>
@@ -483,9 +384,7 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
               <div className="space-y-3">
                 <div className="flex justify-between p-4 rounded-xl bg-muted/50 border border-border">
                   <span className="text-sm text-muted-foreground">Jumlah Tunggakan</span>
-                  <span className={`text-sm font-extrabold ${hasTunggakan ? 'text-destructive' : 'text-success'}`}>
-                    {hasTunggakan ? `${selectedStudent.tunggakan_sekolah.length} bulan` : 'Nihil ✓'}
-                  </span>
+                  <span className={`text-sm font-extrabold ${hasTunggakan ? 'text-destructive' : 'text-success'}`}>{hasTunggakan ? `${selectedStudent.tunggakan_sekolah.length} bulan` : 'Nihil ✓'}</span>
                 </div>
                 {hasTunggakan && (
                   <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/10">
@@ -508,7 +407,6 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
               </div>
             </div>
 
-            {/* Form Transaksi */}
             <div className="bg-card rounded-3xl border border-border p-6 shadow-elegant">
               <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center"><CreditCard className="w-4 h-4 text-foreground" /></div>
@@ -518,18 +416,10 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Metode Pembayaran</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {([
-                      { key: 'Lunas' as const, enabled: isLunasEnabled },
-                      { key: 'Cicil' as const, enabled: isCicilEnabled },
-                      { key: 'Deposit' as const, enabled: isDepositEnabled },
-                    ]).map(({ key: m, enabled }) => (
+                    {([{ key: 'Lunas' as const, enabled: isLunasEnabled }, { key: 'Cicil' as const, enabled: isCicilEnabled }, { key: 'Deposit' as const, enabled: isDepositEnabled }]).map(({ key: m, enabled }) => (
                       <motion.button key={m} whileHover={enabled ? { scale: 1.02 } : {}} whileTap={enabled ? { scale: 0.98 } : {}}
                         onClick={() => handleMetodeChange(m)} disabled={!enabled}
-                        className={`w-full py-3 rounded-xl text-sm font-semibold transition-all ${
-                          metode === m && enabled ? 'gradient-primary text-primary-foreground shadow-glow-primary' :
-                          enabled ? 'bg-muted text-muted-foreground hover:bg-muted/80' :
-                          'bg-muted/40 text-muted-foreground/40 cursor-not-allowed'
-                        }`}>{m}</motion.button>
+                        className={`w-full py-3 rounded-xl text-sm font-semibold transition-all ${metode === m && enabled ? 'gradient-primary text-primary-foreground shadow-glow-primary' : enabled ? 'bg-muted text-muted-foreground hover:bg-muted/80' : 'bg-muted/40 text-muted-foreground/40 cursor-not-allowed'}`}>{m}</motion.button>
                     ))}
                   </div>
                 </div>
@@ -544,8 +434,7 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-2 block uppercase tracking-wider">Nominal</label>
                   {metode === 'Cicil' ? (
-                    <input type="number" value={nominalCicilInput} onChange={e => setNominalCicilInput(e.target.value)}
-                      placeholder="Masukkan nominal cicilan..."
+                    <input type="number" value={nominalCicilInput} onChange={e => setNominalCicilInput(e.target.value)} placeholder="Masukkan nominal cicilan..."
                       className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground input-focus text-sm" />
                   ) : metode === 'Lunas' && selectedBulan ? (
                     <div className="px-4 py-3.5 rounded-xl bg-muted border border-border text-foreground font-bold text-lg">
@@ -553,8 +442,7 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
                       <span className="text-xs font-normal text-muted-foreground ml-2">{selectedBulanHasCicilan ? '(sisa cicilan)' : '(bayar penuh)'}</span>
                     </div>
                   ) : metode === 'Deposit' ? (
-                    <input type="number" value={nominalCicilInput} onChange={e => setNominalCicilInput(e.target.value)}
-                      placeholder="Masukkan nominal deposit..."
+                    <input type="number" value={nominalCicilInput} onChange={e => setNominalCicilInput(e.target.value)} placeholder="Masukkan nominal deposit..."
                       className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground input-focus text-sm" />
                   ) : (
                     <div className="px-4 py-3.5 rounded-xl bg-muted border border-border text-muted-foreground text-sm">Pilih bulan terlebih dahulu</div>
@@ -580,7 +468,6 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
         </motion.div>
       )}
 
-      {/* ── STRUK POPUP ── */}
       <AnimatePresence>
         {showStruk && strukData && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -590,173 +477,80 @@ _Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               className="bg-card rounded-3xl shadow-2xl w-full max-w-lg p-7 max-h-[95vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}>
-
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-foreground text-lg">Struk Pembayaran</h3>
-                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
-                  onClick={() => setShowStruk(false)} className="p-2 rounded-full hover:bg-muted">
-                  <X className="w-4 h-4" />
-                </motion.button>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowStruk(false)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
-
-              {/* Pilih ukuran kertas */}
               <div className="mb-4">
                 <label className="text-xs font-semibold text-muted-foreground mb-2 block uppercase tracking-wider">Ukuran Kertas</label>
                 <div className="grid grid-cols-4 gap-2">
-                  {([
-                    { key: 'thermal57', label: '57mm' },
-                    { key: 'thermal80', label: '80mm' },
-                    { key: 'a5',        label: 'A5' },
-                    { key: 'a4',        label: 'A4' },
-                  ] as const).map(p => (
+                  {([{ key: 'thermal57', label: '57mm' }, { key: 'thermal80', label: '80mm' }, { key: 'a5', label: 'A5' }, { key: 'a4', label: 'A4' }] as const).map(p => (
                     <button key={p.key} onClick={() => setPaperSize(p.key)}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all ${paperSize === p.key ? 'gradient-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-                      {p.label}
-                    </button>
+                      className={`py-2 rounded-xl text-xs font-bold transition-all ${paperSize === p.key ? 'gradient-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>{p.label}</button>
                   ))}
                 </div>
               </div>
-
-              {/* ── STRUK CONTENT ── */}
-              <div ref={strukRef} className="bg-white rounded-2xl overflow-hidden"
-                style={{ fontFamily: 'Arial, sans-serif', fontSize: paperSize === 'thermal57' ? '10px' : paperSize === 'thermal80' ? '11px' : '13px' }}>
-
-                {/* Header */}
+              <div ref={strukRef} className="bg-white rounded-2xl overflow-hidden" style={{ fontFamily: 'Arial, sans-serif' }}>
                 <div style={{ textAlign: 'center', padding: '16px 12px 10px', borderBottom: '1px dashed #ccc' }}>
-                  <img src={logoYB} alt="Logo" style={{ width: paperSize === 'thermal57' ? '36px' : '48px', height: paperSize === 'thermal57' ? '36px' : '48px', margin: '0 auto 6px', display: 'block', objectFit: 'contain' }} />
-                  <div style={{ fontWeight: 900, fontSize: paperSize === 'thermal57' ? '12px' : '15px', letterSpacing: '1px', color: '#111', marginBottom: '2px' }}>
-                    YAYASAN BAITULLOH
-                  </div>
-                  <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#888', fontWeight: 300, lineHeight: 1.4 }}>
-                    Jl. Yukum Jaya, Terbanggi Besar, Lampung Tengah<br />
-                    Telp: (0725) XXXXXX
-                  </div>
+                  <img src={logoYB} alt="Logo" style={{ width: '44px', height: '44px', margin: '0 auto 6px', display: 'block', objectFit: 'contain' }} />
+                  <div style={{ fontWeight: 900, fontSize: '14px', letterSpacing: '1px', color: '#111', marginBottom: '2px' }}>YAYASAN BAITULLOH</div>
+                  <div style={{ fontSize: '9px', color: '#888', lineHeight: 1.4 }}>Jl. Yukum Jaya, Terbanggi Besar, Lampung Tengah</div>
                 </div>
-
-                {/* Judul */}
-                <div style={{ textAlign: 'center', padding: '8px 12px 6px', background: '#f8f9fa' }}>
-                  <div style={{ fontWeight: 700, fontSize: paperSize === 'thermal57' ? '10px' : '12px', letterSpacing: '1.5px', color: '#333', textTransform: 'uppercase' }}>
-                    Pembayaran Sekolah
-                  </div>
+                <div style={{ textAlign: 'center', padding: '7px 12px', background: '#f8f9fa' }}>
+                  <div style={{ fontWeight: 700, fontSize: '11px', letterSpacing: '1.5px', color: '#333', textTransform: 'uppercase' }}>Pembayaran Sekolah</div>
                 </div>
-
-                {/* Info Pembayaran */}
                 <div style={{ padding: '8px 12px', borderTop: '1px dashed #ccc', borderBottom: '1px dashed #ccc' }}>
-                  {[
-                    ['No. Referensi', strukData.refNo],
-                    ['Tahun Ajaran', strukData.tahunAjaran],
-                    ['Tanggal Pembayaran', formatDate(strukData.tanggal)],
-                    ['NISN', strukData.nisn],
-                    ['Nama Siswa', strukData.nama_siswa],
-                    ['Jenjang / Kelas', `${strukData.jenjangLabel} / ${strukData.kelas}`],
-                  ].map(([label, value]) => (
-                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', alignItems: 'flex-start' }}>
-                      <span style={{ color: '#666', fontSize: paperSize === 'thermal57' ? '8.5px' : '11px', minWidth: '45%' }}>{label}</span>
-                      <span style={{ color: '#111', fontWeight: 600, fontSize: paperSize === 'thermal57' ? '8.5px' : '11px', textAlign: 'right', maxWidth: '55%' }}>{value}</span>
+                  {[['No. Referensi', strukData.refNo], ['Tahun Ajaran', strukData.tahunAjaran], ['Tanggal', formatDate(strukData.tanggal)], ['NISN', strukData.nisn], ['Nama Siswa', strukData.nama_siswa], ['Jenjang / Kelas', `${strukData.jenjangLabel} / ${strukData.kelas}`]].map(([l, v]) => (
+                    <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ color: '#666', fontSize: '10px', minWidth: '45%' }}>{l}</span>
+                      <span style={{ color: '#111', fontWeight: 600, fontSize: '10px', textAlign: 'right' }}>{v}</span>
                     </div>
                   ))}
                 </div>
-
-                {/* Header tabel pembayaran */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: '#f0f0f0', borderBottom: '1px solid #ddd' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <span style={{ color: '#555', fontWeight: 700, fontSize: paperSize === 'thermal57' ? '8px' : '10px' }}>NO.</span>
-                    <span style={{ color: '#555', fontWeight: 700, fontSize: paperSize === 'thermal57' ? '8px' : '10px' }}>PEMBAYARAN</span>
-                  </div>
-                  <span style={{ color: '#555', fontWeight: 700, fontSize: paperSize === 'thermal57' ? '8px' : '10px' }}>JUMLAH</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: '#f0f0f0' }}>
+                  <span style={{ fontWeight: 700, fontSize: '9px', color: '#555' }}>PEMBAYARAN</span>
+                  <span style={{ fontWeight: 700, fontSize: '9px', color: '#555' }}>JUMLAH</span>
                 </div>
-
-                {/* Baris pembayaran */}
                 <div style={{ padding: '6px 12px', borderBottom: '1px dashed #ccc' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <span style={{ color: '#111', fontSize: paperSize === 'thermal57' ? '9px' : '11px' }}>1.</span>
-                      <div>
-                        <div style={{ color: '#111', fontWeight: 600, fontSize: paperSize === 'thermal57' ? '9px' : '11px' }}>
-                          SPP {strukData.bulan} {new Date().getFullYear()}
-                        </div>
-                        <div style={{ color: '#999', fontSize: paperSize === 'thermal57' ? '7.5px' : '9px', marginTop: '1px' }}>
-                          {metode === 'Lunas' && strukData.hasCicilanAktif ? 'Pelunasan Cicilan' : metode}
-                        </div>
-                      </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '10px', color: '#111' }}>SPP {strukData.bulan} {new Date().getFullYear()}</div>
+                      <div style={{ color: '#999', fontSize: '9px' }}>{metode === 'Lunas' && strukData.hasCicilanAktif ? 'Pelunasan Cicilan' : metode}</div>
                     </div>
-                    <span style={{ color: '#111', fontWeight: 600, fontSize: paperSize === 'thermal57' ? '9px' : '11px' }}>
-                      {formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal)}
-                    </span>
+                    <span style={{ fontWeight: 600, fontSize: '10px' }}>{formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal)}</span>
                   </div>
-
-                  {/* Rincian cicilan jika ada */}
-                  {metode === 'Lunas' && strukData.hasCicilanAktif && (
-                    <div style={{ marginTop: '4px', paddingLeft: '16px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#999', fontSize: paperSize === 'thermal57' ? '7.5px' : '9px' }}>
-                        <span>Cicilan sebelumnya</span>
-                        <span>{formatRupiah(strukData.totalCicilanSebelumnya)}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#999', fontSize: paperSize === 'thermal57' ? '7.5px' : '9px' }}>
-                        <span>Pelunasan sekarang</span>
-                        <span>{formatRupiah(strukData.nominal)}</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
-
-                {/* Total */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px dashed #ccc', background: '#fafafa' }}>
-                  <span style={{ fontWeight: 700, fontSize: paperSize === 'thermal57' ? '10px' : '13px', color: '#111' }}>TOTAL PEMBAYARAN</span>
-                  <span style={{ fontWeight: 900, fontSize: paperSize === 'thermal57' ? '11px' : '14px', color: '#16a34a' }}>
-                    {formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal)}
-                  </span>
+                  <span style={{ fontWeight: 700, fontSize: '11px', color: '#111' }}>TOTAL PEMBAYARAN</span>
+                  <span style={{ fontWeight: 900, fontSize: '12px', color: '#16a34a' }}>{formatRupiah(metode === 'Lunas' ? strukData.totalBayarUtuh : strukData.nominal)}</span>
                 </div>
-
-                {/* Tanda Tangan */}
-                <div style={{ padding: '10px 12px 6px', display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ padding: '10px 12px 4px', display: 'flex', justifyContent: 'flex-end' }}>
                   <div style={{ textAlign: 'center' }}>
-                    {/* Tempat & tanggal */}
-                    <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#555' }}>
-                      Yukum Jaya, {tanggalStruk}
+                    <div style={{ fontSize: '9px', color: '#555' }}>Yukum Jaya, {tanggalStruk}</div>
+                    <div style={{ fontSize: '9px', color: '#555', marginTop: '2px' }}>Petugas,</div>
+                    <div style={{ height: '40px' }} />
+                    <div style={{ borderTop: '1px solid #333', paddingTop: '3px', minWidth: '100px' }}>
+                      <div style={{ fontWeight: 700, fontSize: '9px', color: '#111' }}>{strukData.petugas}</div>
                     </div>
-                    {/* Label petugas */}
-                    <div style={{ fontSize: paperSize === 'thermal57' ? '8px' : '10px', color: '#555', marginTop: '3px' }}>
-                      Petugas,
-                    </div>
-                    {/* Ruang tanda tangan — 3 baris kosong */}
-                    <div style={{ height: paperSize === 'thermal57' ? '38px' : '52px' }} />
-                    {/* Garis tanda tangan */}
-                    <div style={{ borderTop: '1px solid #333', paddingTop: '4px', minWidth: paperSize === 'thermal57' ? '90px' : '120px' }}>
-                      {/* Nama petugas */}
-                      <div style={{ fontWeight: 700, fontSize: paperSize === 'thermal57' ? '8.5px' : '11px', color: '#111' }}>
-                        {strukData.petugas}
-                      </div>
-                    </div>
-                    {/* Jarak setelah nama */}
-                    <div style={{ height: paperSize === 'thermal57' ? '10px' : '14px' }} />
+                    <div style={{ height: '8px' }} />
                   </div>
                 </div>
-
-                {/* Footer */}
                 <div style={{ textAlign: 'center', padding: '6px 12px 12px', borderTop: '1px dashed #ccc' }}>
-                  <div style={{ fontSize: paperSize === 'thermal57' ? '7.5px' : '9.5px', color: '#888', fontStyle: 'italic' }}>
-                    Simpan struk ini sebagai bukti pembayaran yang sah
-                  </div>
+                  <div style={{ fontSize: '8px', color: '#888', fontStyle: 'italic' }}>Simpan struk ini sebagai bukti pembayaran yang sah</div>
                 </div>
               </div>
-
-              {/* Action buttons */}
               <div className="grid grid-cols-3 gap-3 mt-5">
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={handleSimpanCetak}
                   className="flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-xs shadow-md">
-                  <Printer className="w-5 h-5" />
-                  <span>Simpan &<br />Cetak</span>
+                  <Printer className="w-5 h-5" /><span>Simpan &<br />Cetak</span>
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={handleSimpanKirim}
                   className="flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 rounded-2xl bg-success text-success-foreground font-semibold text-xs shadow-md">
-                  <Send className="w-5 h-5" />
-                  <span>Simpan &<br />Kirim WA</span>
+                  <Send className="w-5 h-5" /><span>Simpan &<br />Kirim WA</span>
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setShowStruk(false)}
                   className="flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 rounded-2xl border-2 border-border text-muted-foreground font-semibold text-xs hover:bg-muted transition-colors">
-                  <LogOut className="w-5 h-5" />
-                  <span>Keluar</span>
+                  <LogOut className="w-5 h-5" /><span>Keluar</span>
                 </motion.button>
               </div>
             </motion.div>
