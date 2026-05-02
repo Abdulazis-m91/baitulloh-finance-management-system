@@ -62,6 +62,92 @@ export default function PengeluaranPesantren() {
   // Hitung saldo tersedia per dana
   const getSaldoDana = (dana: 'Konsumsi' | 'Operasional' | 'Pembangunan') => {
     const nowD = new Date(); const cm = nowD.getMonth(); const cy = nowD.getFullYear();
+    const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const nmBulanIni = bulanNama[cm];
+
+    // Filter by tanggal ATAU kolom bulan (sama seperti LaporanPesantren)
+    const byTglAtauBulan = (tgl: string, bulan: string) => {
+      const d = new Date(tgl);
+      if (d.getMonth() === cm && d.getFullYear() === cy) return true;
+      const parts = bulan.split('-');
+      return parts[0] === nmBulanIni && (parts.length > 1 ? parseInt(parts[1]) : cy) === cy;
+    };
+
+    const pendapatan = dana === 'Konsumsi'
+      ? konsumsiData.filter(c => byTglAtauBulan(c.tanggal, c.bulan)).reduce((a,c) => a + c.nominal, 0)
+        + pendapatanLainData.filter(p => { const d = new Date(p.tanggal); return d.getMonth()===cm && d.getFullYear()===cy; }).reduce((a,p) => a + p.nominal, 0)
+      : dana === 'Operasional'
+      ? operasionalData.filter(c => byTglAtauBulan(c.tanggal, c.bulan)).reduce((a,c) => a + c.nominal, 0)
+      : pembangunanData.filter(c => byTglAtauBulan(c.tanggal, c.bulan)).reduce((a,c) => a + c.nominal, 0);
+
+    const pengeluaran = pengeluaranList
+      .filter(e => { const d = new Date(e.tanggal); return e.jenis_keperluan.startsWith(dana) && d.getMonth()===cm && d.getFullYear()===cy; })
+      .reduce((a,e) => a + e.nominal, 0);
+    return pendapatan - pengeluaran;
+  }ort { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Download, Printer, X, AlertCircle, Receipt, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { usePengeluaranPesantren, useInsertPengeluaranPesantren, useKonsumsiPesantren, useOperasionalPesantren, usePembangunanPesantren, usePendapatanLainPesantren } from '@/hooks/useSupabasePesantren';
+import { useAuth } from '@/contexts/AuthContext';
+import { formatRupiah, formatDate } from '@/lib/format';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import logoYB from '@/assets/logo-yb.png';
+
+type Tab = 'pengeluaran' | 'rekap_konsumsi' | 'rekap_operasional' | 'rekap_pembangunan';
+
+const RIWAYAT_PAGE_SIZE = 5;
+
+const tataTertib = [
+  'Setiap transaksi pengeluaran wajib disertai bukti/nota yang sah.',
+  'Pengeluaran hanya dapat dilakukan oleh petugas yang berwenang.',
+  'Setiap pengeluaran di atas Rp 500.000 harus mendapat persetujuan kepala yayasan.',
+  'Nota pengeluaran wajib dicetak dan diarsipkan secara fisik maupun digital.',
+  'Petugas bertanggung jawab penuh atas keakuratan data yang diinput ke sistem.',
+];
+
+const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function generateRefNo(): string {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const rand = Math.floor(Math.random() * 9000 + 1000);
+  return `YBP-${yy}${mm}${dd}-${rand}`;
+}
+
+export default function PengeluaranPesantren() {
+  const [activeTab, setActiveTab] = useState<Tab>('pengeluaran');
+  const [keterangan, setKeterangan] = useState('');
+  const [danaDigunakan, setDanaDigunakan] = useState<'Konsumsi' | 'Operasional' | 'Pembangunan'>('Konsumsi');
+  const [jenisKeperluan, setJenisKeperluan] = useState('');
+  const [nominal, setNominal] = useState('');
+  const [showNota, setShowNota] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [notaData, setNotaData] = useState<any>(null);
+  const [riwayatPage, setRiwayatPage] = useState(1);
+  const notaRef = useRef<HTMLDivElement>(null);
+
+  const { data: pengeluaranList = [], isLoading } = usePengeluaranPesantren();
+  const { data: konsumsiData = [] } = useKonsumsiPesantren();
+  const { data: operasionalData = [] } = useOperasionalPesantren();
+  const { data: pembangunanData = [] } = usePembangunanPesantren();
+  const { data: pendapatanLainData = [] } = usePendapatanLainPesantren();
+  const insertPengeluaran = useInsertPengeluaranPesantren();
+  const { userName } = useAuth();
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center min-h-[40vh]">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
+
+  // Hitung saldo tersedia per dana
+  const getSaldoDana = (dana: 'Konsumsi' | 'Operasional' | 'Pembangunan') => {
+    const nowD = new Date(); const cm = nowD.getMonth(); const cy = nowD.getFullYear();
     // Pemasukan: filter by tanggal transaksi (bukan kolom bulan)
     const byTanggal = (tgl: string) => { const d = new Date(tgl); return d.getMonth()===cm && d.getFullYear()===cy; };
     const pendapatan = dana === 'Konsumsi'
@@ -544,4 +630,4 @@ export default function PengeluaranPesantren() {
     </div>
   );
 }
-  03/05/2026 01:15:54
+ 

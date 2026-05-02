@@ -67,8 +67,23 @@ export default function PendapatanPesantren() {
   const currentBulan = bulanNama[now.getMonth()];
 
   const allData = (): any[] => {
-    const cm = now.getMonth(); const cy = now.getFullYear();
-    const byTgl = (t: string) => { const d = new Date(t); return d.getMonth()===cm && d.getFullYear()===cy; };
+    const cm = now.getMonth();
+    const cy = now.getFullYear();
+    const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const nmBulanIni = bulanNama[cm];
+
+    // Filter by tanggal transaksi (sama seperti LaporanPesantren)
+    const byTgl = (tgl: string) => {
+      const d = new Date(tgl);
+      return d.getMonth() === cm && d.getFullYear() === cy;
+    };
+
+    // Filter gabungan: by tanggal ATAU by kolom bulan (handle deposit)
+    const byTglAtauBulan = (tgl: string, bulan: string) => {
+      if (byTgl(tgl)) return true;
+      const parts = bulan.split('-');
+      return parts[0] === nmBulanIni && (parts.length > 1 ? parseInt(parts[1]) : cy) === cy;
+    };
 
     if (activeTab === 'Pembayaran') {
       return pembayaran.filter(p =>
@@ -80,13 +95,13 @@ export default function PendapatanPesantren() {
       );
     }
     if (activeTab === 'Konsumsi') return konsumsi
-      .filter(c => byTgl(c.tanggal) && (!filterKategori || c.kategori === filterKategori))
+      .filter(c => byTglAtauBulan(c.tanggal, c.bulan) && (!filterKategori || c.kategori === filterKategori))
       .map(c => ({ ...c, jenjang: '-', kelas: '-' }));
     if (activeTab === 'Operasional') return operasional
-      .filter(c => byTgl(c.tanggal) && (!filterKategori || c.kategori === filterKategori))
+      .filter(c => byTglAtauBulan(c.tanggal, c.bulan) && (!filterKategori || c.kategori === filterKategori))
       .map(c => ({ ...c, jenjang: '-', kelas: '-' }));
     if (activeTab === 'Pembangunan') return pembangunan
-      .filter(c => byTgl(c.tanggal) && (!filterKategori || c.kategori === filterKategori))
+      .filter(c => byTglAtauBulan(c.tanggal, c.bulan) && (!filterKategori || c.kategori === filterKategori))
       .map(c => ({ ...c, jenjang: '-', kelas: '-' }));
     if (activeTab === 'Cicilan') {
       return cicilan.filter(c => byTgl(c.tanggal)).map(c => ({
@@ -108,30 +123,6 @@ export default function PendapatanPesantren() {
     }
     return [];
   }
-
-  const data = allData().filter(p => {
-    if (!searchNama) return true;
-    const nama = p.nama_siswa || '';
-    return nama.toLowerCase().includes(searchNama.toLowerCase());
-  });
-  const totalNominal = data.reduce((sum, d) => sum + (d.nominal || 0), 0);
-  const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
-  const pagedData = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const showJenjangFilter = ['Pembayaran', 'Deposit'].includes(activeTab);
-  const showKategoriFilter = !['Cicilan'].includes(activeTab);
-  const isPembayaranTab = activeTab === 'Pembayaran';
-  const isKonsumsiTab = activeTab === 'Konsumsi';
-  const isOperasionalTab = activeTab === 'Operasional';
-  const isPembangunanTab = activeTab === 'Pembangunan';
-  const hasAksi = isPembayaranTab || isKonsumsiTab || isOperasionalTab || isPembangunanTab;
-
-  const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, activeTab);
-    XLSX.writeFile(wb, `pendapatan_pesantren_${activeTab.toLowerCase()}.xlsx`);
-    toast.success('Data berhasil diekspor');
-  };
 
   const handleCloseAddPopup = () => {
     setShowAddPopup(false);
