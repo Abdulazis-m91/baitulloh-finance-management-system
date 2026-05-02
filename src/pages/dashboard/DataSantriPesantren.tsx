@@ -1,4 +1,3 @@
-import { useAutoTambahTunggakanPesantren } from '@/hooks/useSupabasePesantren';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -639,5 +638,3 @@ export default function DataSantriPesantren() {
     </div>
   );
 }
-
- 
