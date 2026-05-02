@@ -86,34 +86,24 @@ export default function PendapatanPesantren() {
 
     if (activeTab === 'Pembayaran') {
       return pembayaran.filter(p =>
-        p.metode !== 'Deposit' &&
         filterTanggalBulanIni(p.tanggal) &&
         (!filterJenjang || p.jenjang === filterJenjang) &&
         (!filterKelas || p.kelas === filterKelas) &&
         (!filterKategori || p.kategori === filterKategori)
       );
     }
-    if (activeTab === 'Konsumsi') return konsumsi.filter(c => {
-      const parts = c.bulan.split('-');
-      const nm = parts[0];
-      const thn = parts.length > 1 ? parseInt(parts[1]) : now.getFullYear();
-      return nm === nmBulanIni && thn === thnIni &&
-        (!filterKategori || c.kategori === filterKategori);
-    }).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
-    if (activeTab === 'Operasional') return operasional.filter(c => {
-      const parts = c.bulan.split('-');
-      const nm = parts[0];
-      const thn = parts.length > 1 ? parseInt(parts[1]) : now.getFullYear();
-      return nm === nmBulanIni && thn === thnIni &&
-        (!filterKategori || c.kategori === filterKategori);
-    }).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
-    if (activeTab === 'Pembangunan') return pembangunan.filter(c => {
-      const parts = c.bulan.split('-');
-      const nm = parts[0];
-      const thn = parts.length > 1 ? parseInt(parts[1]) : now.getFullYear();
-      return nm === nmBulanIni && thn === thnIni &&
-        (!filterKategori || c.kategori === filterKategori);
-    }).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Konsumsi') return konsumsi.filter(c =>
+        filterTanggalBulanIni(c.tanggal) &&
+        (!filterKategori || c.kategori === filterKategori)
+      )).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Operasional') return operasional.filter(c =>
+        filterTanggalBulanIni(c.tanggal) &&
+        (!filterKategori || c.kategori === filterKategori)
+      )).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
+    if (activeTab === 'Pembangunan') return pembangunan.filter(c =>
+        filterTanggalBulanIni(c.tanggal) &&
+        (!filterKategori || c.kategori === filterKategori)
+      )).map(c => ({ ...c, jenjang: '-', kelas: '-' }));
     if (activeTab === 'Cicilan') {
       return cicilan.map(c => ({
         ...c,

@@ -62,14 +62,14 @@ export default function PengeluaranPesantren() {
   // Hitung saldo tersedia per dana
   const getSaldoDana = (dana: 'Konsumsi' | 'Operasional' | 'Pembangunan') => {
     const nowD = new Date(); const cm = nowD.getMonth(); const cy = nowD.getFullYear();
-    const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-    // Pemasukan hanya bulan ini (filter by kolom bulan)
+    // Pemasukan: filter by tanggal transaksi (bukan kolom bulan)
+    const byTanggal = (tgl: string) => { const d = new Date(tgl); return d.getMonth()===cm && d.getFullYear()===cy; };
     const pendapatan = dana === 'Konsumsi'
-      ? konsumsiData.filter(c => { const p = c.bulan.split('-'); return p[0] === bulanNama[cm] && (p.length>1 ? parseInt(p[1]) : cy) === cy; }).reduce((a,c) => a + c.nominal, 0)
-        + pendapatanLainData.filter(p => { const d = new Date(p.tanggal); return d.getMonth()===cm && d.getFullYear()===cy; }).reduce((a,p) => a + p.nominal, 0)
+      ? konsumsiData.filter(c => byTanggal(c.tanggal)).reduce((a,c) => a + c.nominal, 0)
+        + pendapatanLainData.filter(p => byTanggal(p.tanggal)).reduce((a,p) => a + p.nominal, 0)
       : dana === 'Operasional'
-      ? operasionalData.filter(c => { const p = c.bulan.split('-'); return p[0] === bulanNama[cm] && (p.length>1 ? parseInt(p[1]) : cy) === cy; }).reduce((a,c) => a + c.nominal, 0)
-      : pembangunanData.filter(c => { const p = c.bulan.split('-'); return p[0] === bulanNama[cm] && (p.length>1 ? parseInt(p[1]) : cy) === cy; }).reduce((a,c) => a + c.nominal, 0);
+      ? operasionalData.filter(c => byTanggal(c.tanggal)).reduce((a,c) => a + c.nominal, 0)
+      : pembangunanData.filter(c => byTanggal(c.tanggal)).reduce((a,c) => a + c.nominal, 0);
     // Pengeluaran hanya bulan ini
     const pengeluaran = pengeluaranList
       .filter(e => { const d = new Date(e.tanggal); return e.jenis_keperluan.startsWith(dana) && d.getMonth()===cm && d.getFullYear()===cy; })

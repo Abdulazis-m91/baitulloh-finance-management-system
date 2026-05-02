@@ -85,7 +85,7 @@ export default function PendapatanSekolah() {
       );
     }
     if (activeTab === 'Cicil') {
-      return cicilan.map(c => ({
+      return cicilan.filter(c => isTanggalBulanIni(c.tanggal)).map(c => ({
         ...c,
         namaSiswa: studentMap[c.siswa_id]?.nama_lengkap || '',
         jenjang: studentMap[c.siswa_id]?.jenjang || '-',
