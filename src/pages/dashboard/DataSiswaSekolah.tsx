@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
 import { useStudents, useInsertStudent, useUpdateStudent, useDeleteStudent, useAutoTambahTunggakanSekolah, type StudentDB } from '@/hooks/useSupabaseData';
@@ -6,81 +6,21 @@ import { formatRupiah } from '@/lib/format';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
-
+// ── Konstanta ──────────────────────────────────────────────────────────────
 const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
 const kelasOptions: Record<string, string[]> = {
-  SMP: ['7A','7B','8A','8B','9A','9B'],
-  SMA: ['10A','10B','11A','11B','12A','12B'],
+  SMP:    ['7A','7B','8A','8B','9A','9B'],
+  SMA:    ['10A','10B','11A','11B','12A','12B'],
   Khusus: ['7A','7B','8A','8B','9A','9B','10A','10B','11A','11B','12A','12B'],
 };
-const SPP_DEFAULT: Record<string, number> = { SMP: 125000, SMA: 150000, Khusus: 0 };
-const isKhususSiswa = (s: any) => s.kategori === 'Khusus';
-const getJenjangLabel = (s: any) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
-
-
-const FONNTE_TOKEN = import.meta.env.VITE_FONNTE_TOKEN || 'UfZ8GV7RQHsWRRLBXJK7';
-
-async function kirimFonnte(noWa: string, pesan: string): Promise<boolean> {
-  try {
-    const nomor = noWa.replace(/\D/g, '');
-    const formData = new FormData();
-    formData.append('target', nomor);
-    formData.append('message', pesan);
-
-    const res = await fetch('https://api.fonnte.com/send', {
-      method: 'POST',
-      headers: { 'Authorization': FONNTE_TOKEN },
-      body: formData,
-    });
-    const data = await res.json();
-    // Fonnte return status: true (boolean) atau "true" (string)
-    return data.status === true || data.status === 'true' || data.detail === 'success';
-  } catch (e) {
-    console.error('Fonnte error:', e);
-    return false;
-  }
-}
-
-async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string): Promise<boolean> {
-  try {
-    const nomor = noWa.replace(/\D/g, '');
-    // Fonnte tidak support upload langsung - kirim teks dulu, lalu upload gambar via URL
-    // Alternatif: upload ke Supabase Storage lalu kirim URL
-    // Untuk sementara: kirim teks saja dengan tanda bahwa struk sudah dicetak
-    const formData = new FormData();
-    formData.append('target', nomor);
-    formData.append('message', pesan);
-
-    // Coba kirim dengan gambar sebagai file
-    try {
-      const byteString = atob(imageBase64.split(',')[1] || imageBase64);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-      const blob = new Blob([ab], { type: 'image/png' });
-      formData.append('file', blob, 'struk-pembayaran.png');
-    } catch {}
-
-    const res = await fetch('https://api.fonnte.com/send', {
-      method: 'POST',
-      headers: { 'Authorization': FONNTE_TOKEN },
-      body: formData,
-    });
-    const data = await res.json();
-    console.log('Fonnte response:', data);
-    return data.status === true || data.status === 'true' || data.detail === 'success';
-  } catch (e) {
-    console.error('Fonnte struk error:', e);
-    // Fallback: kirim teks saja
-    return kirimFonnte(noWa, pesan);
-  }
-}
-
 
 const SPP_DEFAULT: Record<string, number> = { SMP: 125000, SMA: 150000 };
+
 const isKhususSiswa = (s: StudentDB) => s.kategori === 'Khusus';
 const getJenjangLabel = (s: StudentDB) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
-const getJenjangUI = (s: StudentDB) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
+const getJenjangUI    = (s: StudentDB) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
+
 function getJenjangDB(jenjangUI: string): 'SMP' | 'SMA' | 'Reguler' {
   if (jenjangUI === 'Khusus') return 'Reguler';
   return jenjangUI as 'SMP' | 'SMA' | 'Reguler';
@@ -90,6 +30,26 @@ function getBiayaPerBulan(jenjangUI: string, sppKhusus: string): number {
   return SPP_DEFAULT[jenjangUI] ?? 125000;
 }
 
+// ── Fonnte ─────────────────────────────────────────────────────────────────
+const FONNTE_TOKEN = import.meta.env.VITE_FONNTE_TOKEN || 'UfZ8GV7RQHsWRRLBXJK7';
+
+async function kirimFonnte(noWa: string, pesan: string): Promise<boolean> {
+  try {
+    const nomor = noWa.replace(/\D/g, '');
+    const formData = new FormData();
+    formData.append('target', nomor);
+    formData.append('message', pesan);
+    const res = await fetch('https://api.fonnte.com/send', {
+      method: 'POST',
+      headers: { 'Authorization': FONNTE_TOKEN },
+      body: formData,
+    });
+    const data = await res.json();
+    return data.status === true || data.status === 'true' || data.detail === 'success';
+  } catch (e) { console.error('Fonnte error:', e); return false; }
+}
+
+// ── Types ──────────────────────────────────────────────────────────────────
 type FilterStatus = '' | 'lunas' | 'menunggak';
 type StudentForm = {
   nisn: string; barcode: string; namaLengkap: string; jenjang: string;
@@ -103,6 +63,7 @@ const emptyForm: StudentForm = {
 const modalOverlay = "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4";
 const modalSpring = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
+// ── Form Popup ─────────────────────────────────────────────────────────────
 type StudentFormPopupProps = {
   title: string; onClose: () => void; onSubmit: () => void;
   form: StudentForm; setForm: React.Dispatch<React.SetStateAction<StudentForm>>;
@@ -113,18 +74,31 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
   const rfidRef = useRef<HTMLInputElement>(null);
   const [rfidFocused, setRfidFocused] = useState(false);
   const [rfidFlash, setRfidFlash] = useState(false);
+
+  // Kelas tersedia berdasarkan jenjang (inline, tidak bergantung variabel luar)
+  const availableKelas: string[] = form.jenjang === 'Khusus'
+    ? ['7A','7B','8A','8B','9A','9B','10A','10B','11A','11B','12A','12B']
+    : form.jenjang === 'SMP' ? ['7A','7B','8A','8B','9A','9B']
+    : form.jenjang === 'SMA' ? ['10A','10B','11A','11B','12A','12B']
+    : [];
+
   const isKhusus = form.jenjang === 'Khusus';
-  const _allKelas = ['7A','7B','8A','8B','9A','9B','10A','10B','11A','11B','12A','12B'];
-  const availableKelas = isKhusus ? _allKelas : form.jenjang ? (['SMP','SMA'].includes(form.jenjang) ? (form.jenjang === 'SMP' ? ['7A','7B','8A','8B','9A','9B'] : ['10A','10B','11A','11B','12A','12B']) : []) : [];
 
   useEffect(() => { const t = setTimeout(() => rfidRef.current?.focus(), 400); return () => clearTimeout(t); }, []);
+
   useEffect(() => {
     let buffer = ''; let bufferTimer: ReturnType<typeof setTimeout>;
     const handleKey = (e: KeyboardEvent) => {
       const active = document.activeElement;
       if (active && active !== rfidRef.current && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
-      if (e.key === 'Enter') { if (buffer.length > 0) { setForm(p => ({ ...p, barcode: p.barcode + buffer })); buffer = ''; setRfidFlash(true); setTimeout(() => setRfidFlash(false), 600); toast.success('âœ… Kartu RFID terbaca!'); } e.preventDefault(); return; }
-      if (e.key.length === 1) { buffer += e.key; clearTimeout(bufferTimer); bufferTimer = setTimeout(() => { if (buffer.length > 2) { setForm(p => ({ ...p, barcode: p.barcode + buffer })); setRfidFlash(true); setTimeout(() => setRfidFlash(false), 600); toast.success('âœ… Kartu RFID terbaca!'); } buffer = ''; }, 150); }
+      if (e.key === 'Enter') {
+        if (buffer.length > 0) { setForm(p => ({ ...p, barcode: buffer })); buffer = ''; setRfidFlash(true); setTimeout(() => setRfidFlash(false), 600); toast.success('✅ Kartu RFID terbaca!'); }
+        e.preventDefault(); return;
+      }
+      if (e.key.length === 1) {
+        buffer += e.key; clearTimeout(bufferTimer);
+        bufferTimer = setTimeout(() => { if (buffer.length > 2) { setForm(p => ({ ...p, barcode: buffer })); setRfidFlash(true); setTimeout(() => setRfidFlash(false), 600); toast.success('✅ Kartu RFID terbaca!'); } buffer = ''; }, 150);
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => { window.removeEventListener('keydown', handleKey); clearTimeout(bufferTimer); };
@@ -154,18 +128,21 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
               <div><label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Barcode / RFID</label>
                 <input ref={rfidRef} value={form.barcode} onChange={e => setForm(p => ({ ...p, barcode: e.target.value }))}
                   onFocus={() => setRfidFocused(true)} onBlur={() => setRfidFocused(false)}
-                  autoComplete="off" placeholder="ðŸ“¡ Tempelkan kartu RFID..."
+                  autoComplete="off" placeholder="📡 Tempelkan kartu RFID..."
                   className={`w-full px-4 py-3 rounded-xl border-2 text-foreground text-sm input-focus font-mono transition-all duration-300 ${rfidFlash ? 'border-green-500 bg-green-500/10' : rfidFocused ? 'border-primary bg-primary/5' : 'border-primary/40 bg-primary/5'} placeholder:text-primary/40`} />
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className={`w-2.5 h-2.5 rounded-full ${rfidFocused ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
-                  <span className="text-[10px] text-muted-foreground">{rfidFocused ? 'ðŸŸ¢ Siap scan' : 'âšª Klik untuk aktifkan scanner'}</span>
+                  <span className="text-[10px] text-muted-foreground">{rfidFocused ? '🟢 Siap scan' : '⚪ Klik untuk aktifkan scanner'}</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Jenjang</label>
                   <select value={form.jenjang} onChange={e => setForm(p => ({ ...p, jenjang: e.target.value, kelas: '', sppKhusus: '' }))}
                     className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus" required>
-                    <option value="">Pilih</option><option value="SMP">SMP</option><option value="SMA">SMA</option><option value="Khusus">Khusus</option>
+                    <option value="">Pilih</option>
+                    <option value="SMP">SMP</option>
+                    <option value="SMA">SMA</option>
+                    <option value="Khusus">Khusus</option>
                   </select></div>
                 <div><label className="text-xs font-semibold text-foreground mb-1.5 block uppercase tracking-wider">Kelas</label>
                   <select value={form.kelas} onChange={e => setForm(p => ({ ...p, kelas: e.target.value }))} disabled={!form.jenjang}
@@ -197,6 +174,8 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
               </div>
             </div>
           </div>
+
+          {/* Tunggakan Awal */}
           <div className="border-t border-border pt-5">
             <label className="text-xs font-semibold text-foreground mb-1 block uppercase tracking-wider flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-primary" /> Tunggakan Awal (opsional)
@@ -206,7 +185,10 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
               <div className="flex-shrink-0 w-32">
                 <select value={form.tunggakanTahun} onChange={e => setForm(p => ({ ...p, tunggakanTahun: e.target.value, tunggakanBulan: [] }))}
                   className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-                  <option value="">Tahun</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
+                  <option value="">Tahun</option>
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
                 </select>
               </div>
               {form.tunggakanTahun && (
@@ -224,6 +206,7 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
               )}
             </div>
           </div>
+
           <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} type="submit"
             className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold btn-shine shadow-glow-primary text-sm">
             {title === 'Tambah Data Siswa' ? 'Simpan Data' : 'Perbarui Data'}
@@ -234,6 +217,7 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
   );
 };
 
+// ── Main Component ─────────────────────────────────────────────────────────
 export default function DataSiswaSekolah() {
   const [search, setSearch] = useState('');
   const [filterJenjang, setFilterJenjang] = useState('');
@@ -264,32 +248,39 @@ export default function DataSiswaSekolah() {
   const filtered = students.filter(s => {
     if (s.status === 'lulus') return false;
     const jenjangLabel = getJenjangLabel(s);
-    const matchSearch = !search || s.nama_lengkap.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search);
+    const matchSearch  = !search       || s.nama_lengkap.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search);
     const matchJenjang = !filterJenjang || jenjangLabel === filterJenjang;
-    const matchKelas = !filterKelas || s.kelas === filterKelas;
-    const matchStatus = !filterStatus || (filterStatus === 'lunas' && s.tunggakan_sekolah.length === 0) || (filterStatus === 'menunggak' && s.tunggakan_sekolah.length > 0);
+    const matchKelas   = !filterKelas  || s.kelas === filterKelas;
+    const matchStatus  = !filterStatus || (filterStatus === 'lunas' && s.tunggakan_sekolah.length === 0) || (filterStatus === 'menunggak' && s.tunggakan_sekolah.length > 0);
     return matchSearch && matchJenjang && matchKelas && matchStatus;
   });
 
-  const totalPages = Math.ceil(filtered.length / perPage);
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+  const totalPages = Math.ceil(filtered.length / perPage) || 1;
+  const paginated  = filtered.slice((page - 1) * perPage, page * perPage);
 
-  // â”€â”€ Tagih Sekaligus via Fonnte â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Filter kelas dropdown (inline — tidak bergantung kelasKhusus terpisah)
+  const filterKelasOptions: string[] = filterJenjang === 'Khusus'
+    ? ['7A','7B','8A','8B','9A','9B','10A','10B','11A','11B','12A','12B']
+    : filterJenjang ? (kelasOptions[filterJenjang] ?? [])
+    : [];
+
+  const jumlahMenunggak = filtered.filter(s => s.tunggakan_sekolah.length > 0).length;
+
   const handleTagihSekaligus = async () => {
     const siswaMenunggak = filtered.filter(s => s.tunggakan_sekolah.length > 0);
     if (siswaMenunggak.length === 0) { toast.error('Tidak ada siswa yang menunggak'); return; }
     setIsTagihLoading(true);
     let sukses = 0; let gagal = 0;
     for (const s of siswaMenunggak) {
-      const total = formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan);
-      const bulanList2 = s.tunggakan_sekolah.join(', ');
-      const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\nðŸ“‹ *INFORMASI TAGIHAN*\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nðŸ‘¤ Nama Siswa : *${s.nama_lengkap}*\nðŸ« Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\nðŸ“… Bulan        : ${bulanList2}\nðŸ’µ Nominal      : _${total}_\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut. Pembayaran dapat dilakukan langsung ke kantor yayasan pada hari dan jam kerja.\n\nAtas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.\n\nAlhamdulillah, Jazakumullahu Khairan atas perhatian dan kerja sama Bapak/Ibu.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
+      const total    = formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan);
+      const bulanStr = s.tunggakan_sekolah.join(', ');
+      const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\n📋 *INFORMASI TAGIHAN*\n━━━━━━━━━━━━━━━━━━━━\n👤 Nama Siswa : *${s.nama_lengkap}*\n🏫 Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\n📅 Bulan        : ${bulanStr}\n💵 Nominal      : _${total}_\n━━━━━━━━━━━━━━━━━━━━\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
       const ok = await kirimFonnte(s.nomor_whatsapp, pesan);
       if (ok) sukses++; else gagal++;
     }
     setIsTagihLoading(false);
-    if (sukses > 0) toast.success(`âœ… ${sukses} pesan tagihan terkirim`);
-    if (gagal > 0) toast.error(`âŒ ${gagal} pesan gagal dikirim`);
+    if (sukses > 0) toast.success(`✅ ${sukses} pesan tagihan terkirim`);
+    if (gagal > 0)  toast.error(`❌ ${gagal} pesan gagal dikirim`);
   };
 
   const exportExcel = () => {
@@ -297,7 +288,7 @@ export default function DataSiswaSekolah() {
       No: i + 1, NISN: s.nisn, 'Nama Lengkap': s.nama_lengkap,
       Jenjang: getJenjangLabel(s), Kelas: s.kelas,
       'SPP/Bulan': formatRupiah(s.biaya_per_bulan),
-      'Status': s.tunggakan_sekolah.length > 0 ? `Menunggak (${s.tunggakan_sekolah.length} bulan)` : 'Lunas',
+      Status: s.tunggakan_sekolah.length > 0 ? `Menunggak (${s.tunggakan_sekolah.length} bulan)` : 'Lunas',
       'Nama Orang Tua': s.nama_orang_tua, 'No. WhatsApp': s.nomor_whatsapp,
     }));
     const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
@@ -334,31 +325,29 @@ export default function DataSiswaSekolah() {
   const handleEdit = () => {
     if (!showEdit) return;
     const tunggakan = form.tunggakanTahun ? [...form.tunggakanBulan] : showEdit.tunggakan_sekolah;
-    updateStudentMut.mutate({ id: showEdit.id, nisn: form.nisn, barcode: form.barcode, nama_lengkap: form.namaLengkap,
-      jenjang: getJenjangDB(form.jenjang), kelas: form.kelas, nama_orang_tua: form.namaOrangTua,
-      nomor_whatsapp: form.nomorWhatsApp, tunggakan_sekolah: tunggakan,
-      biaya_per_bulan: getBiayaPerBulan(form.jenjang, form.sppKhusus),
+    updateStudentMut.mutate({ id: showEdit.id, nisn: form.nisn, barcode: form.barcode,
+      nama_lengkap: form.namaLengkap, jenjang: getJenjangDB(form.jenjang), kelas: form.kelas,
+      nama_orang_tua: form.namaOrangTua, nomor_whatsapp: form.nomorWhatsApp,
+      tunggakan_sekolah: tunggakan, biaya_per_bulan: getBiayaPerBulan(form.jenjang, form.sppKhusus),
       kategori: form.jenjang === 'Khusus' ? 'Khusus' : null });
     setShowEdit(null);
   };
 
-  // Kirim WA individual via Fonnte API
   const sendWhatsApp = async (s: StudentDB) => {
-    const total = formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan);
+    const total    = formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan);
     const bulanStr = s.tunggakan_sekolah.join(', ');
-    const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\nðŸ“‹ *INFORMASI TAGIHAN*\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nðŸ‘¤ Nama Siswa : *${s.nama_lengkap}*\nðŸ« Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\nðŸ“… Bulan        : ${bulanStr}\nðŸ’µ Nominal      : _${total}_\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut. Pembayaran dapat dilakukan langsung ke kantor yayasan pada hari dan jam kerja.\n\nAtas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.\n\nAlhamdulillah, Jazakumullahu Khairan atas perhatian dan kerja sama Bapak/Ibu.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
+    const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\n📋 *INFORMASI TAGIHAN*\n━━━━━━━━━━━━━━━━━━━━\n👤 Nama Siswa : *${s.nama_lengkap}*\n🏫 Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\n📅 Bulan        : ${bulanStr}\n💵 Nominal      : _${total}_\n━━━━━━━━━━━━━━━━━━━━\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
     const ok = await kirimFonnte(s.nomor_whatsapp, pesan);
-    if (ok) toast.success(`âœ… Tagihan terkirim ke ${s.nama_orang_tua}`);
-    else toast.error(`âŒ Gagal kirim ke ${s.nomor_whatsapp}`);
+    if (ok) toast.success(`✅ Tagihan terkirim ke ${s.nama_orang_tua}`);
+    else    toast.error(`❌ Gagal kirim ke ${s.nomor_whatsapp}`);
   };
 
   const toggleBulan = (b: string) => setForm(p => ({ ...p, tunggakanBulan: p.tunggakanBulan.includes(b) ? p.tunggakanBulan.filter(x => x !== b) : [...p.tunggakanBulan, b] }));
   const handleWhatsAppChange = (value: string) => { if (!value.startsWith('+62')) value = '+62'; setForm(p => ({ ...p, nomorWhatsApp: value })); };
-  const filterKelasOptions = filterJenjang === 'Khusus' ? kelasKhusus : filterJenjang ? kelasOptions[filterJenjang] ?? [] : [];
-  const jumlahMenunggak = filtered.filter(s => s.tunggakan_sekolah.length > 0).length;
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Data Siswa</h1>
@@ -374,8 +363,7 @@ export default function DataSiswaSekolah() {
             <Download className="w-4 h-4" /> Export Excel
           </motion.button>
           {jumlahMenunggak > 0 && (
-            <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={handleTagihSekaligus} disabled={isTagihLoading}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-warning text-warning-foreground text-sm font-bold btn-shine disabled:opacity-60">
               {isTagihLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -394,15 +382,23 @@ export default function DataSiswaSekolah() {
             <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Cari nama atau NISN..."
               className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground input-focus text-sm" />
           </div>
-          <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-            <option value="">Semua Jenjang</option><option value="SMP">SMP</option><option value="SMA">SMA</option><option value="Khusus">Khusus</option>
+          <select value={filterJenjang} onChange={e => { setFilterJenjang(e.target.value); setFilterKelas(''); setPage(1); }}
+            className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+            <option value="">Semua Jenjang</option>
+            <option value="SMP">SMP</option>
+            <option value="SMA">SMA</option>
+            <option value="Khusus">Khusus</option>
           </select>
-          <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }} disabled={!filterJenjang} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50">
+          <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1); }} disabled={!filterJenjang}
+            className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus disabled:opacity-50">
             <option value="">{filterJenjang ? 'Semua Kelas' : 'Pilih jenjang'}</option>
             {filterKelasOptions.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
-          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value as FilterStatus); setPage(1); }} className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
-            <option value="">Semua Status</option><option value="lunas">Lunas</option><option value="menunggak">Belum Lunas</option>
+          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value as FilterStatus); setPage(1); }}
+            className="px-4 py-3 rounded-xl border border-border bg-background text-foreground text-sm input-focus">
+            <option value="">Semua Status</option>
+            <option value="lunas">Lunas</option>
+            <option value="menunggak">Belum Lunas</option>
           </select>
         </div>
       </motion.div>
@@ -414,7 +410,7 @@ export default function DataSiswaSekolah() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/30 border-b border-border">
-                {['No', 'NISN', 'Nama Lengkap', 'Jenjang', 'Kelas', 'SPP/Bulan', 'Status', 'Orang Tua', 'WhatsApp', 'Aksi'].map(h => (
+                {['No','NISN','Nama Lengkap','Jenjang','Kelas','SPP/Bulan','Status','Orang Tua','WhatsApp','Aksi'].map(h => (
                   <th key={h} className="py-4 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider text-left">{h}</th>
                 ))}
               </tr>
@@ -445,34 +441,25 @@ export default function DataSiswaSekolah() {
                     <td className="py-4 px-4">
                       {s.tunggakan_sekolah.length > 0 ? (
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTunggakan(s)}
-                          className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
-                          {s.tunggakan_sekolah.length} bulan â†—
+                          className="px-3 py-1 rounded-lg text-xs font-bold bg-destructive/10 text-destructive hover:bg-destructive/20">
+                          {s.tunggakan_sekolah.length} bulan ↗
                         </motion.button>
                       ) : (
-                        <span className="px-3 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">âœ“ Lunas</span>
+                        <span className="px-3 py-1 rounded-lg text-xs font-bold bg-success/10 text-success">✓ Lunas</span>
                       )}
                     </td>
                     <td className="py-4 px-4 text-muted-foreground text-xs">{s.nama_orang_tua}</td>
                     <td className="py-4 px-4">
-                      <a href={`https://wa.me/${s.nomor_whatsapp.replace('+', '')}`} target="_blank" rel="noopener noreferrer"
+                      <a href={`https://wa.me/${s.nomor_whatsapp.replace('+','')}`} target="_blank" rel="noopener noreferrer"
                         className="text-xs font-bold font-mono text-success hover:underline">{s.nomor_whatsapp}</a>
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-1">
-                        {[
-                          { icon: Eye, color: 'text-info hover:bg-info/10', action: () => setShowDetail(s), title: 'Lihat' },
-                          { icon: Edit, color: 'text-warning hover:bg-warning/10', action: () => openEdit(s), title: 'Edit' },
-                          { icon: Trash2, color: 'text-destructive hover:bg-destructive/10', action: () => setShowDeleteConfirm(s), title: 'Hapus' },
-                        ].map(({ icon: Icon, color, action, title }) => (
-                          <motion.button key={title} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={action} className={`p-2 rounded-xl ${color} transition-colors`} title={title}>
-                            <Icon className="w-4 h-4" />
-                          </motion.button>
-                        ))}
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => setShowDetail(s)} className="p-2 rounded-xl text-info hover:bg-info/10 transition-colors"><Eye className="w-4 h-4" /></motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => openEdit(s)} className="p-2 rounded-xl text-warning hover:bg-warning/10 transition-colors"><Edit className="w-4 h-4" /></motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => setShowDeleteConfirm(s)} className="p-2 rounded-xl text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="w-4 h-4" /></motion.button>
                         {s.tunggakan_sekolah.length > 0 && (
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => sendWhatsApp(s)}
-                            className="p-2 rounded-xl text-success hover:bg-success/10 transition-colors" title="WhatsApp">
-                            <MessageCircle className="w-4 h-4" />
-                          </motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => sendWhatsApp(s)} className="p-2 rounded-xl text-success hover:bg-success/10 transition-colors"><MessageCircle className="w-4 h-4" /></motion.button>
                         )}
                       </div>
                     </td>
@@ -528,7 +515,7 @@ export default function DataSiswaSekolah() {
                     <div className="grid grid-cols-2 gap-2">
                       {showDetail.tunggakan_sekolah.map(b => (
                         <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
-                          <span className="text-foreground">{b}</span><span className="text-destructive font-bold">{formatRupiah(showDetail.biaya_per_bulan)}</span>
+                          <span>{b}</span><span className="text-destructive font-bold">{formatRupiah(showDetail.biaya_per_bulan)}</span>
                         </div>
                       ))}
                     </div>
@@ -537,7 +524,7 @@ export default function DataSiswaSekolah() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 text-center">âœ“ Tidak ada tunggakan</p>
+                  <p className="text-sm text-success font-semibold p-4 rounded-xl bg-success/5 border border-success/10 text-center">✓ Tidak ada tunggakan</p>
                 )}
               </div>
             </motion.div>
@@ -554,11 +541,11 @@ export default function DataSiswaSekolah() {
                 <h3 className="font-bold text-foreground text-lg">Detail Tunggakan</h3>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowTunggakan(null)} className="p-2 rounded-full hover:bg-muted"><X className="w-4 h-4" /></motion.button>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">{showTunggakan.nama_lengkap} Â· <span className="font-bold text-foreground">{getJenjangLabel(showTunggakan)} {showTunggakan.kelas}</span></p>
+              <p className="text-sm text-muted-foreground mb-4">{showTunggakan.nama_lengkap} · <span className="font-bold text-foreground">{getJenjangLabel(showTunggakan)} {showTunggakan.kelas}</span></p>
               <div className="space-y-2">
                 {showTunggakan.tunggakan_sekolah.map(b => (
                   <div key={b} className="flex justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm">
-                    <span className="text-foreground">{b}</span><span className="text-destructive font-bold">{formatRupiah(showTunggakan.biaya_per_bulan)}</span>
+                    <span>{b}</span><span className="text-destructive font-bold">{formatRupiah(showTunggakan.biaya_per_bulan)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between p-4 rounded-xl bg-destructive/10 border border-destructive/20 font-extrabold text-sm">
@@ -592,4 +579,4 @@ export default function DataSiswaSekolah() {
     </div>
   );
 }
- 02/05/2026 23:53:39
+ 
