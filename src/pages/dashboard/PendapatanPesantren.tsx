@@ -76,7 +76,7 @@ export default function PendapatanPesantren() {
   // ── Data per tab ──────────────────────────────────────────────────────
   const allData = (): any[] => {
     if (activeTab === 'Pembayaran') return pembayaran.filter(p =>
-      p.metode !== 'Deposit' && byTgl(p.tanggal) &&
+      p.metode !== 'Deposit' && byTglAtauBulan(p.tanggal, p.bulan) &&
       (!filterJenjang || p.jenjang === filterJenjang) &&
       (!filterKelas || p.kelas === filterKelas) &&
       (!filterKategori || p.kategori === filterKategori)
