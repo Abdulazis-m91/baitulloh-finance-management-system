@@ -234,7 +234,7 @@ export default function DataSiswaSekolah() {
     for (const s of siswaMenunggak) {
       const total = formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan);
       const bulanList2 = s.tunggakan_sekolah.join(', ');
-      const pesan = `Assalamu'alaikum Yth. Bapak/Ibu ${s.nama_orang_tua},\n\nDengan hormat, kami informasikan bahwa:\n\n👤 Nama  : ${s.nama_lengkap}\n🏫 Kelas : ${getJenjangLabel(s)} ${s.kelas}\n📅 Bulan : ${bulanList2}\n💰 Total : ${total}\n\nMohon segera melakukan pembayaran SPP. Terima kasih atas perhatiannya.\n\n_Yayasan Baitulloh_`;
+      const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\n📋 *INFORMASI TAGIHAN*\n━━━━━━━━━━━━━━━━━━━━\n👤 Nama Siswa : *${s.nama_lengkap}*\n🏫 Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\n📅 Bulan        : ${bulanList2}\n💵 Nominal      : _${total}_\n━━━━━━━━━━━━━━━━━━━━\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut. Pembayaran dapat dilakukan langsung ke kantor yayasan pada hari dan jam kerja.\n\nAtas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.\n\nAlhamdulillah, Jazakumullahu Khairan atas perhatian dan kerja sama Bapak/Ibu.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
       const ok = await kirimFonnte(s.nomor_whatsapp, pesan);
       if (ok) sukses++; else gagal++;
     }
@@ -297,7 +297,7 @@ export default function DataSiswaSekolah() {
   const sendWhatsApp = async (s: StudentDB) => {
     const total = formatRupiah(s.tunggakan_sekolah.length * s.biaya_per_bulan);
     const bulanStr = s.tunggakan_sekolah.join(', ');
-    const pesan = `Assalamu'alaikum Yth. Bapak/Ibu ${s.nama_orang_tua},\n\nDengan hormat, kami informasikan bahwa:\n\n👤 Nama  : ${s.nama_lengkap}\n🏫 Kelas : ${getJenjangLabel(s)} ${s.kelas}\n📅 Bulan : ${bulanStr}\n💰 Total : ${total}\n\nMohon segera melakukan pembayaran SPP. Terima kasih atas perhatiannya.\n\n_Yayasan Baitulloh_`;
+    const pesan = `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nKepada Yth.\nBapak/Ibu *${s.nama_orang_tua}*\nOrang Tua/Wali dari *${s.nama_lengkap}*\n\nDengan hormat, bersama pesan ini kami dari *Yayasan Baitulloh* menyampaikan informasi terkait kewajiban pembayaran SPP putra/putri Bapak/Ibu.\n\n📋 *INFORMASI TAGIHAN*\n━━━━━━━━━━━━━━━━━━━━\n👤 Nama Siswa : *${s.nama_lengkap}*\n🏫 Jenjang     : ${getJenjangLabel(s)} ${s.kelas}\n📅 Bulan        : ${bulanStr}\n💵 Nominal      : _${total}_\n━━━━━━━━━━━━━━━━━━━━\n\nMohon kiranya Bapak/Ibu dapat segera menyelesaikan kewajiban pembayaran tersebut. Pembayaran dapat dilakukan langsung ke kantor yayasan pada hari dan jam kerja.\n\nAtas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.\n\nAlhamdulillah, Jazakumullahu Khairan atas perhatian dan kerja sama Bapak/Ibu.\n\nAlhamdulilahi Jazakumullahu Khoiro,\n\n*Bendahara Yayasan Baitulloh*\n_Yukum Jaya, Terbanggi Besar, Lampung Tengah_`;
     const ok = await kirimFonnte(s.nomor_whatsapp, pesan);
     if (ok) toast.success(`✅ Tagihan terkirim ke ${s.nama_orang_tua}`);
     else toast.error(`❌ Gagal kirim ke ${s.nomor_whatsapp}`);
