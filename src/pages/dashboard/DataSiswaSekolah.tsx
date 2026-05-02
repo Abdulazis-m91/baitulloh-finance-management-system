@@ -114,7 +114,8 @@ const StudentFormPopup = ({ title, onClose, onSubmit, form, setForm, toggleBulan
   const [rfidFocused, setRfidFocused] = useState(false);
   const [rfidFlash, setRfidFlash] = useState(false);
   const isKhusus = form.jenjang === 'Khusus';
-  const availableKelas = isKhusus ? kelasKhusus : form.jenjang ? kelasOptions[form.jenjang] ?? [] : [];
+  const _allKelas = ['7A','7B','8A','8B','9A','9B','10A','10B','11A','11B','12A','12B'];
+  const availableKelas = isKhusus ? _allKelas : form.jenjang ? (['SMP','SMA'].includes(form.jenjang) ? (form.jenjang === 'SMP' ? ['7A','7B','8A','8B','9A','9B'] : ['10A','10B','11A','11B','12A','12B']) : []) : [];
 
   useEffect(() => { const t = setTimeout(() => rfidRef.current?.focus(), 400); return () => clearTimeout(t); }, []);
   useEffect(() => {
