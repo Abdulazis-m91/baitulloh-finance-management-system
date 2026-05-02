@@ -2,6 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Download, Send, Search, Eye, Edit, Trash2, MessageCircle, X, User, AlertTriangle, Calendar, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSantri, useInsertSantri, useUpdateSantri, useDeleteSantri, type SantriDB } from '@/hooks/useSupabaseSantri';
+import { useAutoTambahTunggakanPesantren, useCicilanPesantrenBySiswa, KATEGORI_BIAYA, KATEGORI_LIST, type KategoriSantri } from '@/hooks/useSupabasePesantren';
+import { formatRupiah } from '@/lib/format';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 
 const FONNTE_TOKEN = import.meta.env.VITE_FONNTE_TOKEN || 'UfZ8GV7RQHsWRRLBXJK7';
 
@@ -638,3 +642,4 @@ export default function DataSantriPesantren() {
     </div>
   );
 }
+ 
