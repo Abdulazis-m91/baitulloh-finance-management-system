@@ -61,11 +61,11 @@ export default function PendapatanSekolah() {
     const thnIni = nowObj.getFullYear();
 
     // Filter hanya bulan ini berdasarkan kolom "bulan"
-    const isBulanIni = (bulanStr: string) => {
-      const parts = bulanStr.split('-');
-      const nm = parts[0];
-      const thn = parts.length > 1 ? parseInt(parts[1]) : thnIni;
-      return nm === nmBulanIni && thn === thnIni;
+    // Filter by tanggal transaksi (bukan bulan tunggakan)
+    // Sehingga pembayaran tunggakan Januari yang dibayar Mei tetap masuk Pendapatan Mei
+    const isTanggalBulanIni = (tanggal: string) => {
+      const d = new Date(tanggal);
+      return d.getMonth() === nowObj.getMonth() && d.getFullYear() === nowObj.getFullYear();
     };
 
     if (activeTab === 'SMP' || activeTab === 'SMA') {
@@ -73,7 +73,7 @@ export default function PendapatanSekolah() {
         p.jenjang === activeTab &&
         (!filterKelas || p.kelas === filterKelas) &&
         p.metode !== 'Deposit' &&
-        isBulanIni(p.bulan) &&
+        isTanggalBulanIni(p.tanggal) &&
         !isKhususPembayaran(p, studentMap) // exclude Khusus dari SMP/SMA
       );
     }
@@ -81,7 +81,7 @@ export default function PendapatanSekolah() {
       return pembayaran.filter(p =>
         isKhususPembayaran(p, studentMap) &&
         p.metode !== 'Deposit' &&
-        isBulanIni(p.bulan)
+        isTanggalBulanIni(p.tanggal)
       );
     }
     if (activeTab === 'Cicil') {
@@ -508,3 +508,4 @@ export default function PendapatanSekolah() {
     </div>
   );
 }
+ 

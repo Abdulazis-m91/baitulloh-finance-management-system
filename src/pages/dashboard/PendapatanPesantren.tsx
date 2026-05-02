@@ -73,6 +73,10 @@ export default function PendapatanPesantren() {
     const thnIni = now.getFullYear();
 
     // Filter by kolom bulan = bulan ini
+    const filterTanggalBulanIni = (tanggal: string) => {
+      const d = new Date(tanggal);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    };
     const filterBulanIni = (bulanStr: string) => {
       const parts = bulanStr.split('-');
       const nm = parts[0];
@@ -83,7 +87,7 @@ export default function PendapatanPesantren() {
     if (activeTab === 'Pembayaran') {
       return pembayaran.filter(p =>
         p.metode !== 'Deposit' &&
-        filterBulanIni(p.bulan) &&
+        filterTanggalBulanIni(p.tanggal) &&
         (!filterJenjang || p.jenjang === filterJenjang) &&
         (!filterKelas || p.kelas === filterKelas) &&
         (!filterKategori || p.kategori === filterKategori)
@@ -588,4 +592,4 @@ export default function PendapatanPesantren() {
       </AnimatePresence>
     </div>
   );
-}
+} 
