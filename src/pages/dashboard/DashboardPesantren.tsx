@@ -39,7 +39,9 @@ export default function DashboardPesantren() {
 
   const pembayaranLunas = pembayaran.filter(p => {
     if (p.metode !== 'Lunas') return false;
-    // Cek kolom bulan mengandung nama bulan ini
+    // Filter by tanggal ATAU kolom bulan (sama dengan LaporanPesantren)
+    const d = new Date(p.tanggal);
+    if (d.getMonth() === bulanIni && d.getFullYear() === tahunIni) return true;
     const bulanParts = p.bulan.split('-');
     const namaBulanP = bulanParts[0];
     const tahunP = bulanParts.length > 1 ? parseInt(bulanParts[1]) : tahunIni;
@@ -67,7 +69,14 @@ export default function DashboardPesantren() {
   ];
 
   // Hanya 5 terbaru per halaman
-  const sorted = [...pembayaran].sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+  // Pembayaran Terbaru: filter by tanggal ATAU kolom bulan = bulan ini
+  const sorted = [...pembayaran].filter(p => {
+    if (p.metode === 'Deposit') return false; // Deposit tidak masuk pembayaran terbaru
+    const d = new Date(p.tanggal);
+    if (d.getMonth() === bulanIni && d.getFullYear() === tahunIni) return true;
+    const parts = p.bulan.split('-');
+    return parts[0] === namabulanIni && (parts.length > 1 ? parseInt(parts[1]) : tahunIni) === tahunIni;
+  }).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const pagedPembayaran = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -215,3 +224,4 @@ export default function DashboardPesantren() {
     </div>
   );
 }
+ 
