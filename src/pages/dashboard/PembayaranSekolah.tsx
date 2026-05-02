@@ -67,6 +67,30 @@ async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string
   }
 }
 
+$file = "src\pages\dashboard\PembayaranSekolah.tsx"
+$content = Get-Content $file -Raw
+$insert = @"
+
+function generateRefNo(): string {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const rand = Math.floor(Math.random() * 9000 + 1000);
+  return ``YBS-`${yy}`${mm}`${dd}-`${rand}``;
+}
+
+function getTahunAjaran(): string {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  return month >= 7 ? ``${year}/${year + 1}`` : ``${year - 1}/${year}``;
+}
+
+"@
+$content = $content -replace "const bulanList = ", ($insert + "const bulanList = ")
+Set-Content $file $content
+
 const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const SPP_DEFAULT: Record<string, number> = { SMP: 125000, SMA: 150000 };
 const isKhususSiswa = (s: any) => s.kategori === 'Khusus';
