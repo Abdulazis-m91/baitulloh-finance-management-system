@@ -378,9 +378,9 @@ export default function PengeluaranPesantren() {
           rekap_pembangunan: 'Pembangunan'
         };
         const dana = danaMap[activeTab];
-        const data = rekapData(dana);
-        const dataBulanIni = rekapBulanIni(dana);
-        const totalBulanIni = dataBulanIni.reduce((s, e) => s + e.nominal, 0);
+        const data = rekapBulanIni(dana);
+        const dataBulanIni = data;
+        const totalBulanIni = data.reduce((s, e) => s + e.nominal, 0);
         return (
           <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             <div className="flex justify-end">
