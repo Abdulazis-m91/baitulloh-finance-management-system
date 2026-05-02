@@ -64,6 +64,20 @@ async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string
   }
 }
 
+
+const SPP_DEFAULT: Record<string, number> = { SMP: 125000, SMA: 150000 };
+const isKhususSiswa = (s: StudentDB) => s.kategori === 'Khusus';
+const getJenjangLabel = (s: StudentDB) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
+const getJenjangUI = (s: StudentDB) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
+function getJenjangDB(jenjangUI: string): 'SMP' | 'SMA' | 'Reguler' {
+  if (jenjangUI === 'Khusus') return 'Reguler';
+  return jenjangUI as 'SMP' | 'SMA' | 'Reguler';
+}
+function getBiayaPerBulan(jenjangUI: string, sppKhusus: string): number {
+  if (jenjangUI === 'Khusus') return Number(sppKhusus) || 0;
+  return SPP_DEFAULT[jenjangUI] ?? 125000;
+}
+
 type FilterStatus = '' | 'lunas' | 'menunggak';
 type StudentForm = {
   nisn: string; barcode: string; namaLengkap: string; jenjang: string;
