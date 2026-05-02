@@ -54,10 +54,26 @@ export default function LaporanPesantren() {
     const d = new Date(tanggal);
     return d.getMonth() === periodeMonth && d.getFullYear() === periodeYear;
   };
-  const totalKonsumsi = konsumsi.filter(c => filterPeriode(c.tanggal)).reduce((a, c) => a + c.nominal, 0);
+
+  const bulanNamaArr = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const nmPeriode = bulanNamaArr[periodeMonth];
+
+  // Filter by kolom bulan (handle deposit yang bulannya "Mei" atau "Mei-2026")
+  const filterPeriodeByBulan = (bulan: string) => {
+    const parts = bulan.split('-');
+    const nm = parts[0];
+    const thn = parts.length > 1 ? parseInt(parts[1]) : periodeYear;
+    return nm === nmPeriode && thn === periodeYear;
+  };
+
+  // Filter gabungan: by tanggal ATAU by kolom bulan
+  const filterPeriodeKomponen = (tanggal: string, bulan: string) => {
+    return filterPeriode(tanggal) || filterPeriodeByBulan(bulan);
+  };
+  const totalKonsumsi = konsumsi.filter(c => filterPeriodeKomponen(c.tanggal, c.bulan)).reduce((a, c) => a + c.nominal, 0);
   const totalPendapatanLain = pendapatanLain.filter(p => filterPeriode(p.tanggal)).reduce((a, p) => a + p.nominal, 0);
-  const totalOperasional = operasional.filter(c => filterPeriode(c.tanggal)).reduce((a, c) => a + c.nominal, 0);
-  const totalPembangunan = pembangunanData.filter(c => filterPeriode(c.tanggal)).reduce((a, c) => a + c.nominal, 0);
+  const totalOperasional = operasional.filter(c => filterPeriodeKomponen(c.tanggal, c.bulan)).reduce((a, c) => a + c.nominal, 0);
+  const totalPembangunan = pembangunanData.filter(c => filterPeriodeKomponen(c.tanggal, c.bulan)).reduce((a, c) => a + c.nominal, 0);
 
   const pendapatanKonsumsi = totalKonsumsi + totalPendapatanLain;
   const pendapatanOperasional = totalOperasional;
@@ -589,3 +605,4 @@ export default function LaporanPesantren() {
     </div>
   );
 }
+ 
