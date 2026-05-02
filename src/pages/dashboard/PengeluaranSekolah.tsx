@@ -411,3 +411,82 @@ export default function PengeluaranSekolah() {
                   <img src={logoYB} alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '6px' }} />
                   <div>
                     <div style={{ color: '#fff', fontWeight: 900, fontSize: '13px', letterSpacing: '0.5px' }}>YAYASAN BAITULLOH</div>
+                    <div style={{ color: '#bfdbfe', fontSize: '9px' }}>Nota Pengeluaran Sekolah</div>
+                  </div>
+                  <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: '10px' }}>NOTA PENGELUARAN</div>
+                    <div style={{ color: '#bfdbfe', fontSize: '9px' }}>{notaData.refNo}</div>
+                  </div>
+                </div>
+                {/* Garis emas */}
+                <div style={{ height: '3px', background: '#a17810' }} />
+                {/* Body */}
+                <div style={{ padding: '10px 14px' }}>
+                  <div style={{ background: '#1e40af', padding: '4px 8px', borderRadius: '4px', marginBottom: '6px' }}>
+                    <span style={{ color: '#fff', fontWeight: 700, fontSize: '9px', letterSpacing: '0.5px' }}>DETAIL TRANSAKSI</span>
+                  </div>
+                  {[
+                    ['No. Referensi', notaData.refNo],
+                    ['Tanggal', formatDate(notaData.tanggal)],
+                    ['Keterangan', notaData.keterangan],
+                    ['Sumber Dana', notaData.sumber_dana],
+                    ['Jenis Keperluan', notaData.jenis_keperluan],
+                    ['Petugas', notaData.petugas],
+                  ].map(([l, v]) => (
+                    <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', borderBottom: '1px dashed #e5e7eb', paddingBottom: '3px' }}>
+                      <span style={{ color: '#6b7280', fontSize: '10px' }}>{l}</span>
+                      <span style={{ color: '#111', fontWeight: 600, fontSize: '10px', textAlign: 'right', maxWidth: '55%' }}>{v}</span>
+                    </div>
+                  ))}
+                  {/* Total */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', marginTop: '8px' }}>
+                    <span style={{ fontWeight: 700, fontSize: '11px', color: '#111' }}>TOTAL PENGELUARAN</span>
+                    <span style={{ fontWeight: 900, fontSize: '13px', color: '#dc2626' }}>{formatRupiah(notaData.nominal)}</span>
+                  </div>
+                  {/* TTD */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '9px', color: '#555' }}>Yukum Jaya, {tanggalStruk}</div>
+                      <div style={{ fontSize: '9px', color: '#555', marginTop: '2px' }}>Bendahara,</div>
+                      <div style={{ height: '28px' }} />
+                      <div style={{ borderTop: '1px solid #333', paddingTop: '2px', minWidth: '90px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '9px', color: '#111' }}>{notaData.petugas}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Footer */}
+                <div style={{ height: '2px', background: '#a17810' }} />
+                <div style={{ background: '#f8fafc', padding: '5px 14px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '8px', color: '#9ca3af', fontStyle: 'italic' }}>Dokumen ini sah sebagai bukti pengeluaran Yayasan Baitulloh</span>
+                </div>
+              </div>
+
+              {/* 3 Tombol */}
+              <div className="grid grid-cols-3 gap-3 mt-5">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={handleSimpanCetak} disabled={isSaving}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-xs shadow-md disabled:opacity-50">
+                  <Printer className="w-5 h-5" />
+                  <span>Simpan &<br />Cetak</span>
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={handleSimpanSaja}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl gradient-success text-success-foreground font-semibold text-xs shadow-md">
+                  <Download className="w-5 h-5" />
+                  <span>Simpan</span>
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowNota(false)}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl border-2 border-border text-muted-foreground font-semibold text-xs hover:bg-muted transition-colors">
+                  <X className="w-5 h-5" />
+                  <span>Batal</span>
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
