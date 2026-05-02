@@ -66,6 +66,22 @@ async function kirimStrukFonnte(noWa: string, pesan: string, imageBase64: string
     return kirimFonnte(noWa, pesan);
   }
 }
+
+const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const SPP_DEFAULT: Record<string, number> = { SMP: 125000, SMA: 150000 };
+const isKhususSiswa = (s: any) => s.kategori === 'Khusus';
+const getJenjangLabel = (s: any) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
+const getJenjangUI = (s: any) => isKhususSiswa(s) ? 'Khusus' : s.jenjang;
+function getJenjangDB(jenjangUI: string): 'SMP' | 'SMA' | 'Reguler' {
+  if (jenjangUI === 'Khusus') return 'Reguler';
+  return jenjangUI as 'SMP' | 'SMA' | 'Reguler';
+}
+function getBiayaPerBulan(jenjangUI: string, sppKhusus: string): number {
+  if (jenjangUI === 'Khusus') return Number(sppKhusus) || 0;
+  return SPP_DEFAULT[jenjangUI] ?? 125000;
+}
+
+
 export default function PembayaranSekolah() {
   const [searchQuery, setSearchQuery] = useState('');
   const [barcodeQuery, setBarcodeQuery] = useState('');
